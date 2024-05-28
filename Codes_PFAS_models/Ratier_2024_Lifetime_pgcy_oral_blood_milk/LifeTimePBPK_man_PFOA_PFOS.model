@@ -1,0 +1,630 @@
+#------------------------------------------------------------------------------
+# An adult man model
+# A PK model for human life gestation
+#
+# 2002 - 2003: Sandrine Micallef - Frederic Bois 
+# 2008 - 2009: Celine Brochot - Remy Beaudouin
+# 2021: Celine Brochot - Aude Ratier, update sc_V[22], C_milk_evol, Fmilk_tot, FracIntake
+#
+# Units:
+# Volumes:          L
+# Time:             min
+# Flows:            L/min
+# Concentrations:   mM (ie mmol/L)
+# Vmax:             mmol/(mg protein x min)
+# Km:               mM
+# Masses:           kg
+# Height:           m
+# Perfusion rates:  L/min/kg of tissue
+#
+# 
+# Affectation d un numero a chaque organe:
+# no metabolism, no elimination, no absorption
+# 0  = adipose
+# 1  = adrenal
+# 2  = bone
+# 3  = brain
+# 4  = breast
+# 5  = heart
+# 6  = marrow 
+# 7  = muscle 
+# 8  = sexual organs 
+# 9  = pancreas 
+# 10 = skin 
+# 11 = spleen
+# 12 = thyroid 
+# 13 = urinary tract 
+# 
+# metabolism
+# 14 = kidney
+# 15 = lung 
+#
+# TGI + liver
+# 16 = gut
+# 17 = stomach
+# 18 = liver 
+# 19 = gut lumen 
+# 20 = stomach lumen
+# 21 = liver: arterial entry
+#
+# Blood
+# 22 = blood 
+#
+# Non-perfused tissue
+# 23 = bone np
+#------------------------------------------------------------------------------
+
+States  = {Q[0-20],      #   Quantity of chemical in tissues (mmol)
+  Q_art,        #   ...   in arterial (mmol)
+  Q_ven,        #   ...   in  venous blood (mmol)
+  
+  Q_met_liver,  #   ...   metabolized in  liver (mmol)
+  Q_met_lung,   #   ...   metabolized in  lung (mmol)
+  Q_met_gut,    #   ...   metabolized in  gut (mmol)
+  Q_met_kidney, #   ...   metabolized in  kidney (mmol)
+  Q_ing,        #   ...   ingested by the man (mmol)
+  Q_inh,        #   ...   inhaled by the man (mmol)
+  Q_inj,		#   ...   injected by the man (mmol)
+  Q_exhaled_total,    #   ...   exhaled by the man (mmol)  
+  Q_exhaled_alv,      #   ...   exhaled by the man (mmol)  
+  
+  Q_feces,      #   ...   fecally excreted by the man (mmol)
+  Q_urine,		#   ...   renally excreted by the man (mmol)
+  Q_elim_plasma,
+  AUC[0-20]} ;   
+
+
+Outputs = {
+Consumption, RateInj_temp,RateInj_Lact, 
+C_milk_evol, Fmilk_tot,
+
+BDW,  BodyWeight,
+  #Q_met_l,
+  CardOut,
+  Hct,
+  Hct_ven,
+  MuscleAtrophy,
+  
+  Q_man_total, 	 #  Total quantity in man (mmol)
+  Q_organ,       #  quantity in organs (mmol)
+  Q_met,         #   ...   metabolized (mmol)
+  Q_admin,       #   ...   inhaled (mmol)
+  Q_elim,        #   ...   eliminated (mg)
+  Q_pp,          #   ...   in poorly perfused tissue (mg)
+  Q_wp,          #   ...   in well perfused tissue (mg)
+  Q_check,
+  
+  Ke_renal,
+  F_gut2faeces,
+  
+  C[0-20],      # Concentration in tissues 
+  C_alv,
+  C_exh_total,  #   ...   in exhaled air (mM)
+  C_art,        #   ...   in  arterial blood (mmol)
+  C_ven,        #   ...   in  venous blood (mM)
+  C_exht,
+  V_ven,
+ 
+  
+  V[0-20],      # Volumes #should be 0-18 and 22-23
+  V[22-23],
+  sc_V[22],
+
+  W_lean,       
+  W_total,
+  
+  sc_F[0-17],	 #   scaling factor for flows 
+  sc_F[21],		   
+  F[0-18],      #   Flow  in  adipose (mM)
+  F[21-22],     #   Flow  in  adipose (mM)
+  F_alv,
+  sum_F
+};     
+
+Inputs  = {C_inh,      # Concentration inhaled (mM)
+		RateInj,       # Injection rate (mg/min)
+		Q_ing_rate,    # Ingestion rate (mmol/min)
+		 C_milk_input
+		 };  
+
+
+# Nominal parameter values
+# ========================
+
+# time conversion
+min_in_day = 1440;
+min_in_week = 10080;
+min_in_year = 1440*365.2425;
+
+# One week in min
+OneWeek = 7*min_in_day;
+#two week in min
+TwoWeek = 14*min_in_day;
+
+# Times for gestation and lactation
+BirthYear;
+
+# Time at the end of total breastfeeding for the individual 
+StopBreastmilk_total;
+
+
+# Intake parameters
+# ------------
+Intake_var;
+Q_inj_rate;
+Frac_Intake_Infant;
+Frac_Intake_Toddler;
+Frac_Intake_Children;
+Frac_Intake_Ado;
+DecreaseIntake_1;
+DecreaseIntake_2;
+
+# Physiological and pharmacokinetic parameters
+# --------------------------------------------
+# variability in Bodyweight
+BDW_Var = 1; 
+BDW_Var2 = 1;
+BDW_Var3 = 1;
+BDW_foetus_Var = 1;
+WeightGainPregnancy_Var = 1;
+
+# Fraction of arterial blood
+# Calculated from Filser 2000 p.43
+Fr_art_blood = 0.0178 / (0.0178 + 0.0533);
+
+# Tissue volumic weight are assumed to be equal to 1
+# excepted for adipose tissue (cf Brown et al. 97 p.433)
+Density_adip = 0.9;
+Density_bone = 2.0;
+
+# Relative organ weight for compartments for which the 
+# percentage of BDW does not change with age
+sc_V[5]  = 0.0045;
+sc_V[9]  = 0.00192;
+sc_V[11] = 0.0021;
+sc_V[12] = 0.000274;
+sc_V[13] = 0.00104;
+sc_V[15] = 0.0068;
+sc_V[17] = 0.0021;
+
+# Relative organ weight in adults
+sc_V_adult[0]  = 0.20;
+sc_V_adult[1]  = 0.0002;
+sc_V_adult[3]  = 0.01986;
+sc_V_adult[4]  = 0.00035;
+sc_V_adult[5]  = 0.0045;
+sc_V_adult[6]  = 0.050;
+sc_V_adult[7]  = 0.3973;
+sc_V_adult[8]  = 0.0008;
+sc_V_adult[9]  = 0.00192;
+sc_V_adult[10] = 0.0452;
+sc_V_adult[11] = 0.0021;
+sc_V_adult[12] = 0.000274;
+sc_V_adult[13] = 0.00104;
+sc_V_adult[14] = 0.0042;
+sc_V_adult[15] = 0.0068;
+sc_V_adult[16] = 0.0140;
+sc_V_adult[17] = 0.0021;
+sc_V_adult[18] = 0.0247;
+
+sc_V_bone_total = 0.095;
+sc_V_adult[2]   = sc_V_bone_total * 0.32; # 32% skeleton perfused 
+sc_V_adult[23]  = sc_V_bone_total - sc_V_adult[2];
+
+# Perfusion per unit mass of organ in adults
+# These values are used to compute:
+# sc_F_organ = (sc_V_organ / sc_V_organ_adult) * sc_F_organ_adult;
+sc_F_adult[0]  = 0.052;
+sc_F_adult[1]  = 0.003;
+sc_F_adult[2]  = 0.021;
+sc_F_adult[3]  = 0.124;
+sc_F_adult[4]  = 0.0002;
+sc_F_adult[5]  = 0.041;
+sc_F_adult[6]  = 0.031;
+sc_F_adult[7]  = 0.175;
+sc_F_adult[8]  = 0.001;
+sc_F_adult[9]  = 0.01;
+sc_F_adult[10] = 0.052;
+sc_F_adult[11] = 0.031;
+sc_F_adult[12] = 0.015;
+sc_F_adult[13] = 0.001;
+sc_F_adult[14] = 0.196;
+sc_F_adult[15] = 0.026;
+sc_F_adult[16] = 0.144;
+sc_F_adult[17] = 0.01;
+
+sc_F_adult[21] = 0.065;
+
+# Distribution
+##############
+
+# Free fraction in plasma
+Free;
+
+# Partition coefficients
+PC[0-23]; 
+
+
+# Parameters specific of the chemical studied
+# ===========================================
+
+# PC octanol : water
+PC_ow = 0.0;
+
+# Partition coefficients
+PC_blood_over_air = 1E99;
+
+# Transferts depending on the agent; Unit: L/min
+Ka_stomach    = 0.0;   # Absorption rate constant for stomach
+Ka_gut        = 0.0;   # Absorption rate constant for gut
+Ke_bile       = 0.0;   # Biliary excretion rate constant 
+
+# Intestinal absorption
+Abs = 0;
+
+# Constant calcul metabolisme
+C_mp_liver  = 45000 ;   # concentration of microsomal protein per gram of tissue (mg/kg)
+C_mp_lung   = 20000 ;   # concentration of microsomal protein per gram of tissue (mg/kg)
+C_mp_kidney = 45000 ;   # concentration of microsomal protein per gram of tissue (mg/kg)
+C_mp_gut    = 3000  ;   # concentration of microsomal protein per gram of tissue (mg/kg)
+
+
+# Metabolic constants 
+K_PerMin  = 0; # Kg^0.25/min
+K_LPerMin = 0; # L/min
+Km         = 1; # mM 
+Vmax_mp    = 0; # mM/min/mg microsomal protein
+HalfLife;
+
+#main cytochrome involved in the metabolism (mainCYP)?
+#mainCYP = 0;
+
+# Parameters that will be computed in Initialize
+# ==============================================
+
+# Flows or transits
+Ke_renal_input;
+F_gut2faeces_input;
+
+###################
+# Scaled parameters
+###################
+
+Initialize {
+    
+}  # End of initialize
+
+Dynamics {
+  
+  # Age in years
+  Age = t / 525600;  
+  
+  # Computation of intake
+  # =====================
+  Consumption = (Age < 1.01 ? Frac_Intake_Infant : 
+					(Age < 3.01 ? Frac_Intake_Toddler : 
+						(Age < 10.01 ? Frac_Intake_Children :
+							(Age < 18.01 ? Frac_Intake_Ado : 1))));
+  
+  Frac_Intake = (Intake_var == 1 ? Consumption : 1);
+  
+  # Body Weight
+  # =====================
+  # Body Weight (kg),  Preece-Baines growth model and polynomial model order 2
+  Growth1  = 74.16235828 - ( 2*(74.16235828 - 57.19957758) / (exp(0.63466182*(Age - 13.31018000))+ exp(0.05457656*(Age -13.31018000)))); 
+  Growth2  = -0.01129273*pow(Age,2) + 1.11817056*Age + 56.74397436 ;
+  BodyWeight = (Age < 19.00093277 ?  (Growth1 * BDW_Var2 - BDW_Var3): Growth2 * BDW_Var) ;
+  BDW = Growth1 * BDW_Var2 - BDW_Var3;
+  
+  # Decrease muscle and increase adip
+  AdipMass =  (Age < 19.00093277 ? 0: BodyWeight -BDW);
+  MuscleAtrophy = (Age < 24.3 ? 1 : (-0.0001264 * pow(Age,2) + 0.006131*Age + 0.926) ) ;
+  
+  # Cardiac Output
+  # =====================
+  # Cardiac Output (L/min/kg)
+  CO1 = 6.642 + (0.6 - 6.642) * exp(-0.1323 * Age);
+  CO2 = -0.000895 * pow(Age,2) + 0.0607 * Age + 5.54;
+  CardOut = (Age < 33.37 ? CO1 : CO2 ) * (1 - Hct);
+  
+  # Hematocrit ### IN MAN ###
+  # ==================================
+	# From Supp mat of Brochot et al. 2019
+  Param1 = 33.455469;
+  Param2 = 53.206039;
+  Param3 = 8.277945;
+  Param4 = 40.492556;
+  Param5 = 46.899695;
+
+  b1 = (Param4 - Param1 -(Param2 - Param1) * exp(-Param3))/5;
+  a1 = Param4 - 6*b1;
+  b2 = (Param5 - Param4)/5;
+  a2 = Param4 - 15*b2;
+
+  Hct_ven = 0.01 * (Age < 1 ? Param1 +(Param2-Param1)*exp(-Param3*Age) :
+                            (Age < 6 ? a1 + b1*Age :
+                            (Age < 15 ?  Param4 :
+                            (Age < 20 ? a2 + b2 * Age : Param5))));
+  Hct = Hct_ven * 0.91;
+  
+  # Relative organ volume (Percent of BDW)
+  # Unit = L/kg
+  # ======================================  
+  
+  sc_V[1] = 0.0002 + (0.00171 - 0.0002) * exp(-2.02 * Age);
+  sc_V[2] = (0.313 + (0.506 - 0.313) * exp (-0.0907 * Age)) * sc_V_bone_total; 
+  sc_V[3] = (1.450 + (0.353 - 1.450) * exp (-0.440  * Age)) / BDW ;
+  sc_V[4] =  3.42E-4 * 1 / ( 1 +  exp (-1.42 * Age+ 20.1));
+  sc_V[6] = 0.05 + (0.0138 - 0.05) * exp(-0.112 * Age);
+  sc_V[7] = (0.3973 + (0.201 - 0.3973) * exp(-0.141 * Age)) * MuscleAtrophy;
+    
+  sc_V8_child = -1.5156E-07 * pow(Age, 3) + 9.3351E-06 * pow(Age, 2)- 
+    1.1177E-04 * Age + 4.7966E-04;
+  sc_V[8] = (Age < 20.01 ? sc_V8_child : 0.0008);
+  
+  sc_V10_child = -1.1706E-05 * pow(Age, 3) + 5.4130E-04 * pow(Age, 2) - 
+    6.1966E-03 * Age + 4.6231E-02;
+  sc_V[10] = (Age < 20.01 ? sc_V10_child : 0.0452);
+  
+  sc_V[14] = 0.0042 + (0.00767 - 0.0042) * exp(-0.206 * Age);
+  
+  sc_V16_child = -0.000082562 * pow(Age, 2) + 0.0013523 * Age + 0.01293;
+  sc_V[16] = (Age < 16 ? sc_V16_child : 0.0140);
+  
+  sc_V[18]  = 0.0247 + (0.0409  - 0.0247) * exp(-0.218 * Age);
+  
+  sc_V[19] = 0.0089 + (0.0276 - 0.0089) * exp(-0.574 * Age);
+  
+  sc_V[20] = 0.0034 + (0.0105 - 0.0034) * exp(-0.522 * Age);
+
+#Updates according to Beaudouin et al., 2010 (error in pervious code, be careful)			 
+#sc_V[22] = (Age < 1 ? (-0.0273 * Age + 0.0771) : 
+#		   3.28E-5 * pow(Age, 3) - 1.21E-3 * pow(Age, 2) + 1.24E-2 * Age + 3.86E-2); #as woman < 14 years old
+# because the other way to compute is not ok, problem in parameters values
+
+# Other possibility
+sc_V[22] = (Age < 1 ? (-0.0273 * Age + 0.0771) : 0.0761 + (0.0289 - 0.0761) * exp (-0.592 * Age)); 
+  
+  sc_V[23] = sc_V_bone_total - sc_V[2];
+  
+  # stomach and gut lumen not included (sc_V[19], sc_V[20])
+  sc_V[0]  = 0.96     - sc_V[1]  - sc_V[2]  - sc_V[3]  - 
+    sc_V[4]  - sc_V[5]  - sc_V[6]  - sc_V[7]  - sc_V[8]  - 
+    sc_V[9]  - sc_V[10] - sc_V[11] - sc_V[12] - sc_V[13] - 
+    sc_V[14] - sc_V[15] - sc_V[16] - sc_V[17] - sc_V[18] - 
+    sc_V[22] - sc_V[23];
+  
+  # Organ volumes as percent of BDW, density 1 is assumed
+  # exept for adip (0.9) and bones (2)
+  V[1]    = sc_V[i]  * BDW;
+  V[3-20] = sc_V[i]  * BDW;
+  V[22]   = sc_V[i]  * BDW;
+  
+  V[0]    = (AdipMass/Density_adip) + sc_V[0] * BDW / Density_adip;
+  V[2]    = sc_V[2]  * BDW / Density_bone;
+  V[23]   = sc_V[23] * BDW / Density_bone;
+  V_art   = V[22] * Fr_art_blood * (1 - Hct);   
+  V_ven   = V[22] * (1 - Hct) - V_art;
+  
+  # Mass balance
+  W_lean  = V[1]  + V[3]  + (V[2] +  V[23]) * Density_bone +  
+    V[4]  + V[5]  + V[6] + V[7] + V[8] + V[9]  + 
+    V[10] + V[11] + V[12] + V[13] + V[14] + V[15] +  
+    V[16] + V[17] + V[18] + V[22]; 
+  
+  W_total = W_lean + V[0] * Density_adip;
+  
+  # Metabolism (scaled to microsomal protein concentration)
+  # ==================================
+  Vmax_liver   = C_mp_liver  * V[18] * Vmax_mp ;
+  Vmax_lung    = C_mp_lung   * V[15] * Vmax_mp ;
+  Vmax_kidney  = C_mp_kidney * V[14] * Vmax_mp ;
+  Vmax_gut     = C_mp_gut    * V[16] * Vmax_mp ;
+  
+  # Blood flows (L/min)
+  # ===================
+  # relative blood flows (compared to CardOut)
+  sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  sc_F[21]   = (sc_V[18] / sc_V_adult[18]) * sc_F_adult[21];
+  
+  sum_sc_F = sc_F[0]  + sc_F[1]  + sc_F[2]  + sc_F[3]  + sc_F[4]  + sc_F[5] +  
+    sc_F[6]  + sc_F[7]  + sc_F[8]  + sc_F[9] + sc_F[10] + sc_F[11] + 
+    sc_F[12] + sc_F[13] + sc_F[14] + sc_F[15] + sc_F[16] + 
+    sc_F[17] + sc_F[21];
+
+  # correction for plasma
+  F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
+  F[21]   = (sc_F[21] / (sum_sc_F / 1)) * CardOut * Free;
+  
+  F[18]   = F[9] + F[11] + F[16] + F[17] + F[21];
+  
+  F[22]   = F[0] + F[1]  + F[2]  + F[3]  + F[4]  + F[5]  + F[6] + F[7] + 
+  F[8] + F[10] + F[12] + F[13] + F[14] + F[15] + F[18];
+  
+  # added!
+  sum_F = F[0] + F[1]  + F[2]  + F[3]  + F[4]  + F[5]  + F[6] + F[7] + 
+    F[8] + F[9] + F[10] + F[11] + F[12] + F[13] + F[14] + F[15] + F[16] +F[17] + F[21];
+  
+  ######### ADDED ##############
+  # Metabolism
+  # ==================================
+  # Metabolism computed as in Verner et al. 2008 (EHP)
+  V_distribution = PC[0]  * V[0]  + PC[1]  * V[1]  + PC[2]  * V[2] +  PC[3]  * V[3] +
+    PC[4]  * V[4]  + PC[5]  * V[5]  + PC[6]  * V[6] +  PC[7]  * V[7] + 
+    PC[8]  * V[8]  + PC[9]  * V[9]  + PC[10] * V[10] + PC[11] * V[11] +  
+    PC[12] * V[12] + PC[13] * V[13] + PC[14] * V[14] + PC[15] * V[15] + 
+    PC[16] * V[16] + PC[17] * V[17] + PC[18] * V[18] + V[22];
+  
+  Kelim  = (log(2) / (HalfLife * 365.2425 * 24 * 60)) * V_distribution * 1.00;
+  ######### END ADDED ##############
+  
+  # Respiratory parameters
+  # ======================
+  
+  # Tidal volume, breath frequency and volume of dead space
+  V_tidal     = (Age < 20 ? 0.0337 * Age + 0.0407 : 0.75);
+  Freq_breath = 12 + (38.9 - 12) * exp(-0.176 * Age);
+  V_ds        = (Age < 16 ? 0.0076 * Age + 0.0101 : 0.15);
+  
+  # Fraction of dead space in lung ;
+  F_ds = V_ds/V[15]; 
+  
+  # Ventilation minute (l/min)
+  F_pul = V_tidal * Freq_breath; # Mezzetti model
+  
+  # Alveolar flow rate (L/min)
+  F_alv =  (V_tidal - V_ds) * Freq_breath; # Mezzetti model
+  #F_alv = F_pul * (1 - F_ds);
+  
+  # Transits (L/min)
+  # ================
+  
+  # Intestinal transit stomach -> lumen
+  F_stom2gut = 0.005556 + (0.000637 - 0.005556) * exp(-0.0789 * Age);
+  
+  # Intestinal transit for gut_lumen (feces)
+  # gut_lumen = contents of small and large intestine
+  # large intestine = {right colon, left colon, rectosigmoid}
+  # F_gut2faeces is the mean of the transits (l/min) in small
+  # intestine, right colon, left colon and rectosigmoid
+  Temp_gut2faeces = 0.0004688 + (0.0000852 - 0.0004688) * exp(-0.0671 * Age);
+  F_gut2faeces =  (  F_gut2faeces_input>= 0 ?   F_gut2faeces_input : Temp_gut2faeces);
+  
+  # Urinary excretion
+    # Temp_Ke_renal = (Age < 20 ? 0.00004 * Age + 0.0002 : 1.111E-3);
+    # Ke_renal =  (Ke_renal_input>= 0 ?  Ke_renal_input : Temp_Ke_renal);
+  #Updated with half-life of PFAS and corrected by the bodyweight
+  Ke_renal =( Ke_renal_input >=0 ?  
+                Ke_renal_input * BodyWeight : 0.0008333 + (0.000208 - 0.0008333) * exp(-0.0857 * Age));
+  
+  
+	# exposure from breastmilk
+	# ========================
+
+# intake of lactation when the individual is breastfed (L/min), from Yeung et al. 2020 (mL/kg/d)
+  Fmilk_tot = (t>0 ? (160.39 * (0.232/(0.232-0.00252))*(exp(-0.00252 * t/1440) - exp(-0.232 * t/1440)) * BDW)/(1000*1440) : 1E-10);
+  Fmilk_part = 2.78E-4;
+ 
+   F_milk_input = (t < StopBreastmilk_total ? Fmilk_tot : Fmilk_part);
+
+ 
+  # evolution of Cmilk when the individual is breastfed
+  C_milk_evol = C_milk_input * (t<23040 ? 1 : exp(-0.0024*(t/(24*60)-23040/(24*60))));
+
+  
+  
+  # Concentrations in tissues and in venous blood at the organ exit 
+  # ===============================================================
+  C[0-18]  = Q[i] / V[i];
+  Cv[0-18] = C[i] / PC[i];
+  
+  # other compartment concentrations for which PC is not needed
+  # because equal to 1 (PC_ven and PC_art) or because
+  # they are not directly irrigated by blood (diffusion)
+  C[19-20] = Q[i]  / V[i];
+  C_ven    = Q_ven / V_ven;
+  C_art    = Q_art / V_art;
+  
+  C_alv       =  C_art / PC_blood_over_air ;
+  C_exh_total =  F_ds *  C_inh  + (1 - F_ds) * C_alv ;
+  
+  # temporal trends of the oral intake
+  # decrease after 2000
+  t_year  = BirthYear + Age;
+  t_y2000 = 1999;
+  t_y2001 = 2000;
+  Expo_1 = (t_year > 2000 ? 1 : 0);
+  Expo_2 = (t_year < 2001 ? 0 : t_year - t_y2001);
+  PercentVar_intake = pow(1-DecreaseIntake_1, Expo_1) * pow(1-DecreaseIntake_2, Expo_2) ;
+
+  
+  # Differentials 
+  # =============
+  
+  # administration
+  RateInj_Lact = F_milk_input * C_milk_evol;
+  RateInj_temp = PercentVar_intake * RateInj; 
+  dt(Q_ing) = Q_ing_rate;
+  dt(Q_inh) = F_alv * C_inh;
+  dt(Q_inj) = Frac_Intake * RateInj_temp/1E6 * BodyWeight * Abs + RateInj_Lact * Abs;  
+  
+  # elimination
+  dt(Q_feces)         = F_gut2faeces * C[19];
+  dt(Q_urine)         = Ke_renal     * C[14];
+  dt(Q_exhaled_total) = F_pul * C_exh_total  ;
+  dt(Q_exhaled_alv)   = F_alv * C_alv ;
+  dt(Q_elim_plasma)   = Kelim * C_art; # added
+  
+  # metabolism
+  dt(Q_met_liver) =  Vmax_liver  *  Cv[18] / (Km + Cv[18]) ;
+  dt(Q_met_lung)  =  Vmax_lung   *  Cv[15] / (Km + Cv[15]) ;
+  dt(Q_met_kidney)=  Vmax_kidney *  Cv[14] / (Km + Cv[14]) ;
+  dt(Q_met_gut)   =  Vmax_gut    *  Cv[16] / (Km + Cv[16]) ;
+  
+  # distribution
+  dt(Q[0-13]) = F[i] * (C_art - Cv[i]);
+  dt(Q[14]) = F[14] * (C_art - Cv[14]) - dt(Q_urine)- dt(Q_met_kidney);
+  dt(Q[15]) = F[15] * (C_art - Cv[15]) - dt(Q_met_lung);
+  
+  dt(Q[16])  = Ka_gut * C[19] + F[16] * (C_art - Cv[16]) - dt(Q_met_gut);
+  
+  dt(Q[17]) = Ka_stomach * C[17] + F[17] * (C_art - Cv[17]);
+  # dt(Q[17]) = Ka_stomach * C[20] + F[17] * (C_art - Cv[17]);
+  
+  
+  dt(Q[18]) = F[21] * C_art + F[11] * Cv[11] + F[9] * Cv[9] + F[16] * Cv[16] +
+    F[17] * Cv[17]- F[18] * Cv[18] + dt(Q_inj) - dt(Q_met_liver) - Ke_bile  * C[18];
+  
+  dt(Q[19]) = F_stom2gut * C[20] + Ke_bile * C[18] - Ka_gut * C[19] - dt(Q_feces);
+  
+  
+  dt(Q[20]) = dt(Q_ing) - (F_stom2gut + Ka_stomach) * C[20];
+  
+  dt(Q_art) = dt(Q_inh) - dt(Q_exhaled_alv) + F[22] * C_ven - F[22] * C_art - dt(Q_elim_plasma) ; 
+  
+  dt(Q_ven)      = F[0]  * Cv[0]  + F[1]  * Cv[1]  + F[2]  * Cv[2]  +
+    F[3]  * Cv[3]  + F[4]  * Cv[4]  + F[5]  * Cv[5]  + 
+    F[6]  * Cv[6]  + F[7]  * Cv[7]  + F[8]  * Cv[8]  + 
+    F[10] * Cv[10] + F[12] * Cv[12] + F[13] * Cv[13] + 
+    F[14] * Cv[14] + F[15] * Cv[15] + F[18] * Cv[18]   
+  - F[22] * C_ven; 
+  
+  # Mass balance check
+  Q_organ = Q[0]  + Q[1]  + Q[2]  + Q[3]  + Q[4]  + Q[5]  +  
+    Q[6]  + Q[7]  + Q[8]  + Q[9]  + Q[10] + Q[11] + 
+    Q[12] + Q[13] + Q[14] + Q[15] + Q[16] + Q[17] + 
+    Q[18] + Q[19] + Q[20] + C_art * V_art + Q_ven;
+  
+  Q_met   = Q_met_liver + Q_met_lung + Q_met_gut + Q_met_kidney;
+  
+  Q_admin = Q_ing + Q_inh + Q_inj;
+  
+  Q_elim  = Q_exhaled_alv + Q_feces + Q_urine + Q_elim_plasma;
+  
+  Q_man_total = Q_organ + Q_met + Q_elim;
+  
+  Q_check = Q_admin - Q_man_total; # added
+  
+  # Computation of AUC
+  # =================================================
+  dt(AUC[0-20]) = C[i]; # added
+
+} # End of Dynamics
+
+
+CalcOutputs {
+  # Output for checking with experimental data
+  # conversion en ng/g of lipid tissue	
+  C_ven  = (Q_ven > 0 ? Q_ven / V_ven : 1E-10); #added #need to check the units conversion
+  
+  Q_wp =  Q[1]  + Q[2]  + Q[3]  + Q[4]  + Q[5]  + Q[6]  + Q[8]  + 
+    Q[9]  + Q[11] + Q[12] + Q[13] + Q[14] + Q[15] + Q[16] + 
+    Q[17] + Q[18]; 
+  
+  Q_pp =  Q[7] + Q[10]  ;
+  
+  C_exht = (C_exh_total>0? C_exh_total : 0.000000001);
+  
+  
+} # End of CalcOutputs
+End.

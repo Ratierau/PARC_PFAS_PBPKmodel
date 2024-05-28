@@ -1,0 +1,222 @@
+#--------------------------------------------------------------------------
+# HELIX child - boys
+#--------------------------------------------------------------------------
+Integrate (Lsodes, 1E-6, 1E-6, 1);
+
+OutputFile("fit_pfoa_ kinetic_boys_BF_profiles.out");
+  # Parameters specific to PFOA
+  # ---------------------------
+  # intestinal absorption (%)
+  Abs = 1;
+  # Free fraction in blood
+  Free = 0.02;
+  # elimination (in years)
+  HalfLife = 2.5; #3.0
+  # Partition coefficient 
+  PC_0  = 0.23;
+  PC_1  = 0.58;
+  PC_2  = 0.58;
+  PC_3  = 0.08;
+  PC_4  = 0.10;
+  PC_5  = 0.58;
+  PC_6  = 0.58;
+  PC_7  = 0.10;
+  PC_8  = 0.58;
+  PC_9  = 0.22;
+  PC_10 = 0.10;
+  PC_11 = 0.58;
+  PC_12 = 0.38;
+  PC_13 = 0.58;
+  PC_14 = 0.58;
+  PC_15 = 0.63;
+  PC_16 = 0.58;
+  PC_17 = 0.58;
+  PC_18 = 0.52;
+  PC_22 = 1;
+  
+  PC_blood_over_air = 1E99;
+  
+  # other transfers
+  Ka_stomach         = 0.00;
+  Ka_gut             = 0.00; 
+  Ke_renal_input     = 0; 
+  F_gut2faeces_input = 0; 
+  Ke_bile            = 0;
+
+  # Variations of intake (=1 to model variations with age)
+  Intake_var = 1;
+  Frac_Intake_Infant = 3.65;
+  Frac_Intake_Toddler = 3.80;
+  Frac_Intake_Children = 2.75;
+  Frac_Intake_Ado = 1.41;
+  DecreaseIntake_1 = 0.20;
+  DecreaseIntake_2 = 0.04;
+  
+    # Simulations 
+    #------------
+   # exclusive BF
+Simulation { # Subject no BF
+# Birth year
+BirthYear = 2007 ;
+    # BodyWeigth Parameters
+    BDW_Var = 0.900308438844513 ;
+    BDW_Var2 = 0.860834986909385 ;
+    BDW_Var3 = -1.05664919997588 ;
+    BDW_foetus_Var = 1;
+    WeightGainPregnancy_Var = 1;
+    StopBreastmilk_total = 0;
+    RateInj = NDoses(2, 0.451695,  0, 0, 6000000);
+    C_milk_input = 0; #28days
+    
+# Initial amounts in the newborn
+    Q_0 = 4.85008; 
+    Q_1 = 0.05425;
+    Q_2 = 0.43787;
+    Q_3 = 0.56456;
+    Q_4 = 0;
+    Q_5 = 0.10233;
+    Q_6 = 0.28154;
+    Q_7 = 0.72797;
+    Q_8 = 0.02725;
+    Q_9 = 0.01548;
+    Q_10 = 0.21449;
+    Q_11 = 0.06725;
+    Q_12 = 0.00762;
+    Q_13 = 0.02038;
+    Q_14 = 0.17652;
+    Q_15 = 0.25189;
+    Q_16 = 0.53153;
+    Q_17 = 0.06937;
+    Q_18 = 0.83328;
+    Q_19 = 0;
+    Q_20 = 0;
+    Q_art = 0.3309;
+Q_ven = 0.99083;
+
+        PrintStep(C_ven, C_milk_evol, BDW, Fmilk_tot, 0,3561120, 1440);
+  } # end Subject 
+  
+  Simulation { # Subject 6months BF (not original)
+# Birth year
+BirthYear = 2007 ;
+    # BodyWeigth Parameters
+    BDW_Var = 0.900308438844513 ;
+    BDW_Var2 = 0.860834986909385 ;
+    BDW_Var3 = -1.05664919997588 ;
+    BDW_foetus_Var = 1;
+    WeightGainPregnancy_Var = 1;
+    StopBreastmilk_total = 262800;
+    RateInj = NDoses(3, 0,0.451695,  0, 0, 262801, 6000000);
+    C_milk_input = NDoses(2,0.284, 0, 0, 262800); 
+
+    # Initial amounts in the newborn
+    Q_0 = 4.85008; 
+    Q_1 = 0.05425;
+    Q_2 = 0.43787;
+    Q_3 = 0.56456;
+    Q_4 = 0;
+    Q_5 = 0.10233;
+    Q_6 = 0.28154;
+    Q_7 = 0.72797;
+    Q_8 = 0.02725;
+    Q_9 = 0.01548;
+    Q_10 = 0.21449;
+    Q_11 = 0.06725;
+    Q_12 = 0.00762;
+    Q_13 = 0.02038;
+    Q_14 = 0.17652;
+    Q_15 = 0.25189;
+    Q_16 = 0.53153;
+    Q_17 = 0.06937;
+    Q_18 = 0.83328;
+    Q_19 = 0;
+    Q_20 = 0;
+    Q_art = 0.3309;
+Q_ven = 0.99083;
+
+        PrintStep(C_ven, C_milk_evol, BDW, Fmilk_tot, 0,3561120, 1440);
+  } # end Subject 
+  
+  Simulation { # Subject 1Year BF (not original)
+# Birth year
+BirthYear = 2007 ;
+    # BodyWeigth Parameters
+    BDW_Var = 0.900308438844513 ;
+    BDW_Var2 = 0.860834986909385 ;
+    BDW_Var3 = -1.05664919997588 ;
+    BDW_foetus_Var = 1;
+    WeightGainPregnancy_Var = 1
+    StopBreastmilk_total = 525600;
+    RateInj = NDoses(3, 0,0.451695,  0, 0, 525601, 6000000);
+    C_milk_input = NDoses(2,0.284, 0, 0, 525600); 
+
+    # Initial amounts in the newborn
+    Q_0 = 4.85008; 
+    Q_1 = 0.05425;
+    Q_2 = 0.43787;
+    Q_3 = 0.56456;
+    Q_4 = 0;
+    Q_5 = 0.10233;
+    Q_6 = 0.28154;
+    Q_7 = 0.72797;
+    Q_8 = 0.02725;
+    Q_9 = 0.01548;
+    Q_10 = 0.21449;
+    Q_11 = 0.06725;
+    Q_12 = 0.00762;
+    Q_13 = 0.02038;
+    Q_14 = 0.17652;
+    Q_15 = 0.25189;
+    Q_16 = 0.53153;
+    Q_17 = 0.06937;
+    Q_18 = 0.83328;
+    Q_19 = 0;
+    Q_20 = 0;
+    Q_art = 0.3309;
+Q_ven = 0.99083;
+
+        PrintStep(C_ven, C_milk_evol, BDW, Fmilk_tot, 0,3561120, 1440);
+  } # end Subject
+  
+  Simulation { # Subject 3Y BF (not original)
+# Birth year
+BirthYear = 2007 ;
+    # BodyWeigth Parameters
+    BDW_Var = 0.900308438844513 ;
+    BDW_Var2 = 0.860834986909385 ;
+    BDW_Var3 = -1.05664919997588 ;
+    BDW_foetus_Var = 1;
+    WeightGainPregnancy_Var = 1;
+
+    StopBreastmilk_total = 1576800;
+    RateInj = NDoses(3, 0,0.451695,  0, 0, 1576801, 6000000);
+    C_milk_input = NDoses(2,0.284, 0, 0, 1576800); 
+
+    # Initial amounts in the newborn
+    Q_0 = 4.85008; 
+    Q_1 = 0.05425;
+    Q_2 = 0.43787;
+    Q_3 = 0.56456;
+    Q_4 = 0;
+    Q_5 = 0.10233;
+    Q_6 = 0.28154;
+    Q_7 = 0.72797;
+    Q_8 = 0.02725;
+    Q_9 = 0.01548;
+    Q_10 = 0.21449;
+    Q_11 = 0.06725;
+    Q_12 = 0.00762;
+    Q_13 = 0.02038;
+    Q_14 = 0.17652;
+    Q_15 = 0.25189;
+    Q_16 = 0.53153;
+    Q_17 = 0.06937;
+    Q_18 = 0.83328;
+    Q_19 = 0;
+    Q_20 = 0;
+    Q_art = 0.3309;
+    Q_ven = 0.99083;
+    PrintStep(C_ven, C_milk_evol, BDW, Fmilk_tot, 0,3561120, 1440);
+  } # end Subject 
+  
+End.

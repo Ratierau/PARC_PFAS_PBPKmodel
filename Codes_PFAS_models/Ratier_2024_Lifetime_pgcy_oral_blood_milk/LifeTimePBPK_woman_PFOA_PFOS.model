@@ -1,0 +1,1290 @@
+#------------------------------------------------------------------------------
+# An adult woman model + pregnancy + fetus + lactation
+#
+# A PK model for human life  gestation
+#
+# 2002 - 2003: Sandrine Micallef - Frederic Bois 
+# 2008 - 2009: Celine Brochot - Remy Beaudouin
+#
+# 2017: Changes made to the model, Celine Brochot
+# - continuity of the physiology and anatomy between the fetus and the newborn
+#   (organ volume and cardiac output).
+# - blood loss at delivery
+# - temporal trends in the intake (decrease)
+# 
+# 2018: correction for CardOutput in fetus that was reported as mL/min in Luecke
+# and that was not properly used here. Very minor changes on the calculation of the fetus blood flows. 
+#
+# Modifications made for perfluorinated compounds, PFOA and PFOS (2017, Celine Brochot)
+# - distribution in plasma (correction by hematocrit)
+# - free fraction of chemical in plasma (no partition into red blood cells)
+# - uterus blow flow parameterized with the equation proposed by Dallman et al. 2017
+# - modification of the placental transfers (remove the partition coefficients and the free fraction)
+#
+# Add some variables (AUC, ...) to compute internal exposure
+#
+# Add an intake from breast milk for the considered individual
+#
+# 2021-2022: add free fraction evolution during pregnancy (Codaccioni2020), Hematocrit update for mother and foetus (Dallman2017)
+# 		fetal flows update, Cardiac output for foetus, milk evolution, add an equation for the variation in the milk intake as a function of the time
+#    since the start of breastfeeding, Fmilk_tot updated from Yeung et al. 2020, Fracintake child updated
+#
+# Units:
+# Volumes:          L
+# Time:             min
+# Flows:            L/min
+# Concentrations:   mg/L 
+# Vmax:             mg/min
+# Km:               mg
+# Masses:           kg
+# Height:           m
+# Perfusion rates:  L/min/kg of tissue
+#
+#
+# Affectation d un numero a chaque organe:
+# no metabolism, no elimination, no absorption
+# 0  = adipose
+# 1  = adrenal
+# 2  = bone
+# 3  = brain
+# 4  = breast
+# 5  = heart
+# 6  = marrow 
+# 7  = muscle 
+# 8  = sexual organs 
+# 9  = pancreas 
+# 10 = skin 
+# 11 = spleen
+# 12 = thyroid 
+# 13 = urinary tract 
+# 
+# metabolism
+# 14 = kidney
+# 15 = lung 
+#
+# TGI + liver
+# 16 = gut
+# 17 = stomach
+# 18 = liver 
+# 19 = gut lumen 
+# 20 = stomach lumen
+# 21 = liver: arterial entry
+#
+# Blood
+# 22 = blood 
+#
+# Non-perfused tissue
+# 23 = bone np
+
+# pregnancy organ
+# 26 = amniot
+# 27 = placenta #umbilical cord?
+
+# 29 = milk
+#------------------------------------------------------------------------------
+
+States  = {Q[0-20],      #   Quantity of chemical in tissues (mg)
+           Q_ven,        #   ...   in  venous blood (mg)	   
+           Q_art,        #   ...   in  arterial blood (mg)	   
+
+           Q_met_liver,     #   ...   metabolized in liver (mg)
+           Q_met_lung,      #   ...   metabolized in lung (mg)
+           Q_met_gut,       #   ...   metabolized in gut (mg)
+	       Q_met_kidney,
+           Q_ing,           #   ...   ingested (mg)
+           Q_inh,           #   ...   inhaled (mg)
+	       Q_inj,           #   ...   injected (mg)
+           Q_exhaled_total, #   ...   totally exhaled (mg)
+           Q_exhaled_alv,   #   ...   exhaled in alveolar space (mg)  
+           Q_feces,         #   ...   fecally excreted (mg)
+           Q_urine,         #   ...   renally excreted (mg)
+	       Q_lact,          #   ...   lactation excreted (mg)
+           Q_lact_lastchild, # ...   lactation excreted during the last breastfeeding period (mg)
+           Q_elim_plasma,
+
+           Q[26-27],        #   Quantity of chemical in fetal/mother tissues  (mg)
+	       Q_met_placenta,  #   ...   metabolized in placenta (mg)
+
+           Q_foetus[0-18],       #  Quantity of chemical  in fetal adipose (mg)
+		   Q_foetus[22],  	#   ...   in fetal 22 (mg)
+           Q_foetus_met_liver,  #   ...   metabolized in fetal liver (mg)
+           Q_lact_measured, V_lact_measured, 
+           Q_bloodloss, 
+
+           AUC[0-20],
+           AUC[26-27],
+           AUC_foetus[0-18],
+           AUC_foetus[22]}; 
+
+  
+Outputs = {C_ven, C_art,    	
+           V_ven, V_art,
+		   Free, Free_fet,
+		   Hct, Hct_foetus,
+		   
+		   GW, GW_inWeek, Gest_Age_inWeek,
+		   
+		   dummy,
+
+           # SD_Kd,
+
+           C[0-18], C[27],
+		   
+           V[0-18], V[22-23], 
+		   sc_V[0-18], sc_V[22-23],
+
+           C_foetus[0-18],       
+           C_foetus[22],       
+           C_foetus_ven,
+           V_foetus[0-18], V_foetus[22-23],
+	   
+           BDW_foetus, W_foetus, ln_EW_i,
+           BDW, W_total, BDW_foetus_endpgy, BodyWeight, 
+
+           scV_foetus[0-18], scVend_foetus[1-18], scVend_foetus[22], scV_foetus[22-23],
+		   sc_F_foetus[3], sc_F_foetus[14], sc_F_foetus[27],
+		   sum_sc_F_foetus, sum_F_foetus, sum_F, 
+		   CardOut, CardOutput_foetus, 
+		   F_foetus[0-18],
+		   F_foetus[21],
+		   F_foetus[27],		   
+		   F[0-18],  
+						
+           C_milk, C_milk_evol, Cv_4,
+		   Fmilk_tot,
+           Memory_Gest,
+           Memory_Lact,
+           MilkProd_Max,
+           Rate_Lact, F_29, 
+
+           AgePP, Age_foetus_day, Age_foetus_day_endpgy,
+           t_year, t_y2000, PercentVar_intake, RateInj_temp, Consumption, RateInj_Lact,
+
+           Q_total, Q_check,
+           Q_organ, Q_admin, Q_woman_total, Q_foetus_total, 
+           Q_met, Q_elim, 
+
+           Q_foetus_organ,
+           Q_foetus_prev,
+           Q_foetus_atTEG, 
+           Q_amniot_prev,
+           Q_amniot_atTEG,
+           Q_placenta_prev,
+           Q_placenta_atTEG,
+           Q_met_placenta_prev,
+           Q_met_placenta_atTEG};   
+
+Inputs  = {mother,        # if mother set to 1 and if child girl set to 0
+		   C_inh,         # Concentration inhaled (mg/L)
+	       RateInj,       # Injection rate (mg/min)
+	       C_milk_input,  # Conc in breastmilk as input for this individual
+           Q_ing_rate,
+
+           Gestation,     # Set to 1 if the woman is pregnant, 0 if not
+           Lactation,     # Set to 1 during breast-feeding, to 0 otherwise              
+	       Gestation_StartAge_inYear, 
+	       Gestation_Duration_inWeek,
+           LactationTotal_Duration_inWeek,
+           LactationPartial_Duration_inWeek};
+	   
+
+# Nominal parameter values
+# ========================
+
+# time conversion
+min_in_day = 1440;
+min_in_week = 10080;
+min_in_year = 1440*365.2425; 
+
+# One week in min
+OneWeek = 7*min_in_day;
+#two week in min
+TwoWeek = 14*min_in_day;
+
+# Times for gestation and lactation
+BirthYear;
+Gestation_Start;
+Gestation_End;  
+Gestation_StartAge_inYear        = 0.0;
+Gestation_Duration_inWeek        = 0.0;
+LactationTotal_Duration_inWeek   = 0.0; 
+LactationPartial_Duration_inWeek = 0.0;
+
+# Time at the end of total breastfeeding for the individual
+StopBreastmilk_total;
+
+# Statistical parameters
+#=======================
+Kd_uter2pla_frac_pop;
+SD_Kd_uter2pla_frac_pop;
+
+# Intake parameters
+# ------------
+Intake_var;
+Q_inj_rate;
+Frac_Intake_Infant;
+Frac_Intake_Toddler;
+Frac_Intake_Children;
+Frac_Intake_Ado;
+DecreaseIntake_1;
+DecreaseIntake_2;
+
+# Physiological and pharmacokinetic parameters
+# --------------------------------------------
+
+# variability in Bodyweight
+BDW_Var = 1;
+BDW_Var2 = 1;
+BDW_Var3 = 0;
+BDW_foetus_Var = 1;
+WeightGainPregnancy_Var = 1;
+
+# Fraction of arterial blood
+# Calculated from Filser 2000 p.43
+Fr_art_blood = 0.0178 / (0.0178 + 0.0533);
+
+# Plasmatic proteins
+  # mother
+albuminConc0_1 = 14.7; # in g/L
+albuminConc0_2 = 31.7; # in g/L
+alphaglyConc0 = 0.701; # in g/L
+  # fetal
+albuminConc_fet0 = 0.8837; # in g/L
+alphaglyConc_fet0 = 0.02; # in g/L
+
+# Tissue volumic weight are assumed to be equal to 1
+# excepted for adipose tissue (cf Brown et al. 97 p.433)
+Density_adip = 0.9;
+Density_bone = 2.0;
+
+# Relative organ weight in adults
+sc_V_adult[0]  = 0.3167;
+sc_V_adult[1]  = 0.0002;
+sc_V_adult[3]  = 0.0217;
+sc_V_adult[4]  = 0.0083;
+sc_V_adult[5]  = 0.0042;
+sc_V_adult[6]  = 0.045;
+sc_V_adult[7]  = 0.2917;
+sc_V_adult[8]  = 0.0016;
+sc_V_adult[9]  = 0.0020;
+sc_V_adult[10] = 0.0383;
+sc_V_adult[11] = 0.0022;
+sc_V_adult[12] = 0.0003;
+sc_V_adult[13] = 0.0010;
+sc_V_adult[14] = 0.0046;
+sc_V_adult[15] = 0.0070;
+sc_V_adult[16] = 0.016;
+sc_V_adult[17] = 0.0023;
+sc_V_adult[18] = 0.0233;
+
+sc_V_bone_total = 0.085;
+sc_V_adult[2]   = sc_V_bone_total * 0.298; # 30% skeleton perfused 
+sc_V_adult[23]  = sc_V_bone_total - sc_V_adult[2];
+
+# maximum relative weight of breast two weels after delivery (in case of a pregnancy)
+sc_V_breast_peack = 0.02;
+
+# Fraction of blood loss volume during delivery
+# 10% of total blood volume = 14% venous blood volume
+Frac_BlLossDelivery = 0.14;
+
+# Relative organ weight at birth from Abduljalil2018 and ICRP
+scV_atbirth[1] = 0.00266; 
+scV_atbirth[2] = 0.505 * sc_V_bone_total; #ICRP value
+scV_atbirth[4] = 3.2E-15; #ICRP
+scV_atbirth[5] = 0.00661; 
+scV_atbirth[6] = 0.0138; #ICRP
+scV_atbirth[7] = 0.207; #ICRP
+scV_atbirth[8] = 1.338E-3; #ICRP
+scV_atbirth[9] = 0.002; #ICRP
+scV_atbirth[10] = 6.101E-2;
+scV_atbirth[11] = 0.00330;
+scV_atbirth[12] = 0.00057;
+scV_atbirth[13] = 0.0010; #ICRP
+scV_atbirth[14] = 0.00865;
+scV_atbirth[15] = 0.01746;
+scV_atbirth[16] = 2.607E-2;
+scV_atbirth[17] = 0.0034; # Hata2010
+scV_atbirth[18] = 0.04366;
+scV_atbirth[22] = 0.0771; #ICRP
+scV_atbirth[23] = sc_V_bone_total - scV_atbirth[2]; #ICRP
+
+
+# Constants to compute fetal weight 
+# Values from Luecke 1994
+EWo        = 0.00137;
+alpha      = 0.01306;
+Ao         = 0.1974;
+
+# Relative blood flow (% of the cardiac output) for the woman
+# These values are used to compute:
+# sc_F_organ = (sc_V_organ / sc_V_organ_adult) * sc_F_organ_adult;
+sc_F_adult[0]  = 0.087;
+sc_F_adult[1]  = 0.003;
+sc_F_adult[2]  = 0.021;
+sc_F_adult[3]  = 0.124;
+sc_F_adult[4]  = 0.004;
+sc_F_adult[5]  = 0.051;
+sc_F_adult[6]  = 0.031;
+sc_F_adult[7]  = 0.124;
+sc_F_adult[8]  = 0.004;
+sc_F_adult[9]  = 0.01;
+sc_F_adult[10] = 0.051;
+sc_F_adult[11] = 0.031;
+sc_F_adult[12] = 0.015;
+sc_F_adult[13] = 0.001;
+sc_F_adult[14] = 0.175;
+sc_F_adult[15] = 0.026;
+sc_F_adult[16] = 0.165;
+sc_F_adult[17] = 0.01;
+sc_F_adult[21] = 0.065;
+
+# Parameters used to compute the maternal organ weights
+# during pregnancy (given by Luecke 94)
+a[0] = 0.0009911;
+b[0] = 2.142;
+c[0] = -0.1405;
+a[4] = 0.01274;
+b[4] = 0.608;
+c[4] = -0.02209;
+a[8] = 0.0002057;
+a[22]= 0.000004712;
+b[22]= 3.295;
+c[22]= -0.2164;
+a[26]= 1.0E-3;  
+a[27]= 0.00020;
+
+
+# Distribution
+##############
+
+# Free fraction in plasma for non pregnant woman
+  Free_no_pgcy;
+ 
+# Partition coefficients
+PC[0-29];
+PC_foetus[0-29];
+
+# Parameters specific of the chemical studied
+# ===========================================
+
+# PC octanol : water
+PC_ow = 0.0;
+
+# Blood/air PC
+PC_blood_over_air = 1E99;
+
+# Transferts depending on the agent; Unit: L/min
+Ka_stomach    = 0.0;   # Absorption rate constant for stomach
+Ka_gut        = 0.0;   # Absorption rate constant for gut
+Ke_bile       = 0.0;   # Biliary excretion rate constant for the mother
+
+Kd_pla2amniot = 0.0;   # Transfer between placenta and amniotic fluid
+
+Kd_uter2pla_frac = 0.0; # fraction of the sexual organ blood flow 
+Ka_amniot        = 0.0;   # Absorption rate constant from amniotic to fetal gut
+
+Ke_gut_foetus    = 0.0;   # Excretion rate constant from fetal gut to amniotic
+Ke_bile_foetus   = 0.0;   # Biliary excretion rate constant for the foetus
+
+# Intestinal absorption
+Abs = 0;
+
+# concentration of microsomal protein per gram of tissue (mg/kg)
+C_mp_liver  = 45000; 
+C_mp_lung   = 20000;   
+C_mp_kidney = 45000;  
+C_mp_gut    = 3000;   
+
+C_mp_placenta     = 11300; 
+C_mp_liver_foetus = 26000;
+
+# Metabolic constants 
+K_PerMin  = 0; # Kg^0.25/min
+K_LPerMin = 0; # L/min
+Km         = 1; # mM 
+Vmax_mp    = 0; # mM/min/mg microsomal protein
+HalfLife;
+
+# main cytochrome involved in the metabolism
+# 1 = CYP1A2
+# 2 = CYP2B6
+# 3 = CYP2C8
+# 4 = CYP2C9
+# 5 = CYP2C18/19
+# 6 = CYP2D6
+# 7 = CYP2E1
+# 8 = CYP3A4/5
+# 9 = CYP3A
+mainCYP = 0;
+
+# Other parameters that will be computed in Initialize
+# ====================================================
+
+# Flows or transits
+Ke_renal_input;
+F_gut2faeces_input;
+
+###################
+# Scaled parameters
+###################
+
+Initialize {
+
+  # Statistical parameters
+  #=======================
+  # SD_Kd_uter2pla_frac_pop = CV_Kd_uter2pla_frac_pop * Kd_uter2pla_frac_pop;
+  
+
+} # End of initialize
+
+Dynamics {
+
+  # Computation of Age and specific periods
+  # =======================================
+  # Age in years
+  Age = t / min_in_year;
+
+  # Femme pas feconde avant fin allaitement complet
+  Compteur = Gestation_StartAge_inYear * min_in_year + Gestation_Duration_inWeek * min_in_week + 
+              LactationTotal_Duration_inWeek * min_in_week + LactationPartial_Duration_inWeek * min_in_week + 262800; 
+    
+  Memory_Gest   =  (Gestation > 0 ? Gestation : (t <= Compteur ? Memory_Gest : 0));
+  Memory_Lact   =  (Lactation > 0 ? Lactation : (t <= Compteur ? Memory_Lact : 0));
+      
+  Gestation_StartAge = Gestation_StartAge_inYear * min_in_year;
+  Gestation_Duration = Gestation_Duration_inWeek * min_in_week;
+  Gestation_EndAge   = Gestation_StartAge + Gestation_Duration; 
+
+  LactationTotal_Duration   = LactationTotal_Duration_inWeek   * min_in_week;
+  LactationPartial_Duration = LactationPartial_Duration_inWeek * min_in_week;
+  Lactation_Duration        = LactationTotal_Duration + LactationPartial_Duration;
+ 
+  LactationTotal_EndAge = Gestation_EndAge + LactationTotal_Duration;
+  Lactation_EndAge      = LactationTotal_EndAge + LactationPartial_Duration;  
+  
+  # Calculation of the "gestational age"
+  Gest_Age = (Gestation ? (t >= Gestation_StartAge ? (t - Gestation_StartAge) : 0) : 0); #in min
+  Gest_Age_inWeek = Gest_Age/min_in_week; # equal to FW (lower than GW), in week
+  GW = Gest_Age_inWeek + (2*min_in_week); # two weeks before pregnancy #in minutes
+  GW_inWeek = Gest_Age_inWeek + 2; # two weeks before pregnancy #in weeks
+	
+  # Age of the fetus (in days)
+  Age_foetus_day = (Gestation > 0 ?  Gest_Age/min_in_day : 0);
+  Age_foetus_day_endpgy = (Gestation > 0 ? ((Gestation_EndAge - Gestation_StartAge))/min_in_day : 0);
+  
+  # Calculation of the "post-partum age" in minutes
+  AgePP    = (Memory_Lact > 0? (t >= Gestation_EndAge ? (t - Gestation_EndAge) : 0): 0);
+
+  # lactation 
+  t_lact3weeks = Gestation_StartAge_inYear * min_in_year + Gestation_Duration_inWeek * min_in_week+ 1 + 3*7*24*60;
+  t_lact6weeks = Gestation_StartAge_inYear * min_in_year + Gestation_Duration_inWeek * min_in_week + 1 + 6*7*24*60;
+
+  # Hematocrit for foetus
+	Hct_foetus = (((0.00223 * pow(Gest_Age_inWeek,3)) - (0.163 * pow(Gest_Age_inWeek,2)) + (4.27 * Gest_Age_inWeek)) / 100) * 0.91; # Dallmann et al. 2017
+
+  # Computation of intake
+  # =====================
+  Consumption = (Age < 1.01 ? Frac_Intake_Infant : 
+					(Age < 3.01 ? Frac_Intake_Toddler : 
+						(Age < 10.01 ? Frac_Intake_Children :
+							(Age < 18.01 ? Frac_Intake_Ado : 1))));
+
+  Frac_Intake = (Intake_var == 1 ? Consumption : 1);
+  
+  # Maternal plasmatic protein (g/L)
+  # ================================
+  # Dallman et al., 2017
+	albuminConc_int = albuminConc0_1 * exp(-0.0454 * Gest_Age_inWeek) + albuminConc0_2;
+	albuminConc = (Gestation ? albuminConc_int : albuminConc0_1 + albuminConc0_2);
+	alphaglyConc_int = 0.0000768 * pow(Gest_Age_inWeek,2) - 0.00573 * Gest_Age_inWeek + alphaglyConc0;
+	alphaglyConc = (Gestation ? alphaglyConc_int : alphaglyConc0);
+	plasmaprotConc0 = albuminConc0_1 + albuminConc0_2 + alphaglyConc0;
+	plasmaprotConc = albuminConc + alphaglyConc;
+	
+  # Fetal plasmatic protein (g/L)
+  # ===============================
+  # Zhang et al., 2017
+	albuminConc_fet_int = albuminConc_fet0 + 0.8994 * GW_inWeek;
+	albuminConc_fet = (Gestation ? albuminConc_fet_int : albuminConc_fet0);
+  # albuminConc_fet : linear regression on Krauer data
+	alphaglyConc_fet_int = alphaglyConc_fet0 * exp(0.0616 * GW_inWeek);
+	alphaglyConc_fet = (Gestation ? alphaglyConc_fet_int : alphaglyConc_fet0);
+	plasmaprotConc_fet = albuminConc_fet + alphaglyConc_fet;
+  
+  # Free fraction during gestation
+  # ===============================
+  # Assuming KA constant between pregnancy and no gestation states
+  # Dallman et al., 2017
+	KA = (1 - Free_no_pgcy)/(plasmaprotConc0 * Free_no_pgcy);
+  # Evolution of the free fraction during gestation
+	Free_pgcy = 1 / (1 + KA * plasmaprotConc);
+  # Assuming KA maternal = Ka fetal
+	Free_fet = 1 / (1 + KA * plasmaprotConc_fet);
+	
+  # Free fraction conditional 
+  # =========================
+	Free = (Gestation ? Free_pgcy : Free_no_pgcy); 
+                   
+  # Modelling the foetus 
+  # =====================
+  # BDW_foetus is the fetal weight (in g) 
+  # BDW_foetus is some sort of measure of the fetal weight (in g) but is not
+  # completely consistent because fetal weight has to be recomputed later.
+  # This could be improved.
+  BDW_foetus = BDW_foetus_Var * EWo * (Gestation ?
+    exp(Ao / alpha * (1 - exp(-alpha * Gest_Age /min_in_day))) : 1E-8); 
+
+  ln_EW_i = log(BDW_foetus);
+
+  # Mass of the fetus at the end of the pregnancy (in g) 
+  BDW_foetus_endpgy = BDW_foetus_Var * EWo * exp(Ao / alpha * (1 - exp(-alpha * 
+                       ((Gestation_EndAge - Gestation_StartAge))/min_in_day)));
+		       
+  ln_EW_i_endpgy = log(BDW_foetus_endpgy);
+
+  # Volumes for the fetus (L/min)
+  # =================================
+
+  # assuming a density of 1, excepted for the adipose tissue for which
+  # the density is equal to 0.9 (Brown et al.97 p.433) and for which Luecke's
+  # equation has been simplified and corrected.
+  # Unit: kg and L
+
+  # Calculation of the initial fraction of brain at birth is a bit different from
+  # the other compartments
+  scV_atbirth[3] = (BDW_foetus_endpgy > 0 ? 0.347 / (BDW_foetus_endpgy * 0.001) : 1E-6);
+
+  # compute the relative volumes of organs at the end of gestation
+  scVend_foetus[2]     = scV_atbirth[i];
+  scVend_foetus[4]     = scV_atbirth[i];
+  scVend_foetus[6]     = scV_atbirth[i];
+  scVend_foetus[8]     = scV_atbirth[i];
+  scVend_foetus[10]    = scV_atbirth[i];
+  scVend_foetus[13]    = scV_atbirth[i];
+  scVend_foetus[16-17] = scV_atbirth[i];
+  scVend_foetus[23]    = scV_atbirth[i];
+
+  scVend_foetus[1]  = 1.74E-03 + (3.38E-03 - 1.74E-03) * exp(-2.25E-02 * (Age_foetus_day_endpgy - 56));
+  scVend_foetus[3]  = 1.15E-01 + (3.19E-01 - 1.15E-01) * exp(-5.30E-02 * (Age_foetus_day_endpgy - 70));
+  scVend_foetus[5]  = 5.60E-03 + (7.93E-03 - 5.60E-03) * exp(-1.56E-02 * (Age_foetus_day_endpgy - 56));
+  scVend_foetus[7]  = 2.32E-01 + (3.78E-02 - 2.32E-01) * exp(-5.97E-03 * (Age_foetus_day_endpgy - 56));
+  scVend_foetus[9]  = 3.01E-03 + (8.26E-02 - 3.01E-03) * exp(-6.72E-02 * (Age_foetus_day_endpgy - 56));
+  scVend_foetus[11] = 1.23E-04 + 3.62E-06 * (Age_foetus_day_endpgy - 56) + 3.98E-08 * (Age_foetus_day_endpgy - 56) * (Age_foetus_day_endpgy - 56);
+  scVend_foetus[12] = 3.89E-04 + (2.35E-03 - 3.89E-04) * exp(-8.05E-02 * (Age_foetus_day_endpgy - 56));
+  scVend_foetus[14] = 7.16E-03 + (8.20E-03 - 7.16E-03) * exp(-1.10E-02 * (Age_foetus_day_endpgy - 105));
+  scVend_foetus[15] = 3.40E-03 + (1.84E-02 - 3.40E-03) * exp(-6.36E-03 * (Age_foetus_day_endpgy - 105));
+  scVend_foetus[18] = 3.67E-02 + (4.40E-02 - 3.67E-02) * exp(-1.41E-02 * (Age_foetus_day_endpgy - 56));
+  
+  # Luecke's equation is for plasma
+  scVend_foetus[22]   = (5.43E-02 + (6.49E-02 - 5.43E-02) * exp(-1.50E-02 * (Age_foetus_day_endpgy - 56))) / (1 - Hct_foetus);
+
+  # compute relative volumes of organs at time t
+  # organs for which no data were available in ICRP
+  # equations developped for Age in days
+  scV_foetus[2]     = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[4]     = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[6]     = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[8]     = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[10]    = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[13]    = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[16-17] = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[23]    = scV_atbirth[i] * (scV_atbirth[i] /scVend_foetus[i]);
+
+  scV_foetus[1]  = (Age_foetus_day < 56  ? 3.38E-03 : 1.74E-03 + (3.38E-03 - 1.74E-03) * exp(-2.25E-02 * (Age_foetus_day - 56))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[3]  = (Age_foetus_day < 70  ? 3.19E-01 : 1.15E-01 + (3.19E-01 - 1.15E-01) * exp(-5.30E-02 * (Age_foetus_day - 70))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[5]  = (Age_foetus_day < 56  ? 7.93E-03 : 5.60E-03 + (7.93E-03 - 5.60E-03) * exp(-1.56E-02 * (Age_foetus_day - 56))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[7]  = (Age_foetus_day < 56  ? 3.78E-02 : 2.32E-01 + (3.78E-02 - 2.32E-01) * exp(-5.97E-03 * (Age_foetus_day - 56))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[9]  = (Age_foetus_day < 56  ? 8.26E-02 : 3.01E-03 + (8.26E-02 - 3.01E-03) * exp(-6.72E-02 * (Age_foetus_day - 56))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[11] = (Age_foetus_day < 56  ? 1.23E-04 : 1.23E-04 + 3.62E-06 * (Age_foetus_day - 56) + 3.98E-08 * (Age_foetus_day - 56) * (Age_foetus_day - 56)) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[12] = (Age_foetus_day < 56  ? 2.35E-03 : 3.89E-04 + (2.35E-03 - 3.89E-04) * exp(-8.05E-02 * (Age_foetus_day - 56))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[14] = (Age_foetus_day < 105 ? 8.20E-03 : 7.16E-03 + (8.20E-03 - 7.16E-03) * exp(-1.10E-02 * (Age_foetus_day - 105))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[15] = (Age_foetus_day < 105 ? 1.84E-02 : 3.40E-03 + (1.84E-02 - 3.40E-03) * exp(-6.36E-03 * (Age_foetus_day - 105))) * (scV_atbirth[i] /scVend_foetus[i]);
+  scV_foetus[18] = (Age_foetus_day < 56  ? 4.40E-02 : 3.67E-02 + (4.40E-02 - 3.67E-02) * exp(-1.41E-02 * (Age_foetus_day - 56))) * (scV_atbirth[i] /scVend_foetus[i]);
+  
+  # Luecke's equation is for plasma
+  scV_foetus[22]   = (Age_foetus_day < 56 ? 6.49E-02 : 5.43E-02 + (6.49E-02 - 5.43E-02) * exp(-1.50E-02 * (Age_foetus_day - 56))) / (1 - Hct_foetus)  * (scV_atbirth[i] /scVend_foetus[i]);
+
+  # compute volume for adipose tissues
+  dummy = scV_foetus[1] + scV_foetus[2]  +
+  		   scV_foetus[3]  + scV_foetus[4]  + scV_foetus[5]  + scV_foetus[6]  + scV_foetus[7]  + 
+		   scV_foetus[8]  + scV_foetus[9]  + scV_foetus[10] + scV_foetus[11] + scV_foetus[12] + 
+		   scV_foetus[13] + scV_foetus[14] + scV_foetus[15] + scV_foetus[16] + scV_foetus[17] + 
+                   scV_foetus[18] + scV_foetus[22] + scV_foetus[23];
+  scV_foetus[0] = (dummy < 0.92 ? 0.92 - dummy : 1E-6);
+
+  # volumes
+  V_foetus[0] = (BDW_foetus > 1E-8 ? scV_foetus[i] * BDW_foetus * 0.001 : 1E-5) / Density_adip;
+  V_foetus[1] = (BDW_foetus > 1E-8 ? scV_foetus[i] * BDW_foetus * 0.001 : 1E-5);
+  V_foetus[2] = (BDW_foetus > 1E-8 ? scV_foetus[i] * BDW_foetus * 0.001 : 1E-5) / Density_bone;
+  V_foetus[3-18] = (BDW_foetus > 1E-8 ? scV_foetus[i] * BDW_foetus * 0.001 : 1E-5);
+  V_foetus[23]   = (BDW_foetus > 1E-8 ? scV_foetus[i] * BDW_foetus * 0.001 : 1E-5) / Density_bone;
+
+  # correction for perfluorinated compound (only plasma)
+  V_foetus[22]    = (BDW_foetus > 1E-8 ? scV_foetus[i] * BDW_foetus * 0.001 : 1E-5) * (1 - Hct_foetus);
+
+  W_foetus =  V_foetus[0] * Density_adip + V_foetus[1] + V_foetus[2] * Density_bone +
+  		   V_foetus[3]  + V_foetus[4]  + V_foetus[5]  + V_foetus[6]  + V_foetus[7]  + 
+		   V_foetus[8]  + V_foetus[9]  + V_foetus[10] + V_foetus[11] + V_foetus[12] + 
+		   V_foetus[13] + V_foetus[14] + V_foetus[15] + V_foetus[16] + V_foetus[17] + 
+                   V_foetus[18] + V_foetus[22] / (1 - Hct_foetus) + V_foetus[23] * Density_bone + 0.08 * BDW_foetus * 0.001;
+
+  # Placenta mass - Amniotic fluid mass is assumed to be proportional to fetal weight
+  V[26] = (Gestation ? 0.00024 * exp(ln_EW_i) : 0);
+  V[27] = (Gestation ? 0.00021 * exp(ln_EW_i) : 0);
+
+  # Combined cardiac output foetus (L/min)
+  # ======================================
+
+  # Cardiac output (combined: sum of the right and left heart)
+  # Abduljalil 2021, equation is for plasma, then correction for PFAS distribution (HCT)
+  # equation (3) (better fits) is in L/h, conversion in L/min
+  # BDW_foetus is in g, needed to be converted in kg
+	CardOutput_foetus = (Gestation ? (0.4 + pow((43.507 * BDW_foetus * 0.001), 0.88825)) / 60 : 1E-8) * (1 - Hct_foetus);
+
+	## Blood flow to adipose is 5% of the cardiac output - same as adult (Abduljalil2021)
+    sc_F_foetus[0] = 0.05;
+	## Blood flow to bone is 5% of the cardiac output - same as adult (Abduljalil2021)
+    sc_F_foetus[2] = 0.05;
+	## Blood flow to heart is 3% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[5] = 0.03; 	
+	## Blood flow to muscle is 6% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[7] = 0.06;
+	## Blood flow to pancreas is about 1% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[9] = 0.01;
+	## Blood flow to skin is 1% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[10] = 0.01;
+	## Blood flow to spleen is 0.34% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[11] = 0.0034;
+	## Blood flow to lung is 22% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[15] = 0.22;
+	## Blood flow to gut is 2.2% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[16] = 0.022;
+	## Blood flow to liver arterial entry is 0.79% of the cardiac output (Abduljalil2021)
+    sc_F_foetus[21] = 0.0079;
+	
+  # Other relative blood flow for which we have no information
+  sc_F_foetus[1] = 0.003; #from IRCP
+  sc_F_foetus[4] = 0.0001; #low value
+  sc_F_foetus[6] = 0.03; #from IRCP
+  sc_F_foetus[8] = 0.0005; # from IRCP
+  sc_F_foetus[12] = 0.015; #from ICRP 
+  sc_F_foetus[13] = 0.0006; #from IRCP
+  sc_F_foetus[17] = 0.01; #from IRCP
+
+# FETAL RELATIVE BLOOD FLOWS - EQUATIONS
+# ======================================	
+  # Blood flow to brain is age dependant (Abduljalil2021)
+    sc_F_foetus[3] = (4.6920 * pow(Gest_Age_inWeek, 0.36183) / 100) + 0.1; 
+	# 0.1 was added for no failure in integration
+  # Blood flow to kidneys is age dependant (Abduljalil2021)
+    sc_F_foetus[14] = (10.3213 - 0.12383 * Gest_Age_inWeek) / 100;
+  # Blood flow to placenta is age dependant of the cardiac output (Abduljalil2021)
+    sc_F_foetus[27] = (32.46133 - 0.439082 * Gest_Age_inWeek) / 100;
+
+  sum_sc_F_foetus = sc_F_foetus[0]  + sc_F_foetus[1]  + sc_F_foetus[2]  + sc_F_foetus[3]  + sc_F_foetus[4] +  
+                     sc_F_foetus[5]  + sc_F_foetus[6]  + sc_F_foetus[7]  + sc_F_foetus[8]  + sc_F_foetus[9]  + 
+                     sc_F_foetus[10] + sc_F_foetus[11] + sc_F_foetus[12] + sc_F_foetus[13] + sc_F_foetus[14] + 
+                     sc_F_foetus[15] + sc_F_foetus[16] + sc_F_foetus[17] + sc_F_foetus[21] + sc_F_foetus[27];
+					 
+	 	     
+  # FETAL BLOOD FLOWS - EQUATIONS
+  # ==================================
+ # Blood flows for foetus
+  		F_foetus[0-17] = (Gestation ? (sc_F_foetus[i] / sum_sc_F_foetus) * CardOutput_foetus : 0) * Free_fet;
+		F_foetus[21] = (Gestation ?(sc_F_foetus[i] / sum_sc_F_foetus) * CardOutput_foetus : 0) * Free_fet;
+		F_foetus[27] = (Gestation ?(sc_F_foetus[i] / sum_sc_F_foetus) * CardOutput_foetus : 0) * Free_fet; 
+ 
+		F_foetus[18] = ((sc_F_foetus[27] * CardOutput_foetus -(sc_F_foetus[27] * CardOutput_foetus * (80.398 - (3.8122 * Gest_Age_inWeek) + (0.060133 * pow(Gest_Age_inWeek,2)))/100) / sum_sc_F_foetus) + # 70% from the placenta
+				   (CardOutput_foetus * (((6.850-0.35311 * Gest_Age_inWeek) + (0.006815 * pow(Gest_Age_inWeek,2))) / 100) / sum_sc_F_foetus) + #portal vein equal to pancreas+spleen+gut+stomach # to see if required to be computed as sum of 9,11,16,17
+				   (sc_F_foetus[21] / sum_sc_F_foetus * CardOutput_foetus)) * Free_fet; #hepatic artery
+	
+   sum_F_foetus = F_foetus[0] + F_foetus[1] + F_foetus[2]  + F_foetus[3]  + F_foetus[4]  + F_foetus[5]  + F_foetus[6] + 
+                 F_foetus[7] + F_foetus[8] + F_foetus[10] + F_foetus[12] + F_foetus[13] + F_foetus[14] + F_foetus[15] +
+				 F_foetus[18] + 0.3 * F_foetus[27];
+				                  
+  # Metabolism for the fetus
+  # ========================
+  # Scale metabolism foetus (scaled to microsomal protein concentration)
+  Vmax_liver_foetus = C_mp_liver_foetus * V_foetus[18] * Vmax_mp;
+
+  # =====================                  
+  # Modelling the woman
+  # =====================
+
+  # Body Weight (kg),  Preece-Baines growth model and polynomial model order 2
+  Growth1  = 62.95490567 - (2*(62.95490567 - 49.36574299) / (exp(0.84039606*(Age - 11.56691488))
+             + exp(0.06710088*(Age -11.56691488)))); 
+  Growth2  = - 0.01258006 * pow(Age,2) + 1.25029379 * Age + 44.4459234;
+ 
+ # All conditions in one (mother or child)
+  BodyWeight = (Age < 17.9374115 ? 
+					(mother > 0 ? Growth1 * BDW_Var : Growth1 * BDW_Var2 - BDW_Var3) :
+					Growth2 * BDW_Var) ;
+  BDW = (mother > 0 ? Growth1 * BDW_Var : Growth1 * BDW_Var2 - BDW_Var3) ;
+ 
+# Child
+  #BodyWeight = (Age < 17.9374115 ? (Growth1 * BDW_Var2 - BDW_Var3) : Growth2 * BDW_Var) ;
+  #BDW = Growth1 * BDW_Var2 - BDW_Var3 ;
+
+# Mother
+  #BodyWeight = (Age < 17.9374115 ? Growth1 : Growth2) * BDW_Var;
+  #BDW = Growth1 * BDW_Var;
+
+  # Decrease muscle and increase adip
+  AdipMass      = (Age < 17.9374115 ? 0: ((BodyWeight - BDW) < 0 ? 0 : BodyWeight - BDW));
+  MuscleAtrophy = (Age < 25.90709 ? 1 : (-0.0001264 * pow(Age,2) + 0.006131*Age + 0.926));
+  
+  # Hematocrit
+  # ===========
+  # Non-pregnant woman
+  Param1 = 32.617402;
+  Param2 = 53.188459;
+  Param3 = 7.699418;
+  Param4 = 37.531463;
+  Param5 = 40.055284;
+
+  b1 = (Param4 - Param1 - (Param2-Param1)*exp(-Param3))/2;
+  a1 = Param4 - 3*b1;
+  b2 = (Param5 - Param4)/7;
+  a2 = Param5 - 10*b2;
+
+  Hct_ven_nopgy = 0.01 * (Age < 1 ? Param1 +(Param2-Param1)*exp(-Param3*Age) :
+          (Age < 3 ? a1 + b1*Age : 
+            (Age < 10 ? a2 + b2*Age : Param5)));
+
+  # during pregnancy
+  Hct_ven_pgy = ((0.000401 * pow(Gest_Age_inWeek,3) - 0.0180 * pow(Gest_Age_inWeek,2) + 0.0299  * Gest_Age_inWeek) / 100) + 0.401; # Dallmann et al. 2017
+  
+  Hct = (Gestation ? Hct_ven_pgy * 0.91 : Hct_ven_nopgy * 0.91);
+ 
+  # Relative organ volume (Percent of BDW)
+  # Unit = L/kg
+  # ======================================
+
+# Relative organ weight for compartments for which the 
+# percentage of BDW does not change with age
+sc_V[5]  = 0.0042;
+sc_V[9]  = 0.002;
+sc_V[11] = 0.0022;
+sc_V[12] = 0.00028;
+sc_V[13] = 0.0010;
+sc_V[15] = 0.0070;
+sc_V[17] = 0.0023;
+
+
+  sc_V[1] = 0.0002 + (0.00171 - 0.0002) * exp(-2.02 * Age);
+  sc_V[2] = (0.298 + (0.505 - 0.298) * exp(-0.0792*Age)) * sc_V_bone_total; 
+  sc_V[3] = (1.300 + (0.347 - 1.30) * exp(-0.573 * Age)) / BDW;
+  sc_V[4] = 0.00833 / (1 + exp(-1.92 * Age+ 28.6));
+  sc_V[6] = 0.045 + (0.0138 - 0.045) * exp(-0.136 * Age);
+  sc_V[7] = (0.2917 + (0.207 - 0.2917) * exp(-0.339 * Age)) * MuscleAtrophy;
+
+  temp_sc_V_8_1 = -1.064E-3 * Age + 1.338E-3;
+  temp_sc_V_8_2 = 2.6380E-7 * pow(Age, 3) - 1.7943E-6 * pow(Age, 2) - 5.6465E-6 * Age + 2.8105E-4;
+  temp_sc_v_8_3 = 0.001552;
+  sc_V[8] = (Age < 1 ?  temp_sc_V_8_1: (Age < 20 ?  temp_sc_V_8_2 : temp_sc_v_8_3));
+	
+  sc_V10_child = -7.8882E-06 * pow(Age, 3) + 4.0224E-04 * pow(Age, 2) - 5.2146E-03 * Age + 4.5605E-02;
+  sc_V[10] = (Age < 19.45 ? sc_V10_child : 0.0383);
+  
+  sc_V[14] = 0.0046 + (0.0071 - 0.0046) * exp(-0.221 * Age);
+  sc_V[16] = (Age < 14.453301 ? -7.42E-5 * pow(Age,2) + 1.28E-3 * Age + 1.30E-2 : 0.0160);
+  sc_V[18] = 0.0233 + (0.038 - 0.0233) * exp(-0.122 * Age);
+  sc_V[19] = 0.0100 + (0.0294 - 0.0100) * exp(-0.932 * Age);
+  sc_V[20] = 0.0038 + (0.0113 - 0.0038) * exp(-0.882 * Age);
+  
+  sc_V[22] = (Age < 1 ? -0.0273 * Age + 0.0771 : 
+		   (Age < 14.019723 ? 3.28E-5 * pow(Age, 3) - 1.21E-3 * pow(Age, 2) + 1.24E-2 * Age + 3.86E-2:
+	                 0.065)); 
+
+  sc_V[23] = sc_V_bone_total - sc_V[2];
+
+  # stomach and gut lumen not included (sc_V[19], sc_V[20])
+  sc_V[0]    = 0.96     - sc_V[1]  - sc_V[2]  - sc_V[3]  - 
+               sc_V[4]  - sc_V[5]  - sc_V[6]  - sc_V[7]  - sc_V[8]  - 
+               sc_V[9]  - sc_V[10] - sc_V[11] - sc_V[12] - sc_V[13] - 
+               sc_V[14] - sc_V[15] - sc_V[16] - sc_V[17] - sc_V[18] - 
+               sc_V[22] - sc_V[23]; 
+
+  # Volumes of organs changing during pregnancy,
+  # computed with the equations from Luecke et al. 94 during gestation
+  # and Gentry et al. 2003 for post partum period
+  # adip : linear decrease over 6 months (182.5 days)
+  # blood and organ sex: linear decrease over 1 week
+  # breast: lactation    -> linear increase during 2 weeks to reach the peack;
+  #                         peack during the rest of lactation
+  #                         linear decrease over 1 week after the lactation period
+  #         no lactation -> linear decrease over 1 week
+
+  # Volumes of organs at the end of the pregnancy
+  V_adip_no_pgy  = sc_V[0] * BDW / Density_adip + AdipMass/Density_adip;
+  V_adip_pgy     = V_adip_no_pgy + WeightGainPregnancy_Var * (a[0] * exp((b[0] + c[0] * ln_EW_i) * ln_EW_i) / Density_adip);
+  V_adip_endpgy  = V_adip_no_pgy + WeightGainPregnancy_Var * (a[0] * exp((b[0] + c[0] * ln_EW_i_endpgy) * ln_EW_i_endpgy) / Density_adip);
+  V_adip_postpgy = - t * (V_adip_endpgy - V_adip_no_pgy) / 262800 +
+                           - (Gestation_EndAge * V_adip_no_pgy - V_adip_endpgy * (Gestation_EndAge + 262800)) / 262800;
+ 
+  V[0] = (Gestation_StartAge == 0 ? V_adip_no_pgy :
+           (Gestation ? V_adip_pgy : 
+  	     (t < Gestation_StartAge ? V_adip_no_pgy : 
+  	       (t <= (Gestation_EndAge + 262800) ? V_adip_postpgy : V_adip_no_pgy))));
+  
+  V_blood_no_pgy  = sc_V[22] * BDW;
+  V_blood_pgy     = sc_V[22] * BDW + a[22] * exp((b[22]+ c[22]* ln_EW_i) * ln_EW_i);
+  V_blood_endpgy  = sc_V[22] * BDW + a[22] * exp((b[22]+ c[22]* ln_EW_i_endpgy) * ln_EW_i_endpgy);
+  V_blood_postpgy = - t * (V_blood_endpgy - V_blood_no_pgy) / OneWeek -
+                           (Gestation_EndAge * V_blood_no_pgy - V_blood_endpgy * (Gestation_EndAge + OneWeek))/OneWeek;
+
+  V[22] = (Gestation_StartAge == 0 ? V_blood_no_pgy :
+               (Gestation ? V_blood_pgy : 
+                   (t < Gestation_StartAge ? V_blood_no_pgy :
+                     (t <= (Gestation_EndAge + OneWeek) ? V_blood_postpgy : V_blood_no_pgy))));
+
+  V_organ_sex_no_pgy  =  sc_V[8] * BDW;
+  V_organ_sex_pgy     =  sc_V[8] * BDW + 0.00033 * exp(ln_EW_i);
+  V_organ_sex_endpgy  =  sc_V[8] * BDW + a[8] * BDW_foetus_endpgy;
+  V_organ_sex_postpgy =  - t * (V_organ_sex_endpgy - V_organ_sex_no_pgy) / OneWeek 
+                         - (Gestation_EndAge * V_organ_sex_no_pgy
+			 - V_organ_sex_endpgy * (Gestation_EndAge + OneWeek )) / OneWeek;
+
+  V[8] = (Gestation_StartAge == 0 ?  V_organ_sex_no_pgy : 
+            (Gestation ? V_organ_sex_pgy : 
+               (t < Gestation_StartAge ? V_organ_sex_no_pgy : 
+                  (t <= (Gestation_EndAge + OneWeek) ? V_organ_sex_postpgy : V_organ_sex_no_pgy)))); 
+  
+  V_breast_peack  = sc_V_breast_peack * BDW;
+  V_breast_no_pgy = sc_V[4] * BDW;
+  V_breast_pgy    = sc_V[4] * BDW + a[4] * exp((b[4] + c[4] * ln_EW_i) * ln_EW_i);
+  V_breast_endpgy = sc_V[4] * BDW + a[4] * exp((b[4] + c[4] * ln_EW_i_endpgy) * ln_EW_i_endpgy);
+  
+  a1_b = V_breast_endpgy - V_breast_peack;
+  a2_b = V_breast_peack  - V_breast_no_pgy;
+  a3_b = V_breast_endpgy - V_breast_no_pgy;
+ 
+  t1_b = Gestation_EndAge + TwoWeek;
+  t2_b = LactationTotal_Duration - Lactation_Duration;
+  t3_b = Gestation_EndAge + OneWeek;
+  
+  temp1 = - t * a1_b / TwoWeek - (Gestation_EndAge * V_breast_peack - V_breast_endpgy * t1_b) / TwoWeek;
+  temp2 =   t * a2_b / t2_b    + (LactationTotal_EndAge * V_breast_no_pgy - V_breast_peack * Lactation_EndAge) / t2_b;
+  temp3 = - t * a3_b /OneWeek  - (Gestation_EndAge *  V_breast_no_pgy - V_breast_endpgy * t3_b) /OneWeek;
+ 
+  V[4] = (Gestation_StartAge == 0 ? V_breast_no_pgy :
+            (Gestation ? V_breast_pgy :
+               (t < Gestation_StartAge ? V_breast_no_pgy :
+                  (Memory_Lact==1 ?
+                     (t <= t1_b ? temp1 :
+                       (t <= LactationTotal_EndAge ? V_breast_peack :
+                          (t <= Lactation_EndAge ? temp2 : V_breast_no_pgy))) :
+                       (t <= t3_b ? temp3 : V_breast_no_pgy)))));
+
+
+  # Organ volumes as percent of BDW, density 1 is assumed
+  # exept for adip (0.9) and bones (2)
+  V[1]    = sc_V[i]  * BDW;
+  V[3]    = sc_V[i]  * BDW;
+  V[5-7]  = sc_V[i]  * BDW;
+  V[9-20] = sc_V[i]  * BDW;
+  V[2]    = sc_V[2]  * BDW / Density_bone; 
+  V[23]   = sc_V[23] * BDW / Density_bone;
+
+  V_art   = V[22] * Fr_art_blood * (1 - Hct);   
+  V_ven   = V[22] * (1 - Hct) - V_art;
+
+  # Mass balance (gut and stomach lumen not included (V[19], V[20])
+  W_lean  = V[1]  + V[3]  + (V[2] +  V[23]) * Density_bone +  
+            V[4]  + V[5]  + V[6] + V[7]  + V[8]  + V[9]  + 
+            V[10] + V[11] + V[12] + V[13] + V[14] + V[15] +  
+            V[16] + V[17] + V[18] + V[22];
+	    
+  # Total weight of the woman (different from BDW in case of pregnancy)
+  W_total = V[0] * Density_adip + W_lean + V[27]+ V[26] + BDW_foetus/1000 + 0.04*BDW;
+
+  # Blood flows (L/min)
+  # ===================
+
+  # Cardiac Output (L/min/kg)
+  # correction for plasma
+  CO1 = 7.734 + (0.6 - 7.734) * exp(-0.09747 * Age);
+  CO2 = 0.000473 * pow(Age,2) - 0.0782 * Age + 7.37;
+  CardOut = (Age <  16.027 ? CO1 : CO2) * (1 - Hct);
+
+  # relative blood flows (compared to CardOut)
+  sc_F[1-3]   = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  sc_F[5-17]  = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  sc_F[21]    = (sc_V[18] / sc_V_adult[18]) * sc_F_adult[21];
+
+  # Blood flows of organs changing during pregnancy,
+  # Uterus is calculated below (flow instead of relative flow)
+  sc_F[0] =  (V[0] *Density_adip / (sc_V_adult[0] * BDW))  * sc_F_adult[0];
+  sc_F[4] =  (V[4] / (sc_V_adult[4] * BDW)) * sc_F_adult[4];
+ 
+  sum_sc_F  = sc_F[0]  + sc_F[1]  + sc_F[2]  + sc_F[3]  + sc_F[4]  + sc_F[5] +  
+              sc_F[6]  + sc_F[7]  + sc_F[8]  + sc_F[9]  + sc_F[10] + sc_F[11] + 
+              sc_F[12] + sc_F[13] + sc_F[14] + sc_F[15] + sc_F[16] + 
+              sc_F[17] + sc_F[21];
+	     
+  # Equation from Dallman et al 2017 for the uterine blood flow during pregnancy
+  # correction for plasma
+  F[8]    = (Gestation ? (0.954/(1+21.8*exp(-0.153*(Gest_Age/min_in_week)))-0.0197) * (1 - Hct) : (sc_F[8] / sum_sc_F) * CardOut) * Free;
+
+  F[0-7]   = (sc_F[i]  / sum_sc_F) * CardOut * Free;
+  F[9-17]  = (sc_F[i]  / sum_sc_F) * CardOut * Free;
+  F[21]    = (sc_F[21] / sum_sc_F) * CardOut * Free;
+
+  F[18]   = F[9] + F[11] + F[16] + F[17] + F[21];
+
+  F[22]   = F[0] + F[1]  + F[2]  + F[3]  + F[4]  + F[5]  + F[6] + F[7] + 
+            F[8] + F[10] + F[12] + F[13] + F[14] + F[15] + F[18];
+
+  sum_F = F[0] + F[1]  + F[2]  + F[3]  + F[4]  + F[5]  + F[6] + F[7] + 
+            F[8] + F[9] + F[10] + F[11] + F[12] + F[13] + F[14] + F[15] + F[16] + F[17] + F[21];
+
+  # Cardiac output during pregnancy (not used)
+  CardOut_pgn = CardOut + (F[8] - (sc_F[8] / sum_sc_F) * CardOut);
+
+
+  # Blood loss at delivery
+  # ==================================
+  k_BloodLoss = (Gestation ? 
+  	           (t < (Gestation_EndAge - 10) ? 0 : 0.1 * Frac_BlLossDelivery) : 0);
+
+  # Metabolism
+  # ==================================
+  FracMet = (mainCYP == 1 ? pow(Age, 1.41)/(1.13 + pow(Age, 1.41)) : 
+              (mainCYP == 2 ? 1.07 * Age/(1.31 + Age) :
+              (mainCYP == 3 ? 0.3  + 0.716 * Age/(0.02 + Age) :
+              (mainCYP == 4 ? 0.21 + 0.821 * Age/(0.01 + Age) :
+              (mainCYP == 5 ? 0.23 + 0.857 * Age/(0.99 + Age) :
+              (mainCYP == 6 ? 0.036 + 1.01 * Age/(0.101 + Age) :
+              (mainCYP == 7 ? 4.22 * pow(Age, 0.27)/(7.66 + pow(Age, 0.27)) : 
+              (mainCYP == 8 ? pow(Age, 0.83)/(0.31 + pow(Age, 0.83)) :
+              (mainCYP == 9 ? 0.42 + 0.639 * Age/(2.36 + Age) : 1))))))))); 
+
+  FracMet2 = (FracMet > 1 ? 1 : FracMet);
+
+  Vmax_liver    = C_mp_liver  * V[18]   * Vmax_mp * FracMet2;
+  Vmax_lung     = C_mp_lung   * V[15]   * Vmax_mp * FracMet2;
+  Vmax_kidney   = C_mp_kidney * V[14]   * Vmax_mp * FracMet2;
+  Vmax_gut      = C_mp_gut    * V[16]   * Vmax_mp * FracMet2;
+  Vmax_placenta = C_mp_placenta * V[27] * Vmax_mp * FracMet2;
+
+  LiverRatio  = V[18] / (sc_V_adult[18] * 62.95 * BDW_Var);
+  LiverRatio2 = (LiverRatio > 1 ? 1 : LiverRatio);
+
+  Kscaled = (K_PerMin ? K_PerMin / pow(62.95,0.25) * LiverRatio2 * FracMet2 :
+              (K_LPerMin ? K_LPerMin * V[18] * LiverRatio2 * FracMet2 : 0)); 
+
+  # Metabolism computed as in Verner et al. 2008 (EHP)
+  V_distribution = PC[0]  * V[0]  + PC[1]  * V[1]  + PC[2]  * V[2] +  PC[3]  * V[3] +
+           PC[4]  * V[4]  + PC[5]  * V[5]  + PC[6]  * V[6] +  PC[7]  * V[7] + 
+           PC[8]  * V[8]  + PC[9]  * V[9]  + PC[10] * V[10] + PC[11] * V[11] +  
+           PC[12] * V[12] + PC[13] * V[13] + PC[14] * V[14] + PC[15] * V[15] + 
+           PC[16] * V[16] + PC[17] * V[17] + PC[18] * V[18] + V[22];
+
+  Kelim  = (log(2) / (HalfLife * 365.2425 * 24 * 60)) * V_distribution * (Gestation ? 1.33 + (1-1.33)*exp(-0.00003*Gest_Age): 1.00);
+
+  # Respiratory parameters
+  # ======================
+
+  # Tidal volume, breath frequency and volume of dead space
+  V_tidal     = 0.46 + (0.0392 - 0.46) * exp(-0.127 * Age);
+  Freq_breath = 12 + (38.9 - 12) * exp(-0.176 * Age);
+  V_ds        = 0.12 + (0.0107 - 0.12) * exp(-0.0986 * Age);
+
+  # Fraction of dead space in lung
+  F_ds = V_ds/V[15]; 
+
+  # Ventilation minute (L/min)
+  F_pul = V_tidal * Freq_breath;
+  
+  # Alveolar flow rate (L/min)
+  F_alv = (V_tidal - V_ds) * Freq_breath;
+
+  # Transits (L/min)
+  # ================
+  # Intestinal transit stomach -> lumen
+  F_stom2gut = 0.003833 + (0.000604 - 0.003833) * exp(-0.159 * Age);
+
+  # Intestinal transit for gut_lumen (feces)
+  # gut_lumen = contents of small and large intestine
+  # large intestine = {right colon, left colon, rectosigmoid}
+  # F_gut2faeces is the mean of the transits (l/min) in small
+  # intestine, right colon, left colon and rectosigmoid
+  Temp_gut2faeces =  0.000375 + (0.0000856 - 0.000375) * exp(-0.0931 * Age);
+  F_gut2faeces = (F_gut2faeces_input >= 0 ? F_gut2faeces_input : Temp_gut2faeces);
+
+  # Urinary excretion
+  Ke_renal =( Ke_renal_input >=0 ?  
+	         Ke_renal_input * BodyWeight : 0.0008333 + (0.000208 - 0.0008333) * exp(-0.0857 * Age));
+
+
+  # Lactation production divided in 4 periods
+  # Unit: L/min
+  # Total lactation : increasing function with time
+  MilkProd1 = 6.933E-5 * log (AgePP) - 2.78E-4;
+
+  # stop of the total lactation: a linear decrease to 0.4 L/day
+  # decrease in one week
+  MilkProd_Max = (Lactation ? MilkProd1 : MilkProd_Max);
+  a_MP2 = (2.78E-4 - MilkProd_Max) / OneWeek;
+  b_MP2 = MilkProd_Max - a_MP2 * LactationTotal_EndAge;
+  MilkProd2 = ((Memory_Lact == 1)*(t > LactationTotal_EndAge)*(t < (LactationTotal_EndAge + OneWeek)) ? a_MP2 * t + b_MP2 : 0);
+
+  # Partial lactation: 0.4 L/day
+  MilkProd3 = 2.78E-4;
+
+  # stop of the partial lactation: a linear decrease to 0 L/day
+  a_MP4 = - 2.78E-4 / OneWeek;
+  b_MP4 = - a_MP4 * Lactation_EndAge;
+  MilkProd4 = ((Memory_Lact == 1)*(t > (Lactation_EndAge - OneWeek)) ? a_MP4 * t + b_MP4 : 0);
+ 
+  F[29] = (Lactation ? 
+                   (t <= LactationTotal_EndAge ? MilkProd1 : 
+                    (t <= (LactationTotal_EndAge + OneWeek) ? MilkProd2 : 
+                     (t <= (Lactation_EndAge - OneWeek) ? MilkProd3 : 
+                      (t <= Lactation_EndAge ? MilkProd4 : 0)))) : 0); 
+
+ # intake of lactation when the individual is breastfed (L/min), from Yeung et al. 2020 (mL/kg/d)
+  Fmilk_tot = (t>0 ? (160.39 * (0.232/(0.232-0.00252))*(exp(-0.00252 * t/1440) - exp(-0.232 * t/1440)) * BDW)/(1000*1440) : 1E-10);
+  Fmilk_part = 2.78E-4;
+ 
+  F_milk_input = (t < StopBreastmilk_total ? Fmilk_tot : Fmilk_part);
+  
+  # evolution of Cmilk when the individual is breastfed
+  C_milk_evol = C_milk_input * (t<23040 ? 1 : exp(-0.0024*(t/(24*60)-23040/(24*60))));
+  
+
+  # Assumption of equal diffusion rate constant between organ_sex and placenta
+  # and vice-versa.  
+  Kd_uter2pla = (Gestation ? Kd_uter2pla_frac * (V_27 / 0.7) : 0); 
+
+  # Concentrations in tissues and in venous blood at the organ exit 
+  # ===============================================================
+  C[0-18]  = Q[i] / V[i];
+  Cv[0-18] = C[i] / PC[i];
+
+  C[26-27]  = (Gestation ? Q[i]  / V[i] : 0);
+  Cv[27]    = (Gestation ? C[i] / PC[i] : 0);
+
+  C_foetus[0-18]  = (Gestation ? Q_foetus[i]  / V_foetus[i] : 0);
+  Cv_foetus[0-18] = C_foetus[i]  / PC_foetus[i];
+  
+  # other compartment concentrations for which PC is not needed
+  # because equal to 1 (PC_ven and PC_art) or because
+  # they are not directly irrigated by blood (diffusion)
+  C[19-20] = Q[i]  / V[i];
+  C_ven    = Q_ven / V_ven;
+  C_art    = Q_art / V_art;
+
+  # concentration in milk
+  C_milk   = (Lactation ? Cv[4] * PC[29] : 0);
+
+  # gas exchanges
+  C_alv       =  C_art / PC_blood_over_air;
+  C_exh_total =  F_ds *  C_inh + (1 - F_ds) * C_alv;
+
+  # for the foetus C_ven = C_art
+  C_foetus[22] = (Gestation ? Q_foetus[22]/ V_foetus[22] : 0);
+
+  # temporal trends of the oral intake
+  # decrease after 2000
+  t_year  = BirthYear + Age;
+  t_y2000 = 1999;
+  t_y2001 = 2000;
+  Expo_1 = (t_year > 2000 ? 1 : 0);
+  Expo_2 = (t_year < 2001 ? 0 : t_year - t_y2001);
+  PercentVar_intake = pow(1-DecreaseIntake_1, Expo_1) * pow(1-DecreaseIntake_2, Expo_2) ;
+
+  # Differentials for the woman
+  # ===========================
+
+  # administration
+  RateInj_Lact = F_milk_input * C_milk_evol;
+  RateInj_temp = PercentVar_intake * RateInj;
+
+  dt(Q_ing) = Q_ing_rate;
+  dt(Q_inj) = Frac_Intake * RateInj_temp/1E6 * BodyWeight * Abs + RateInj_Lact * Abs;  #/1E6 to have it in ng
+  dt(Q_inh) = F_alv * C_inh;
+
+  # elimination
+  dt(Q_exhaled_total) = F_pul * C_exh_total;
+  dt(Q_exhaled_alv)   = F_alv * C_alv;
+  dt(Q_feces)         = F_gut2faeces * C[19];
+  dt(Q_urine)         = Ke_renal     * C[14];
+  dt(Q_lact)          = F[29] * C_milk;
+  dt(Q_elim_plasma)   = Kelim * C_art;
+
+  # metabolism
+  dt(Q_met_liver) = Vmax_liver  *  Cv[18] / (Km + Cv[18]);
+  dt(Q_met_lung)  = Vmax_lung   *  Cv[15] / (Km + Cv[15]);
+  dt(Q_met_kidney)= Vmax_kidney *  Cv[14] / (Km + Cv[14]);
+  dt(Q_met_gut)   = Vmax_gut    *  Cv[16] / (Km + Cv[16]);
+
+  # distribution
+  dt(Q[0-3])  = F[i] * (C_art - Cv[i]);
+  dt(Q[5-7])  = F[i] * (C_art - Cv[i]);
+  dt(Q[9-13]) = F[i] * (C_art - Cv[i]);
+
+  dt(Q[4])    = F[i] * (C_art - Cv[i]) - dt(Q_lact);
+  
+  dt(Q[14])   = F[i] * (C_art - Cv[i]) - dt(Q_urine)- dt(Q_met_kidney);
+ 
+  dt(Q[15]) = F[i] * (C_art - Cv[i]) - dt(Q_met_lung);
+ 
+  dt(Q[16]) = Ka_gut * C[19] + F[i] * (C_art - Cv[i]) - dt(Q_met_gut);
+  
+  dt(Q[17]) = Ka_stomach * C[20] + F[i] * (C_art - Cv[i]);
+
+  dt(Q[18]) = F[21] * C_art  + F[11] * Cv[11] + F[9] * Cv[9] + F[16] * Cv[16] +
+              F[17] * Cv[17] - F[18] * Cv[18] + dt(Q_inj) - 
+              dt(Q_met_liver) - Ke_bile * C[18];
+	      
+  dt(Q[19]) = F_stom2gut * C[20] + Ke_bile * C[18] - Ka_gut * C[19] - dt(Q_feces);
+  
+  dt(Q[20]) = dt(Q_ing) - (F_stom2gut + Ka_stomach) * C[20];
+ 
+  # Assumption of equal diffusion rate constant between organ_sexs and placenta
+  # and vice-versa. Mother-foetus exchanges at zero after birth
+  dt(Q[8])  = F[8] * (C_art - Cv[8]) + (Gestation ?  Kd_uter2pla * (C[27] - C[8]) : 0.0);
+ 
+  dt(Q_ven) = F[0]  * Cv[0]  + F[1]  * Cv[1]  + F[2]  * Cv[2]  +
+              F[3]  * Cv[3]  + F[4]  * Cv[4]  + F[5]  * Cv[5]  + 
+              F[6]  * Cv[6]  + F[7]  * Cv[7]  + F[8]  * Cv[8]  + 
+              F[10] * Cv[10] + F[12] * Cv[12] + F[13] * Cv[13] + 
+              F[14] * Cv[14] + F[15] * Cv[15] + F[18] * Cv[18] - F[22] * C_ven - k_BloodLoss * Q_ven; 
+
+  dt(Q_art) = dt(Q_inh) - dt(Q_exhaled_alv) + F[22] * C_ven - F[22] * C_art - dt(Q_elim_plasma); 
+
+  dt(Q_bloodloss) = k_BloodLoss * Q_ven;
+
+  # Differentials for the amniotic fluid and placenta
+  # =================================================
+  # purging at birth
+ 
+  dt(Q_met_placenta) = (Gestation ?
+                        (Vmax_placenta * Free * Cv[27]) / (Km + Free * Cv[27]):
+			 -2E-2 * Q_met_placenta);
+  
+  dt(Q[26]) = (Gestation ?
+                Kd_pla2amniot * (Free * C[27] - Free * C[26] * PC[27]/PC[26]) + Ke_gut_foetus * Free_fet * C_foetus[16]
+		 - Ka_amniot * Free * C[26] : 
+		 -2E-2 * Q[26]);
+
+  dt(Q[27]) = (Gestation ?
+                 Kd_uter2pla * (C[8] - C[27]) + F_foetus[27] * (C_foetus[22] - Cv[27]) -
+                 Kd_pla2amniot * (Free * C[27] - Free * C[26] * PC[27]/PC[26]) - dt(Q_met_placenta) :
+                 -2E-2 * Q[27]);
+
+  # Differentials for the foetus
+  # ============================
+
+  # metabolism
+  dt(Q_foetus_met_liver) = (Gestation ?
+			    Kscaled * pow( (BDW_foetus/(1000*70) ),0.8) * Q_foetus[18] :
+			    -2E-2 * Q_foetus_met_liver);
+
+				# Vmax_liver_foetus  *  Cv_foetus[18] / (Km + Cv_foetus[18]) :
+                            	#-2E-5 * Q_foetus_met_liver);
+
+  # distribution 
+  dt(Q_foetus[0-15])   = (Gestation ? F_foetus[i] * (C_foetus[22] - Cv_foetus[i]) : -2E-2 * Q_foetus[i]);
+  dt(Q_foetus[17])     = (Gestation ? F_foetus[i] * (C_foetus[22] - Cv_foetus[i]) : -2E-2 * Q_foetus[i]);
+	 			 
+  dt(Q_foetus[16])    = (Gestation ? 
+                            F_foetus[16] * (C_foetus[22] - Cv_foetus[16]) + Ka_amniot * Free_fet * C[26] + 
+                               Ke_bile_foetus * Free_fet * C_foetus[18] - Ke_gut_foetus * Free_fet * C_foetus[16] :
+                            -2E-2 * Q_foetus[16]);
+							
+  dt(Q_foetus[18])   = (Gestation ? 
+                          F_foetus[21] * C_foetus[22]  + F_foetus[11] * Cv_foetus[11] + F_foetus[9]  * Cv_foetus[9] + 
+                          F_foetus[16] * Cv_foetus[16] + F_foetus[17] * Cv_foetus[17] + 0.7 * F_foetus[27] * Cv[27] - 
+                          F_foetus[18] * Cv_foetus[18] - Ke_bile_foetus * Free_fet * C_foetus[18]: # - dt(Q_foetus_met_liver) 
+                          -2E-2 * Q_foetus[18]);
+						  
+  dt(Q_foetus[22]) = (Gestation ? 
+                     F_foetus[0]  * Cv_foetus[0]  + F_foetus[1]  * Cv_foetus[1] + F_foetus[2]  * Cv_foetus[2] +
+                     F_foetus[3]  * Cv_foetus[3]  + F_foetus[4]  * Cv_foetus[4] + F_foetus[5]  * Cv_foetus[5] + 
+		     F_foetus[6]  * Cv_foetus[6]  + F_foetus[7]  * Cv_foetus[7] + F_foetus[8]  * Cv_foetus[8] + 
+		     F_foetus[10] * Cv_foetus[10] + F_foetus[12] * Cv_foetus[12]+ F_foetus[13] * Cv_foetus[13]+ 
+		     F_foetus[14] * Cv_foetus[14] + F_foetus[15] * Cv_foetus[15]+
+		     F_foetus[18] * Cv_foetus[18] + 0.3 * F_foetus[27] * Cv[27]  
+                     - CardOutput_foetus * Free_fet * C_foetus[22] :
+		     -2E-2 * Q_foetus[22]);
+ 
+  # Computation of AUC
+  # =================================================
+  dt(AUC[0-20])  = C[i];
+  dt(AUC[26-27]) = C[i];
+  dt(AUC_foetus[0-18]) = (Gestation ? C_foetus[i] : -2E-2 * AUC_foetus[i]);
+  dt(AUC_foetus[22])   = (Gestation ? C_foetus[i] : -2E-2 * AUC_foetus[i]);
+
+  # Differentials for lactation
+  # =================================================
+  # purging at the end of lactation
+  dt(Q_lact_lastchild) = (Memory_Lact ? F[29] * C_milk : -2E-2 * Q_lact_lastchild);
+
+  # Mass balance check
+  #====================
+  Q_organ = Q[0]  + Q[1]  + Q[2]  + Q[3]  + Q[4]  + Q[5]  +  
+            Q[6]  + Q[7]  + Q[8]  + Q[9]  + Q[10] + Q[11] + 
+            Q[12] + Q[13] + Q[14] + Q[15] + Q[16] + Q[17] + 
+            Q[18] + Q[19] + Q[20] +  C_art * V_art + Q_ven;
+
+  Q_met   = Q_met_liver + Q_met_lung + Q_met_gut + Q_met_kidney;
+
+  Q_admin = Q_ing + Q_inh + Q_inj;
+
+  Q_elim  = Q_exhaled_alv + Q_feces + Q_urine + Q_lact + Q_elim_plasma + Q_bloodloss;
+
+  Q_woman_total = Q_organ + Q_met + Q_elim;  
+
+  # Mass balance check for foetus
+  Q_foetus_organ = Q_foetus[0]  + Q_foetus[1]  + Q_foetus[2]  + Q_foetus[3]  + Q_foetus[4]  + Q_foetus[5]  +
+  		   Q_foetus[6]  + Q_foetus[7]  + Q_foetus[9]  + Q_foetus[8]  + Q_foetus[10] + Q_foetus[11] + 
+		   Q_foetus[12] + Q_foetus[13] + Q_foetus[14] + Q_foetus[15] + Q_foetus[16] + Q_foetus[17] +  
+		   Q_foetus[18] + Q_foetus[22]; 
+
+  Q_foetus_met   = Q_foetus_met_liver;
+
+  Q_foetus_total = (Gestation ? Q_foetus_organ + Q_foetus_met: 0);
+
+  # total quantity in the foetus
+  Q_foetus_prev  = (Gestation ? Q_foetus_prev : Q_foetus_atTEG);
+  Q_foetus_atTEG = (Gestation ? Q_foetus_total + Q_foetus_prev : Q_foetus_atTEG);
+ 
+  Q_amniot_prev  = (Gestation ? Q_amniot_prev : Q_amniot_atTEG);  
+  Q_amniot_atTEG = (Gestation ? Q[26] + Q_amniot_prev : Q_amniot_atTEG);
+  
+  Q_placenta_prev = (Gestation? Q_placenta_prev : Q_placenta_atTEG); 
+  Q_placenta_atTEG = (Gestation ? Q[27] + Q_placenta_prev : Q_placenta_atTEG);
+
+  Q_met_placenta_prev = (Gestation? Q_met_placenta_prev : Q_met_placenta_atTEG); 
+  Q_met_placenta_atTEG = (Gestation ? Q_met_placenta + Q_met_placenta_prev : Q_met_placenta_atTEG);
+
+  Q_sum_atTEG = Q_foetus_atTEG + Q_amniot_atTEG + Q_placenta_atTEG;
+
+  Q_total = Q_woman_total + Q_sum_atTEG + Q_met_placenta_atTEG;
+
+  Q_check = Q_admin - Q_total;
+
+  # Milk measurements
+  dt (Q_lact_measured) = (t >= t_lact3weeks ? (t <= t_lact6weeks ? dt(Q_lact) : 0) : 0);
+  dt (V_lact_measured) = (t >= t_lact3weeks ? (t <= t_lact6weeks ? F[29] : 0) : 0);
+  
+} # End of Dynamics
+
+
+CalcOutputs {
+
+  # Output for checking with experimental data
+  # conversion en ng/g of lipid tissue	
+  C_ven  = (Q_ven > 0 ? Q_ven / V_ven : 1E-10);
+  C_foetus_ven = (Gestation ? Q_foetus[22] / V_foetus[22] : 1E-10);
+
+  Rate_Lact = F[29] * Cv[4] * PC[29];
+
+
+} # End of CalcOutputs
+End.
+
