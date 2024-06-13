@@ -1,0 +1,9 @@
+"Fabrega et al. (2014, 2016) - Concentrations in ìg/L",,,,,
+Substance,Liver,Lung,Brain,Kidney,Plasma
+PFOS,39.57816377,2.450545911,3.653846154,20.93023256,13.6
+PFOA,3.902439024,4.20212766,0.576017131,4.754464286,3.69
+,,,,,
+My Simulations - Concentrations in ìg/L,,,,,
+Substance,Liver,Lung,Brain,Kidney,Plasma
+PFOS,24.44975,1.419063,2.334588,13.83749,9.155247
+PFOA,5.200716,6.407408,0.8576845,7.073455,5.045203
