@@ -1,0 +1,31 @@
+Model experiments list
+
+1.kudo (2007) high dose, tissues
+2.kudo (2007) low dose, tissues
+3.kim (2016) IV male tissues
+4.kim (2016) ORAL male tissues
+5.kim (2016) IV female tissues
+6.kim (2016) ORAL female tissues
+7.Dzierlenga (2021) ORAL male tissues
+8.Dzierlenga (2021) ORAL female tissues
+9.Kim (2016) ORAL male blood
+10.Kim (2016) IV male blood
+11.Lupton (2020) ORAL female tissues
+12.Lupton (2020) ORAL female feces
+13.Lupton (2020) ORAL female urine
+14.Cui (2010) ORAL male urine low
+15.Cui (2010) ORAL male urine high
+16.Cui (2010) ORAL male feces low
+17.Cui (2010) ORAL male feces hig8h
+18.Dzierlenga (2021) IV male serum
+19.Dzierlenga (2021) ORAL male serum low
+20.Dzierlenga (2021) ORAL male serum medium
+21.Dzierlenga (2021) ORAL male serum high
+22.Dzierlenga (2021) IV female serum
+23.Dzierlenga (2021) ORAL female serum low
+24.Dzierlenga (2021) ORAL female serum medium
+25.Dzierlenga (2021) ORAL female serum high
+26.Kim (2016) ORAL female blood
+27.Kim (2016) IV female blood
+
+

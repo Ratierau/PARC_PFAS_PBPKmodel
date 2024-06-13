@@ -1,0 +1,11 @@
+List of Scenarios
+
+1.Enterohepatic yes - Basolateral Efflux same for F&M
+2.Enterohepatic  yes- Basolateral Efflux different for F&M
+3.Enterohepatic  yes - No Basolateral Efflux 
+4.No Enterohepatic - Basolateral - Efflux same for F&M 
+5.No Enterohepatic - Basolateral Efflux different for F&M 
+6.No Enterohepatic - No Basolateral Efflux
+
+
+ 
