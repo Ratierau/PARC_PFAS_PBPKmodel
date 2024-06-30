@@ -1,34 +1,32 @@
-################################################################################################################################################################
-#                                                                                                                                                              #
-#  Function for individual exposure including individual food frequencies: exposure.freq()                                                                     #
-#                                                                                                                                                              #
-#  Arguments:                                                                                                                                                  #
-#  food.freq.individual   data.frame with individual weekly food frequencies (columns "expoHierarchyCode.x", "expoHierarchyCode.2", "freq")                    #
-#  portions               data.frame with portion sizes in grams in form of log-normal distributions (columns "expo.level.x", "expo.level.2", "gmean", "gsd")  #
-#  pfass                  vector of pfas compound codes as in the data data.frame                                                                              #
-#  region                 one of "Northern Europe", "Western Europe", "Eastern Europe" or "Southern Europe"                                                    #
-#  country                ISO 3166 alpha-2 code                                                                                                                #
-#  year                   if given, uses trend (+ CI) for estimate exposure in that year                                                                       #
-#  start                  lower limit of pfas data used for the estimation                                                                                     #
-#  end                    upper limit of pfas data used for the estimation                                                                                     #
-#  fit                    either "moments" for GM & GSD or "MLE" for most likelihood                                                                           #
-#  method                 either "numeric" for summing randomly generated distributions or "analytical" for using Fenton-Wilkinson approximation               #
-#  n                      number of generated values in case of method="numeric"                                                                               #
-#  data                   pfas food exposure data (data.frame as provided by Daria Sapunova)                                                                   #
-#  enable.regions         TRUE for replacing missing country data by the country region, FALSE otherwise                                                       #
-#                                                                                                                                                              #
-################################################################################################################################################################
+###################################################################################################################################################################################################
+#                                                                                                                                                                                                 #
+#  Function for individual exposure including individual food frequencies: exposure.freq()                                                                                                        #
+#                                                                                                                                                                                                 #
+#  Arguments:                                                                                                                                                                                     #
+#  food.freq.individual   data.frame with individual weekly food frequencies (columns "expoHierarchyCode.x", "expoHierarchyCode.2", "freq", "region", "country")                                  #
+#  portions               data.frame with portion sizes in grams in form of log-normal distributions (columns "expoHierarchyCode.x", "expoHierarchyCode.2", "gmean", "gsd", "region", "country")  #
+#  pfass                  vector of pfas compound codes as in the data data.frame                                                                                                                 #
+#  year                   if given, uses trend (+ CI) for estimate exposure in that year                                                                                                          #
+#  start                  lower limit of pfas data used for the estimation                                                                                                                        #
+#  end                    upper limit of pfas data used for the estimation                                                                                                                        #
+#  fit                    either "moments" for GM & GSD or "MLE" for most likelihood                                                                                                              #
+#  method                 either "numeric" for summing randomly generated distributions or "analytic" for using Fenton-Wilkinson approximation                                                    #
+#  n                      number of generated values in case of method="numeric"                                                                                                                  #
+#  data                   pfas food exposure data (data.frame as provided by Daria Sapunova)                                                                                                      #
+#  enable.regions         TRUE for replacing missing country data by the country region, FALSE otherwise                                                                                          #
+#                                                                                                                                                                                                 #
+###################################################################################################################################################################################################
 
 # This function uses previously defined function exposure() to compute PFASs' exposure for one individual with known food frequencies.
 # It uses exposure() for handling food PFASs' concentrations, portions.rds for a distribution of a typical portion size and individual food frequencies on form of a data frame
 
-exposure.freq<-function(food.freq.individual,portions,pfass,region,country=NA,year=NA,start=-Inf,end=Inf,fit="moments",method="numeric",q=c(0.05,0.25,0.50,0.75,0.95),n=10000,data=data_pfas,enable.regions=TRUE) {
+exposure.freq<-function(food.freq.individual,portions,pfass,year=NA,start=-Inf,end=Inf,fit="moments",method="numeric",q=c(0.05,0.25,0.50,0.75,0.95),n=10000,data=data_pfas,enable.regions=TRUE) {
   
   warn<-character(0)
   results<-data.frame()
   
   ffnl<-nrow(food.freq.individual)
-  food.freq.individual<-aggregate(list("freq"=food.freq.individual$freq),by=list("expoHierarchyCode.x"=food.freq.individual$expoHierarchyCode.x,"expoHierarchyCode.2"=food.freq.individual$expoHierarchyCode.2),FUN="sum")
+  food.freq.individual<-aggregate(list("freq"=food.freq.individual$freq),by=list("expoHierarchyCode.x"=food.freq.individual$expoHierarchyCode.x,"expoHierarchyCode.2"=food.freq.individual$expoHierarchyCode.2,"country"=food.freq.individual$country,"region"=food.freq.individual$region),FUN="sum")
   if(ffnl!=nrow(food.freq.individual)) {
     warn<-c(warn,"In food.freq.individual, multiple rows for same food items were aggregated.")
   }
@@ -37,7 +35,7 @@ exposure.freq<-function(food.freq.individual,portions,pfass,region,country=NA,ye
     
     contrib<-data.frame("gmean"=numeric(0),"gsd"=numeric(0),weight=numeric(0))
     for(i in 1:nrow(food.freq.individual)) {
-      contrib<-rbind(contrib,c(exposure(food.freq.individual$expoHierarchyCode.x[i],food.freq.individual$expoHierarchyCode.2[i],pfas,region=region,country=country,year=year,fit=fit,method="analytical",data=data,enable.regions=enable.regions),"weight"=food.freq.individual$freq[i]))
+      contrib<-rbind(contrib,c(exposure(food.freq.individual$expoHierarchyCode.x[i],food.freq.individual$expoHierarchyCode.2[i],pfas,region=food.freq.individual$region[i],country=food.freq.individual$country[i],year=year,fit=fit,method="analytic",data=data,enable.regions=enable.regions),"weight"=food.freq.individual$freq[i]))
     }
     rownames(contrib)<-food.freq.individual$expoHierarchyCode.x
     colnames(contrib)<-c("gmean","gsd","weight")
@@ -69,7 +67,7 @@ exposure.freq<-function(food.freq.individual,portions,pfass,region,country=NA,ye
       results<-rbind(results,addline)
     }
     
-    if(method=="analytical") {
+    if(method=="analytic") {
       concentrationmis<-log(contrib$gmean*contrib$weight)[which(!is.na(rowSums(contrib)))]
       concentrationsds<-log(contrib$gsd  *             1)[which(!is.na(rowSums(contrib)))]
       

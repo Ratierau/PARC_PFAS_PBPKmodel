@@ -12,7 +12,7 @@
 #  start            lower limit of pfas data used for the estimation                                                                                                    #
 #  end              upper limit of pfas data used for the estimation                                                                                                    #
 #  fit              either "moments" for GM & GSD or "MLE" for most likelihood                                                                                          #
-#  method           either "numeric" for summing randomly generated distributions or "analytical" for using Fenton-Wilkinson approximation                              #
+#  method           either "numeric" for summing randomly generated distributions or "analytic" for using Fenton-Wilkinson approximation                                #
 #  n                number of generated values in case of method="numeric"                                                                                              #
 #  data             pfas food exposure data (data.frame as provided by Daria Sapunova)                                                                                  #
 #  enable.regions   TRUE for replacing missing country data by the country region, FALSE otherwise                                                                      #
@@ -26,7 +26,7 @@ exposure.cohort<-function(food.freq,portions,pfass,region,country=NA,year=NA,sta
     colnames(results)<-c("id","pfas",paste0("q_",as.character(q)))
   }
   
-  if(method=="analytical") {
+  if(method=="analytic") {
     results<-as.data.frame(matrix(NA,0,4))
     colnames(results)<-c("id","pfas","gmean","gsd")
   }
