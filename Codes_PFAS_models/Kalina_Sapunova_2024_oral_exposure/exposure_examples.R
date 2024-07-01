@@ -16,10 +16,10 @@ library("fitdistrplus")  # This library is necessary for the MLE estimates.
 #                #
 ##################
 
-#load("../Data/food_concentrations.rds")         # This is an rds file with PFASs concentrations in food items. Prepared by Daria.
-load("../Data/food_concentrations_example.rds")  # Fake data for example use.
-#load("../Data/food_freq.rds")                   # This is an rds file with food item frequencies. Prepared by food.consumption.generate.R file from data provided by Pavel Piler.
-load("../Data/food_freq_example.rds")            # Fake data for example use.
+load("../Data/food_concentrations.rds")         # This is an rds file with PFASs concentrations in food items. Prepared by Daria.
+#load("../Data/food_concentrations_example.rds")  # Fake data for example use.
+load("../Data/food_freq.rds")                   # This is an rds file with food item frequencies. Prepared by food.consumption.generate.R file from data provided by Pavel Piler.
+#load("../Data/food_freq_example.rds")            # Fake data for example use.
 load("../Data/portions_masses.rds")               # This is an rds file with portion sizes (in quantiles). Prepared by Daria and adjusted by prepare.portions.R.
 
 
@@ -33,7 +33,7 @@ source("exposure.R")                        # The main function returning an exp
 source("exposure.mass.R")                   # The function returning an exposure for multiple compounds and multiple food items based on sum of exposure() results and mass/time consumption.
 source("exposure.freq.R")                   # The function returning an exposure for multiple compounds and multiple food items based on sum of exposure() results and a frequency of food consumption + portion sizes.
 source("exposure.cohort.R")                 # The function for modelling whole cohorts (frequency-based).
-source("fenton.wilkinson.approximation.R")  # The function for modelling whole cohorts (frequency-based).
+source("fenton.wilkinson.R")                # The function for modelling whole cohorts (frequency-based).
 
 
 #####################################
@@ -106,9 +106,6 @@ food_mass_individual<-data.frame("expoHierarchyCode.x"=c("Z0007.0001","Z0019.000
                                  "expoHierarchyCode.2"=c("Z0007.0001","Z0019.0001"),
                                  "gmean"              =c(300,160),
                                  "gsd"                =c(1.5,1.4)) 
-
-exposure("Z0007.0001","Z0007.0001","ΣPFOA",country="NO",method="analytic")           # GSD > 5 is still fine
-exposure("Z0019.0001.0001.0001","Z0019.0001","ΣPFOA",country="NO",method="analytic") # GSD > 25 for PFOA is extremely high => instability of Fenton-Wilkinson
 
 exposure.mass(food_mass_individual=food_mass_individual,c("ΣPFOA","ΣPFOS"),country="NO",method="numeric",n=10000)
 exposure.mass(food_mass_individual=food_mass_individual,c("ΣPFOA","ΣPFOS"),country="NO",method="analytic")
