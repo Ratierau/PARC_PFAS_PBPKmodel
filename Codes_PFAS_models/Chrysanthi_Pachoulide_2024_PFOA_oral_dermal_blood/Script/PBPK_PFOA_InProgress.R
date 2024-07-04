@@ -80,7 +80,7 @@ for (i in 1:nPeople) {
   VKC = 0.004  # Fraction kidney volume
   VfilC = 0.0004  # Fraction filtrate compartment volume (10% of kidney volume)
   VGC = 0.0171  # Fraction gut volume
-  VPlasC = 0.0428  # Fraction plasma volume (58% of blood)
+  VPlasC = 0.0428  # Fraction plasma volume (58% of blood) !!!!! TO CHANGE, THIS IS THE RAT VALUE, HUMAN VALUE IS 0.0458 !!!!!
   Htc = 0.44  # hematocrit
   
   Skinarea = 972  # Exposed area on skin (cm^2); Changes from 5 since 2018 EFSA
