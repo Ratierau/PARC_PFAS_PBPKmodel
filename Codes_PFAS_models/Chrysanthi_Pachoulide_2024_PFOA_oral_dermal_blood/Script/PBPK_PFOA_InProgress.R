@@ -115,8 +115,8 @@ for (i in 1:nPeople) {
   VPlas = VPlasC*BW  # Plasma volume(L)
   
   VSk = (Skinarea*Skinthickness)/1000  # Skin volume (L)
-  VR = 0.84*BW-VL-VF-VK-Vfil-VG-VPlas-VSk  # Rest of the body volume (L). Need to know where the number 0.84 comes from???
-  
+  VR = 0.84*BW-VL-VF-VK-Vfil-VG-VPlas-VSk  # Rest of the body volume (L). Need to know where the number 0.84 comes from??? 
+  #!!!! 0.84 assumes that we should ignore some poorly perfused organs (hair, nails etc), suggestion to change that to 1 !!!!
   
   
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
