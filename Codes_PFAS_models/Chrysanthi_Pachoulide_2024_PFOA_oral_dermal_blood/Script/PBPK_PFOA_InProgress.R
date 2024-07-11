@@ -328,6 +328,26 @@ for (i in 1:nPeople) {
       ## Storage compartment for urine
       Rdelay <- CLfil*Cfil - CLurine*Adelay # THIS NEEDS TO BE CHANGED AS THE CLEARANCE SHOULD BE MULTIPLIED BY CONCENTRATION AND NOT AMOUNT
       #ug/h     (L/h)*(ug/L) - (L/h)*(ug) (-> to be ug/L) #UNITS ARE WRONG
+
+      #---------------------------------------------------------------
+      #Kidney compartment written in rat model as developed by Deepika and Annelies
+      # dt(Akidney) = Qkidney *(cplasma - ckidney/k_kidney_plasma) - GFR * (cplasma*fu) + (Tm*cfilterate)/(kt+cfilterate);
+      # dt(Afilterate) = GFR * (cplasma*fu-cfilterate) - (Tm*cfilterate)/(kt+cfilterate);
+      # dt(Abladder)  = GFR * (cfilterate)  -kurine *Abladder; 
+      # dt(Aurine)= kurine* Abladder; 
+
+       #---------------------------------------------------------------
+      #Kidney compartment written in rat model based on Lautz (used/preferred by Annelies)
+      # dt(Akidney) = Qkidney *(cplasma - ckidney/k_kidney_plasma) - GFR * (cplasma*fu) + (Tm*cfilterate)/(kt+cfilterate);
+      #Urine compartment                              
+      #ABladder' = GF'  - AReab'- kurine*ABladder     ;PFAS found in filtrate!		;| --> Part 1
+      #AUrine' =  kurine*Abladder - Uex'             	;PFAS found in bladder!			;| --> Part 2
+      
+      # Define: Vurine = Qurine*Timeframe           ;volume per time step			
+      # Define: Qurine = 4.6*10^-4             {L/h}           ; In rats (around 11 mL per day) 		
+      # Curine = AUrine/Vurine                 ;Concentration in urine				;|
+			# Uex' = Qurine*Curine                   		;PFAS found in urine outside the body	;|		;| --> Part 3
+
       
       ## Urine
       Rurine <- CLurine*Adelay # ug/h
