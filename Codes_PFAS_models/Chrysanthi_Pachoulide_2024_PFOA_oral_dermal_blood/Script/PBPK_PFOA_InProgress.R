@@ -24,7 +24,7 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 setwd(HOME)
 
 # creating a new folder to store the results 
-WhatAmITesting <- "ONLY_ORAL"
+WhatAmITesting <- "FROM_k_TO_CL"
 Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
 dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
 
@@ -161,17 +161,17 @@ for (i in 1:nPeople) {
   
   Kt = 55  # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
   # Expressed in ug to be consistent with the other parameters
-  kurinec = 0.00000183  # 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
+  CLurinec = 0.00000183  # 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
   # 0.0003 urinary clearance (/h/kg^-0.25); estimated from Harada et al 2005 NOT USED
-  kurine = kurinec*BW^(-0.25) # clearance urine (L/h), 
+  CLurine = CLurinec*BW^(-0.25) # clearance urine (L/h), 
   
   # Clearance parameters# 
   
-  kbiliaryc = 0.000109 # 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day  taken from Fujii et al 2015 
-  kfaecesc = 0.00000217 # 0.052/24/1000 faeces clearance L/h/kg clearance in faeces taken from Fujii et al 2015, calculated from 0.052 ml/day/kg
+  CLbiliaryc = 0.000109 # 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day  taken from Fujii et al 2015 
+  CLfaecesc = 0.00000217 # 0.052/24/1000 faeces clearance L/h/kg clearance in faeces taken from Fujii et al 2015, calculated from 0.052 ml/day/kg
   
-  kbiliary = kbiliaryc*BW^0.1# L/h biliary clearence, BW adjusted to the volume from liver
-  kfaeces = kfaecesc*BW^0.001  # L/h faeces clearance, BW adjusted to the volume of GI tract
+  CLbiliary = CLbiliaryc*BW^0.1# L/h biliary clearence, BW adjusted to the volume from liver
+  CLfaeces = CLfaecesc*BW^0.001  # L/h faeces clearance, BW adjusted to the volume of GI tract
   
   kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
   
@@ -222,18 +222,18 @@ for (i in 1:nPeople) {
     Kt,
     Free,
     BW,
-    kurinec,
+    CLurinec,
     PL,
     PF,
     PK,
     PSk,
     PR,
     PG,
-    kurine,
-    kbiliaryc,
-    kfaecesc,
-    kbiliary, 
-    kfaeces,
+    CLurine,
+    CLbiliaryc,
+    CLfaecesc,
+    CLbiliary, 
+    CLfaeces,
     FreeL,
     FreeF,
     FreeK,
@@ -323,11 +323,11 @@ for (i in 1:nPeople) {
       
       
       ## Gut compartment
-      RG <- QG*CA*Free-QG*CG*FreeG+CL*FreeL*kbiliary+Input1*DoseOn-CG*FreeG*kfaeces
+      RG <- QG*CA*Free-QG*CG*FreeG+CL*FreeL*CLbiliary+Input1*DoseOn-CG*FreeG*CLfaeces
       # Rate of PFOA amount change in gut (ug/h)
       
       ## Liver compartment
-      RL <- QL*CA*Free+QG*CG*FreeG-(QL+QG)*CL*FreeL-CL*FreeL*kbiliary
+      RL <- QL*CA*Free+QG*CG*FreeG-(QL+QG)*CL*FreeL-CL*FreeL*CLbiliary
       # Rate of PFOA amount change in the liver (ug/h)
       
       ## Fat compartment
@@ -342,14 +342,14 @@ for (i in 1:nPeople) {
       # Rate of PFOA amount change in filtrate compartment (ug/h)
       
       ## Storage compartment for urine
-      Rdelay <- kfil*Cfil-kurine*Adelay # ug/h
+      Rdelay <- kfil*Cfil-CLurine*Adelay # ug/h
       
       ## Urine
-      Rurine <- kurine*Adelay # ug/h
+      Rurine <- CLurine*Adelay # ug/h
       
       ## Feaces
       
-      Rfaeces <- CG*FreeG*kfaeces #µg/h
+      Rfaeces <- CG*FreeG*CLfaeces #µg/h
       
       ## Skin compartment
       RSk <- QSk*(CA*Free-CSk*FreeSk)+Input2*DoseOn # Rate of PFOA amount change in skin
