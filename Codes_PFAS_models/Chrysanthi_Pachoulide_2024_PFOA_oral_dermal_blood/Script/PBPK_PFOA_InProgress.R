@@ -12,18 +12,23 @@
 #####################################################################################################
 
 # Last modified by: Chrysanthi Pachoulide
-# Notes: checking the mass balance again 
+# Notes: Starting from initial Trine's model again 
 #####################################################################################################
+
+rm(list=ls()) # to clear out the global environment
+
 
 
 # set work directory
-HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFAS_PARC"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Script"
 setwd(HOME)
 
-
 # creating a new folder to store the results 
-newday <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFAS_PARC/Results', Sys.Date())
-dir.create(newday)
+WhatAmITesting <- "ONLY_ORAL"
+Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
+dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
+
+
 
 # load packages
 library(lubridate)
@@ -34,12 +39,12 @@ library(ggpubr)
 library(tidyverse)
 
 
+
 ## Read in data ##
 
-#PFOA_LB_dummy <-  read.delim("./Data/PFOA_LB_dummy.csv", sep = ";"); for code update purposes the model will run for 1 person
-SumExpPFOA_LB_val <- read.delim("./Input/Husoy-Input/Data/SumPFOA_LB_food_PCP.csv", sep = ";") #added
+# PFOA_LB_dummy <-  read.delim("./Data/PFOA_LB_dummy.csv", sep = ";")
 
-nPeople <- 1 #as.numeric(nrow(PFOA_LB_dummy)) #for code update purposes the model will run for 1 person
+nPeople <- 1 #as.numeric(nrow(PFOA_LB_dummy))
 
 ## empty databases to store the results ##
 
@@ -49,7 +54,7 @@ PFOAUrine <- matrix(0, ncol = nPeople, nrow = 438001)
 PFOAKidney <- matrix(0, ncol = nPeople, nrow = 438001)
 PFOALiver <- matrix(0, ncol = nPeople, nrow = 438001)
 
-#PFOASerumTestTot
+# PFOASerumTestTot # ??? what is this ???
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ###### PBPK model PFOA ####
@@ -83,7 +88,7 @@ for (i in 1:nPeople) {
   QSkC = 0.058 # Fraction cardiac output going to skin
   QGC = 0.181 # Fraction of cardiac output going to gut and the liver via portal arthery
   
-  BW = 70.308 # #mean value of individual values from this: as.numeric(SumExpPFOA_LB_val[i,3])      # Body weight from the EuroMix study
+  BW = 70.308 # #mean of as.numeric(SumExpPFOA_LB_val[i,3])      # Body weight from the EuroMix study
   
   ## fractional tissue columes ##
   
@@ -149,7 +154,7 @@ for (i in 1:nPeople) {
   
   # kidney and urine #
   
-  Tmc = 5842.308 # average value from: as.numeric(SumExpPFOA_LB_val[i,5]) #5000  # ug/h/kg^0.75 Maximum resorption rate, changed from 6 in the original Loccisano 2011 model (ug)
+  Tmc = 5842.308 # average of as.numeric(SumExpPFOA_LB_val[i,5]) #5000  # ug/h/kg^0.75 Maximum resorption rate, changed from 6 in the original Loccisano 2011 model (ug)
   # representing a half-life of 2.3 years
   
   Tm = Tmc*BW^0.75 # transporter maximum
@@ -190,14 +195,14 @@ for (i in 1:nPeople) {
   
   
   
-  Dermconc = 0.000542 #as.numeric(SumExpPFOA_LB_val[i,14])
+  Dermconc = 0.000542 #mean of #as.numeric(SumExpPFOA_LB_val[i,14])
   Dermdose = Dermconc*BW*AbsPFOA     # Internal dose from dermal absorption (Ug/day)
   
   
   
   ## Oral exposure ##
   
-  Oralconc = 0.000103 #mean of as.numeric(SumExpPFOA_LB_val[i,7])  # Oral uptake /ug/kg bw/day
+  Oralconc = 0.000103 # mean of as.numeric(SumExpPFOA_LB_val[i,7])  # Oral uptake /ug/kg bw/day
   Oraldose = Oralconc*BW  # (ug/day)
   
   
@@ -425,7 +430,6 @@ PFOA_bal <- sum(PFOAamount[,"Input1"]+ PFOAamount[,"Input2"]- PFOAamount[,"APlas
                   PFOAamount[,"ASk"]-PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])
 
 
-
 ## MASS BALANCE & ERROR ADDED BY CHRYSANTHI ####
 
 MB_dataf <- PFOAamount %>% 
@@ -436,7 +440,23 @@ MB_dataf <- PFOAamount %>%
   mutate(time = time/(24*365)) #%>% 
 # filter(time >= 25)
 
-MB_dataf %>% 
+
+MB_ERROR <- MB_dataf %>% ggplot() +
+  geom_line(aes(time, MB), color = "grey") +
+  geom_line(aes(time, ER), color = "grey6") +
+  labs(x = "Time (years)", y = "Value",
+       caption = "Massbalance in grey, Error in black") +
+  theme_minimal()
+
+ggsave(filename=file.path(Saveoutput, "MB_ERROR.jpeg"),
+       device = NULL,
+       width=NA,
+       height=NA,
+       units="mm")
+
+
+
+TOTAL_CALCULATED <- MB_dataf %>% 
   pivot_longer(cols = c(TOTAL, Input1, Input2, CALCULATED), 
                names_to = "variable", 
                values_to = "value") %>% 
@@ -457,108 +477,98 @@ MB_dataf %>%
   labs(x = "Time (years)", y = "Amount") +
   theme_minimal() +
   theme(legend.position = "bottom") 
-ggsave(filename=file.path(newday, "PlotPFOAamounts.jpeg"),
+
+TOTAL_CALCULATED
+ggsave(filename=file.path(Saveoutput, "TOTAL_CALCULATED.jpeg"),
        device = NULL,
        width=NA,
        height=NA,
        units="mm")
 
-
-MB_dataf %>% ggplot() +
-  geom_line(aes(time, MB), color = "grey") +
-  geom_line(aes(time, ER), color = "grey6") +
-  labs(x = "Time (years)", y = "Value",
-       caption = "Massbalance in grey, Error in black") +
-  theme_minimal()
-
-ggsave(filename=file.path(newday, "MB.jpeg"),
-       device = NULL,
-       width=NA,
-       height=NA,
-       units="mm")
-
-
-# add the time to the data frames
-
-PFOASerum$time <- PFOAamount$time
-PFOASerum$dose <- PFOAamount$Input1
-PFOASerum$year <- PFOASerum[,"time"]/(24*365)
-
-PFOAFat$time <- PFOAamount$time
-PFOAFat$year <- PFOAFat[,"time"]/(24*365)
-
-PFOAUrine$time <- PFOAamount$time
-PFOAUrine$year <- PFOAUrine[,"time"]/(24*365)
-
-PFOAKidney$time <- PFOAamount$time
-PFOAKidney$year <- PFOAKidney[,"time"]/(24*365)
-
-PFOALiver$time <- PFOAamount$time
-PFOALiver$year <- PFOALiver[,"time"]/(24*365)
-
-
-
-
-### ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#### Plotting results####
-#### ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++####
-
-# PFOA in plasma of one individual
-Plot_PFOA_Plasm <- ggplot()+
-  geom_path(data = PFOASerum, aes(x = year, y = V1))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
-  scale_colour_hue()+
-  ylab("Concentration of PFOA in plasma (ng/ml)")
-
-Plot_PFOA_Plasm
-
-
-# PFOA in urine of one individual
-Plot_PFOA_urine <- ggplot()+
-  geom_path(data = PFOAUrine, aes(x = year, y = V1))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
-  scale_colour_hue()+
-  ylab("Concentration of PFOA in urine (ng/ml)")
-
-Plot_PFOA_urine
-
-
-# PFOA in liver of one individual
-Plot_PFOA_liver<- ggplot()+
-  geom_path(data = PFOALiver, aes(x = year, y = V1))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
-  scale_colour_hue()+
-  ylab("Concentration of PFOA in liver (ng/ml)")+
-  xlab("Year")
-
-Plot_PFOA_liver
-
-
-# PFOA in kidney of one individual
-Plot_PFOA_kidney <- ggplot()+
-  geom_path(data = PFOAKidney, aes(x = year, y = V1))+
-  theme_minimal()+
-  theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
-  scale_colour_hue()+
-  ylab("Concentration of PFOA in kidney (ng/ml)")+
-  xlab("Year")
-
-Plot_PFOA_kidney
-
-# Combine plot from serum, urine, liver and kidney
-
-Plot_combined_PFOA <- ggarrange(Plot_PFOA_Plasm, Plot_PFOA_urine, Plot_PFOA_liver, Plot_PFOA_kidney,
-                                ncol = 2, nrow = 2) 
-
-Plot_combined_PFOA
-
-# Save the results
-
-ggsave(filename=file.path(newday, "Plot_combined_PFOA.jpeg"),
-       device = NULL,
-       width=NA,
-       height=NA,
-       units="mm")
+ 
+# # add the time to the data frames
+# 
+# PFOASerum$time <- PFOAamount$time
+# PFOASerum$dose <- PFOAamount$Input1
+# PFOASerum$year <- PFOASerum[,"time"]/(24*365)
+# 
+# PFOAFat$time <- PFOAamount$time
+# PFOAFat$year <- PFOAFat[,"time"]/(24*365)
+# 
+# PFOAUrine$time <- PFOAamount$time
+# PFOAUrine$year <- PFOAUrine[,"time"]/(24*365)
+# 
+# PFOAKidney$time <- PFOAamount$time
+# PFOAKidney$year <- PFOAKidney[,"time"]/(24*365)
+# 
+# PFOALiver$time <- PFOAamount$time
+# PFOALiver$year <- PFOALiver[,"time"]/(24*365)
+# 
+# 
+# 
+# 
+# 
+# 
+# ### ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# #### Plotting results####
+# #### ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++####
+# 
+# # PFOA in plasma of one individual
+# Plot_PFOA_Plasm <- ggplot()+
+#   geom_path(data = PFOASerum, aes(x = year, y = V1))+
+#   theme_minimal()+
+#   theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
+#   scale_colour_hue()+
+#   ylab("Concentration of PFOA in plasma (ng/ml)")
+# 
+# Plot_PFOA_Plasm
+# 
+# 
+# # PFOA in urine of one individual
+# Plot_PFOA_urine <- ggplot()+
+#   geom_path(data = PFOAUrine, aes(x = year, y = V1))+
+#   theme_minimal()+
+#   theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
+#   scale_colour_hue()+
+#   ylab("Concentration of PFOA in urine (ng/ml)")
+# 
+# Plot_PFOA_urine
+# 
+# 
+# # PFOA in liver of one individual
+# Plot_PFOA_liver<- ggplot()+
+#   geom_path(data = PFOALiver, aes(x = year, y = V1))+
+#   theme_minimal()+
+#   theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
+#   scale_colour_hue()+
+#   ylab("Concentration of PFOA in liver (ng/ml)")+
+#   xlab("Year")
+# 
+# Plot_PFOA_liver
+# 
+# 
+# # PFOA in kidney of one individual
+# Plot_PFOA_kidney <- ggplot()+
+#   geom_path(data = PFOAKidney, aes(x = year, y = V1))+
+#   theme_minimal()+
+#   theme(axis.text.x = element_text(size = 13),axis.text.y = element_text(size = 13), axis.title = element_text(size = 14))+
+#   scale_colour_hue()+
+#   ylab("Concentration of PFOA in kidney (ng/ml)")+
+#   xlab("Year")
+# 
+# Plot_PFOA_kidney
+# 
+# # Combine plot from serum, urine, liver and kidney
+# 
+# Plot_combined_PFOA <- ggarrange(Plot_PFOA_Plasm, Plot_PFOA_urine, Plot_PFOA_liver, Plot_PFOA_kidney,
+#                                 ncol = 2, nrow = 2) 
+# 
+# Plot_combined_PFOA
+# 
+# # Save the results
+# 
+# ggsave(filename=file.path(Saveoutput, "Plot_combined_PFOA.jpeg"),
+#        device = NULL,
+#        width=NA,
+#        height=NA,
+#        units="mm")
