@@ -1,16 +1,28 @@
-# *************************************************************************** #
+####################################################################################################
 # Updating the Husoy model, in the context of the PARC project
-# Sections to update: skin absorption, partition coefficients, kidney compartment, TBD
-# *************************************************************************** #
+# The goal is to have a PFAS generic PBPK model to be used for risk assessment purposes by EFSA. 
+# The model should be as simple as possible and as mechanistic as necessary to capture PFAS specific purposes, where in vitro data are available for different PFAS's
+# The first step is to update the PFOA model *Husoy_2023 :
+#   - the most updated dermal and oral exposure information
+#   - a more mechanistic dermal absorption (as of now the model is using the results of a study on 1 human)
+#   - simplify the kidney compartment, change Tm and kt which are fitted values with Vmax and Km from the most recent studies
+#   - remove the "Free" term which is a fitted value from by historical PFAS models
+#   - consider changing the parition coefficients with either Human biopsy concentrations/ or mechanistic coefficients
+# The second step is to change the physiological parameters with human life-stage equations to reflect the ages from 0 to 80 years old
+#####################################################################################################
+
+# Last modified by: Chrysanthi Pachoulide
+# Notes: checking the mass balance again 
+#####################################################################################################
 
 
 # set work directory
-HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFOA"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFAS_PARC"
 setwd(HOME)
 
 
 # creating a new folder to store the results 
-newday <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFOA/Results', Sys.Date())
+newday <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFAS_PARC/Results', Sys.Date())
 dir.create(newday)
 
 # load packages
@@ -25,7 +37,7 @@ library(tidyverse)
 ## Read in data ##
 
 #PFOA_LB_dummy <-  read.delim("./Data/PFOA_LB_dummy.csv", sep = ";"); for code update purposes the model will run for 1 person
-SumExpPFOA_LB_val <- read.delim("./Data/SumPFOA_LB_food_PCP.csv", sep = ";") #added
+SumExpPFOA_LB_val <- read.delim("./Input/Husoy-Input/Data/SumPFOA_LB_food_PCP.csv", sep = ";") #added
 
 nPeople <- 1 #as.numeric(nrow(PFOA_LB_dummy)) #for code update purposes the model will run for 1 person
 
@@ -37,7 +49,7 @@ PFOAUrine <- matrix(0, ncol = nPeople, nrow = 438001)
 PFOAKidney <- matrix(0, ncol = nPeople, nrow = 438001)
 PFOALiver <- matrix(0, ncol = nPeople, nrow = 438001)
 
-# PFOASerumTestTot ### Not used
+#PFOASerumTestTot
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ###### PBPK model PFOA ####
@@ -80,7 +92,7 @@ for (i in 1:nPeople) {
   VKC = 0.004  # Fraction kidney volume
   VfilC = 0.0004  # Fraction filtrate compartment volume (10% of kidney volume)
   VGC = 0.0171  # Fraction gut volume
-  VPlasC = 0.0428  # Fraction plasma volume (58% of blood) !!!!! TO CHANGE, THIS IS THE RAT VALUE, HUMAN VALUE IS 0.0458 !!!!!
+  VPlasC = 0.0428  # Fraction plasma volume (58% of blood)
   Htc = 0.44  # hematocrit
   
   Skinarea = 972  # Exposed area on skin (cm^2); Changes from 5 since 2018 EFSA
@@ -115,8 +127,8 @@ for (i in 1:nPeople) {
   VPlas = VPlasC*BW  # Plasma volume(L)
   
   VSk = (Skinarea*Skinthickness)/1000  # Skin volume (L)
-  VR = 0.84*BW-VL-VF-VK-Vfil-VG-VPlas-VSk  # Rest of the body volume (L). Need to know where the number 0.84 comes from??? 
-  #!!!! 0.84 assumes that we should ignore some poorly perfused organs (hair, nails etc), suggestion to change that to 1 !!!!
+  VR = 0.84*BW-VL-VF-VK-Vfil-VG-VPlas-VSk  # Rest of the body volume (L). Need to know where the number 0.84 comes from???
+  
   
   
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -124,7 +136,7 @@ for (i in 1:nPeople) {
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
   
-  fu = 0.02 # fraction unbound in plasma; what was called Free fraction of PFOA in plasma
+  Free = 0.02 # Free fraction of PFOA in plasma
   PL =2.2  # Plasma/liver partition coefficient
   PF = 0.04  # Plasma/fat partition coefficient
   PK = 1.05  # Plasma/kidney partition coefficient
@@ -144,19 +156,28 @@ for (i in 1:nPeople) {
   
   Kt = 55  # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
   # Expressed in ug to be consistent with the other parameters
-  CLurinec = 0.00000183  # 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
+  kurinec = 0.00000183  # 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
   # 0.0003 urinary clearance (/h/kg^-0.25); estimated from Harada et al 2005 NOT USED
-  CLurine = CLurinec*BW^(-0.25) # clearance urine (L/h), 
+  kurine = kurinec*BW^(-0.25) # clearance urine (L/h), 
   
   # Clearance parameters# 
   
-  CLbiliaryc = 0.000109 # 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day  taken from Fujii et al 2015 
-  CLfaecesc = 0.00000217 # 0.052/24/1000 faeces clearance L/h/kg clearance in faeces taken from Fujii et al 2015, calculated from 0.052 ml/day/kg
+  kbiliaryc = 0.000109 # 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day  taken from Fujii et al 2015 
+  kfaecesc = 0.00000217 # 0.052/24/1000 faeces clearance L/h/kg clearance in faeces taken from Fujii et al 2015, calculated from 0.052 ml/day/kg
   
-  CLbiliary = CLbiliaryc*BW^0.1# L/h biliary clearence, BW adjusted to the volume from liver
-  CLfaeces = CLfaecesc*BW^0.001  # L/h faeces clearance, BW adjusted to the volume of GI tract
+  kbiliary = kbiliaryc*BW^0.1# L/h biliary clearence, BW adjusted to the volume from liver
+  kfaeces = kfaecesc*BW^0.001  # L/h faeces clearance, BW adjusted to the volume of GI tract
   
-  CLfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  
+  ## Free fraction of chemical in tissues ##
+  
+  FreeL = Free/PL  # liver
+  FreeF = Free/PF  # fat
+  FreeK = Free/PK  # kidney
+  FreeSk = Free/PSk  # skin
+  FreeR = Free/PR  # rest of the body
+  FreeG = Free/PG  # gut
   
   
   # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -169,7 +190,7 @@ for (i in 1:nPeople) {
   
   
   
-  Dermconc = 0.000542 #mean of: as.numeric(SumExpPFOA_LB_val[i,14])
+  Dermconc = 0.000542 #as.numeric(SumExpPFOA_LB_val[i,14])
   Dermdose = Dermconc*BW*AbsPFOA     # Internal dose from dermal absorption (Ug/day)
   
   
@@ -180,11 +201,11 @@ for (i in 1:nPeople) {
   Oraldose = Oralconc*BW  # (ug/day)
   
   
-  # SEEMS THAT IT'S NOT USED
+  
   Tinput = 24  # durration of dose (h)
-  # 
+  
   tinterval = 24 # the interval the dose should be repeated (h). Do not have to be similar to Tinput
-  # # Not originally in the EFSA model since in Bercley Madonna this is included in an predefined function
+  # Not originally in the EFSA model since in Bercley Madonna this is included in an predefined function
   
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   # Compile parameters 
@@ -194,33 +215,33 @@ for (i in 1:nPeople) {
     Htc,
     Tmc,
     Kt,
-    fu,
+    Free,
     BW,
-    CLurinec,
+    kurinec,
     PL,
     PF,
     PK,
     PSk,
     PR,
     PG,
-    CLurine,
-    CLbiliaryc,
-    CLfaecesc,
-    CLbiliary, 
-    CLfaeces,
-    # fuL,
-    # fuF,
-    # fuK,
-    # fuSk,
-    # fuR,
-    # fuG,
+    kurine,
+    kbiliaryc,
+    kfaecesc,
+    kbiliary, 
+    kfaeces,
+    FreeL,
+    FreeF,
+    FreeK,
+    FreeSk,
+    FreeR,
+    FreeG,
     tchng,
     QC,
     QCP,
     QL,
     QF,
     QK,
-    CLfil,
+    kfil,
     QG,
     QSk,
     QR,
@@ -269,101 +290,69 @@ for (i in 1:nPeople) {
       
       if(t<tchng){DoseOn=1} else{DoseOn=0}
       
-      Input1 <- Oraldose/Tinput #SEEMS NOT USED *(t %% tinterval<Tinput) 
-      Input2 <- Dermdose/Tinput #SEEMS NOT USED *(t %% tinterval<Tinput)
+      Input1 <- Oraldose/Tinput*(t %% tinterval<Tinput) 
+      Input2 <- Dermdose/Tinput*(t %% tinterval<Tinput)
       
-      # Concentrations in the organs (ug/L) 
-      CPlas <- APlas/VPlas  #total concentration in plasma (ug/L)
-      #used to be CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L), but I don't understand how this is free concentration as it's not multibpying by any fraction unbound. For me this is total concentration
-      #used to be CA <- CAFree/Free  # total concentration in plasma, but here it's actually dividing by 0.02 (which is supposed to be the free fraction)
-      
+      # concentrations in the organs #
+      CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
+      CA <- CAFree/Free  # total concentration in plasma
       CG <- AG/VG  # concentration of PFOA in gut (ug/L)
+      CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
       CL <- AL/VL  # concentration of PFOA in liver (ug/L)
+      CVL <- CL/PL  # concentration of PFOA leaving liver (ug/L)
       CF <- AF/VF  # concentration of PFOA in fat (ug/L)
+      CVF <- CF/PF # concentration of PFOA leaving fat (ug/L)
       CK <- AK/VK  # concentration of PFOA in kidney (ug/L)
+      CVK <- CK/PK  # concentration of PFOA leaving the kidney (ug/L)
       CSk <- ASk/VSk  # concentration of PFOA in skin (ug/L)
+      CVSk <- CSk/PSk  # Concentration of PFOA leaving the skin (ug/L)
       CR <- AR/VR  # concentration of PFOA in rest of the body (ug/L)
+      CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
       Cfil <- Afil/Vfil # concentration of PFOA in filtrate compartment
       
-      # Concentrations leaving the organs (=venous concentrations)
-      CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
-      CVL <- CL/PL  # concentration of PFOA leaving liver (ug/L)
-      CVF <- CF/PF # concentration of PFOA leaving fat (ug/L)
-      CVK <- CK/PK  # concentration of PFOA leaving the kidney (ug/L)
-      CVSk <- CSk/PSk  # Concentration of PFOA leaving the skin (ug/L)
-      CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
       
-      # Free fraction of chemical in tissues (moved from above)
-      # fuL = fu/PL  # liver
-      # fuF = fu/PF  # fat
-      # fuK = fu/PK  # kidney
-      # fuSk = fu/PSk  # skin
-      # fuR = fu/PR  # rest of the body
-      # fuG = fu/PG  # gut
-      
-      ### Differential equations ###
       ## Plasma compartment
-      RPlas <- QF*CVF + (QL+QG)*CVL + QR*CVR + QSk*CVSk + QK*CVK - QCP*CPlas #-Qfil*CA*fu #plasma concentration not dependent on free fraction
+      RPlas <- QF*CF*FreeF+(QL+QG)*CL*FreeL+QR*CR*FreeR+QSk*CSk*FreeSk+
+        QK*CK*FreeK-QCP*CA*Free #-Qfil*CA*Free 
       # Rate of PFOA amount change in plasma (ug/h)
       
+      
       ## Gut compartment
-      RG <- QG*CPlas - QG*CVG + CL*fu*CLbiliary +Input1*DoseOn - CVG*fu*CLfaeces #input from plasma as total concentration; total gut concentration is leaving to portal vein; clearance is based on the free gut concentration
+      RG <- QG*CA*Free-QG*CG*FreeG+CL*FreeL*kbiliary+Input1*DoseOn-CG*FreeG*kfaeces
       # Rate of PFOA amount change in gut (ug/h)
       
       ## Liver compartment
-      RL <- QL*CPlas + QG*CVG - (QL+QG)*CVL - CVL*fu*CLbiliary #changed in the same way as gut
+      RL <- QL*CA*Free+QG*CG*FreeG-(QL+QG)*CL*FreeL-CL*FreeL*kbiliary
       # Rate of PFOA amount change in the liver (ug/h)
       
       ## Fat compartment
-      RF <- QF*(CPlas-CVF) # Rate of PFOA amount change in fat (ug/h)
+      RF <- QF*(CA*Free-CF*FreeF) # Rate of PFOA amount change in fat (ug/h)
       
       ## Kidney compartment
-      RK <- QK*(CPlas-CVK) + Tm*Cfil/(Kt+Cfil) - CLfil*CVK*fu # Qfil*CK*fu was introduced to reflect clearance to filtrate compartment
+      RK <- QK*(CA*Free-CK*FreeK)+Tm*Cfil/(Kt+Cfil)-kfil*CK*FreeK # Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
       # Rate of PFOA amount change in kidney (ug/h)
       
       ## Filtrate compartment
-      Rfil <- CLfil*(CVK*fu-Cfil) - Tm*Cfil/(Kt+Cfil) # changed from Qfil*CA*fu 
+      Rfil <- kfil*(CK*FreeK-Cfil)-Tm*Cfil/(Kt+Cfil) # changed from Qfil*CA*Free 
       # Rate of PFOA amount change in filtrate compartment (ug/h)
       
       ## Storage compartment for urine
-      Rdelay <- CLfil*Cfil - CLurine*Adelay # THIS NEEDS TO BE CHANGED AS THE CLEARANCE SHOULD BE MULTIPLIED BY CONCENTRATION AND NOT AMOUNT
-      #ug/h     (L/h)*(ug/L) - (L/h)*(ug) (-> to be ug/L) #UNITS ARE WRONG
-
-      #---------------------------------------------------------------
-      #Kidney compartment written in rat model as developed by Deepika and Annelies
-      # dt(Akidney) = Qkidney *(cplasma - ckidney/k_kidney_plasma) - GFR * (cplasma*fu) + (Tm*cfilterate)/(kt+cfilterate);
-      # dt(Afilterate) = GFR * (cplasma*fu-cfilterate) - (Tm*cfilterate)/(kt+cfilterate);
-      # dt(Abladder)  = GFR * (cfilterate)  -kurine *Abladder; 
-      # dt(Aurine)= kurine* Abladder; 
-
-       #---------------------------------------------------------------
-      #Kidney compartment written in rat model based on Lautz (used/preferred by Annelies)
-      # dt(Akidney) = Qkidney *(cplasma - ckidney/k_kidney_plasma) - GFR * (cplasma*fu) + (Tm*cfilterate)/(kt+cfilterate);
-      #Urine compartment                              
-      #ABladder' = GF'  - AReab'- kurine*ABladder     ;PFAS found in filtrate!		;| --> Part 1
-      #AUrine' =  kurine*Abladder - Uex'             	;PFAS found in bladder!			;| --> Part 2
-      
-      # Define: Vurine = Qurine*Timeframe           ;volume per time step			
-      # Define: Qurine = 4.6*10^-4             {L/h}           ; In rats (around 11 mL per day) 		
-      # Curine = AUrine/Vurine                 ;Concentration in urine				;|
-			# Uex' = Qurine*Curine                   		;PFAS found in urine outside the body	;|		;| --> Part 3
-
+      Rdelay <- kfil*Cfil-kurine*Adelay # ug/h
       
       ## Urine
-      Rurine <- CLurine*Adelay # ug/h
-      #ug/h     (CL/h)*(ug) #UNITS ARE WRONG
+      Rurine <- kurine*Adelay # ug/h
       
       ## Feaces
-      Rfaeces <- CVG*fu*CLfaeces #µg/h
+      
+      Rfaeces <- CG*FreeG*kfaeces #µg/h
       
       ## Skin compartment
-      RSk <- QSk*(CPlas-CVSk) + Input2*DoseOn # Rate of PFOA amount change in skin
+      RSk <- QSk*(CA*Free-CSk*FreeSk)+Input2*DoseOn # Rate of PFOA amount change in skin
       
       ## Rest of the body
-      RR <- QR*(CPlas-CVR)
+      RR <- QR*(CA*Free-CR*FreeR)
       
-      ### NOT USED ###
-      # PFOAPlasTot <- APlas/(VPlasC*BW)/fu #microg/litre = ng/ml
+      # PFOAPlasTot <- APlas/(VPlasC*BW)/Free #microg/litre = ng/ml
       # PFOAUrine <- Aurine
       # PFOALiver <- AL/VL
       # PFOAKidney <- AK/VK
@@ -392,7 +381,7 @@ for (i in 1:nPeople) {
   # From amounts to concentrations
   # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
-  v[,"APlas"] <- v[,"APlas"]/(VPlasC*BW)/fu
+  v[,"APlas"] <- v[,"APlas"]/(VPlasC*BW)/Free
   v[,"AG"] <- v[,"AG"]/VG
   v[,"AL"] <- v[,"AL"]/VL
   v[,"AF"] <- v[,"AF"]/VF
@@ -430,45 +419,63 @@ Qbal = QCP-(QR+QL+QF+QK+QG+QSk) # Mass balance check for the cardiac output
 
 Vbal = (0.84*BW)-(VL+VF+VK+Vfil+VG+VPlas+VSk+VR)  # Mass balance check for the volumes
 
-# To plot mass balance & error over time
-Total <- sum(PFOAamount[,"Input1"] + PFOAamount[,"Input2"])
-Calculated <- sum(PFOAamount[,"APlas"] + 
-                    PFOAamount[,"AG"] +
-                    PFOAamount[,"AL"] +
-                    PFOAamount[,"AF"] + 
-                    PFOAamount[,"AK"] +
-                    PFOAamount[,"AR"] +
-                    PFOAamount[,"ASk"] +
-                    PFOAamount[,"Afil"] +
-                    PFOAamount[,"Aurine"] +
-                    PFOAamount[,"Adelay"] +
-                    PFOAamount[,"Afaeces"])
 
-Massbalance <- Total - Calculated + 1 # better be 1
-ErrorAll <- (Total - Calculated) / (Total + 1*10^(-30)) * 100 # better be 0, mass error (% of mass lost)
+PFOA_bal <- sum(PFOAamount[,"Input1"]+ PFOAamount[,"Input2"]- PFOAamount[,"APlas"]- # Mass balance for PFOA
+                  PFOAamount[,"AG"]-PFOAamount[,"AL"]-PFOAamount[,"AF"]-PFOAamount[,"AK"]-PFOAamount[,"AR"]-
+                  PFOAamount[,"ASk"]-PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])
 
-MassBalance_Error <- cbind("time" = PFOAamount[, "time"], 
-                           Massbalance, ErrorAll) %>%
-  as.data.frame()
 
-# Mass Balance and Error plot
-MassBalance_Error %>%
-  ggplot(aes(time, Massbalance)) +
-  geom_line(color = "grey") +
-  geom_line(aes(time, ErrorAll), color = "grey6") +
-  labs(x = "Time (h)", y = "Value",
-       caption = "Massbalance in grey, Error in black") +
-  theme_minimal()
 
-ggsave(filename=file.path(newday, "Plot_MassBalance_Error.jpeg"),
+## MASS BALANCE & ERROR ADDED BY CHRYSANTHI ####
+
+MB_dataf <- PFOAamount %>% 
+  mutate(TOTAL = Input1 + Input2, 
+         CALCULATED = rowSums(select(., APlas:AR))) %>% 
+  mutate(MB = TOTAL - CALCULATED + 1) %>% 
+  mutate(ER = (TOTAL - CALCULATED) / (TOTAL + 1*10^(-30)) * 100) %>% 
+  mutate(time = time/(24*365)) #%>% 
+# filter(time >= 25)
+
+MB_dataf %>% 
+  pivot_longer(cols = c(TOTAL, Input1, Input2, CALCULATED), 
+               names_to = "variable", 
+               values_to = "value") %>% 
+  ggplot() + 
+  geom_path(aes(x = time, y = value, color = variable)) +
+  scale_color_manual(
+    name = '', 
+    values = c(
+      "TOTAL" = "darkblue", 
+      "Input1" = "royalblue", 
+      "Input2" = "blue", 
+      "CALCULATED" = "red"), 
+    labels = c(
+      "TOTAL" = "Sum of all input amounts", 
+      "Input1" = "Oral exposure input", 
+      "Input2" = "Skin exposure input", 
+      "CALCULATED" = "Sum of PFOA amount in all simulated tissues")) +
+  labs(x = "Time (years)", y = "Amount") +
+  theme_minimal() +
+  theme(legend.position = "bottom") 
+ggsave(filename=file.path(newday, "PlotPFOAamounts.jpeg"),
        device = NULL,
        width=NA,
        height=NA,
        units="mm")
 
-# PFOA_bal <- sum(PFOAamount[,"Input1"]+ PFOAamount[,"Input2"]- PFOAamount[,"APlas"]- # Mass balance for PFOA
-#                   PFOAamount[,"AG"]-PFOAamount[,"AL"]-PFOAamount[,"AF"]-PFOAamount[,"AK"]-PFOAamount[,"AR"]-
-#                   PFOAamount[,"ASk"]-PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])
+
+MB_dataf %>% ggplot() +
+  geom_line(aes(time, MB), color = "grey") +
+  geom_line(aes(time, ER), color = "grey6") +
+  labs(x = "Time (years)", y = "Value",
+       caption = "Massbalance in grey, Error in black") +
+  theme_minimal()
+
+ggsave(filename=file.path(newday, "MB.jpeg"),
+       device = NULL,
+       width=NA,
+       height=NA,
+       units="mm")
 
 
 # add the time to the data frames
@@ -555,5 +562,3 @@ ggsave(filename=file.path(newday, "Plot_combined_PFOA.jpeg"),
        width=NA,
        height=NA,
        units="mm")
-
-
