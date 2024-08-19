@@ -24,7 +24,7 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 setwd(HOME)
 
 # creating a new folder to store the results 
-WhatAmITesting <- "UpdatingFreeValue"
+WhatAmITesting <- "RECODING_FRACTIONUBOUND"
 Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
 dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
 
@@ -143,6 +143,9 @@ for (i in 1:nPeople) {
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
   Free = 0.061 # from Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415; OLD FREE = 0.02 # Free fraction of PFOA in plasma
+  fut <- 1/(1+((1-Free)/Free)*0.5) #fraction unbound in the tissues
+  Free/fut
+  
   PL =2.2  # Plasma/liver partition coefficient
   PF = 0.04  # Plasma/fat partition coefficient
   PK = 1.05  # Plasma/kidney partition coefficient
@@ -150,6 +153,7 @@ for (i in 1:nPeople) {
   PR = 0.12  # Plasma/rest of the body partition coefficient
   PG = 0.05  # Plasma/gut partition coefficient
   
+
   AbsPFOA =  0.016 #0.00048     # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
   #NO LONGR USING Dermal absorption fraction take from Fasano et al 2008. This is in line with the absorption reported from Franko et al 2012 divided on 1000 since PFOA is ionized 
   
@@ -184,6 +188,16 @@ for (i in 1:nPeople) {
   FreeSk = Free/PSk  # skin
   FreeR = Free/PR  # rest of the body
   FreeG = Free/PG  # gut
+  
+  ## THIS IS ASSUMING THAT THE PARTITION COEFFICIENTS ARE CALCULATED USING THE FREE FRACTION ONLY; HOWEVER BASED ON THE PT RESOURCE, THE CONCENTRATIONS WERE TOTAL TISSUE CONCENTRATIONS 
+  # TO BE REPLACED BY THE DATA FROM THE NEW FISCHER STUDY AND INTEGRATED IN THE TISSUE PARTITION COEFFICIENT: https://pubs.acs.org/doi/10.1021/acs.est.4c04050#
+  # PL = Free/FreeP # liver
+  # PF = Free/FreeF # fat
+  # PK = Free/FreeK  # kidney
+  # PSk = Free/FreeSk  # skin
+  # PR = Free/FreePR  # rest of the body
+  # PG = Free/FreePG  # gut
+  
   
   
   # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -300,8 +314,9 @@ for (i in 1:nPeople) {
       Input2 <- Dermdose/Tinput*(t %% tinterval<Tinput)
       
       # concentrations in the organs #
-      CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
-      CA <- CAFree/Free  # total concentration in plasma
+      # CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
+      # CA <- CAFree/Free  # total concentration in plasma
+      CA <- APlas/VPlas # total concentration in plasma #RECODED
       CG <- AG/VG  # concentration of PFOA in gut (ug/L)
       CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
       CL <- AL/VL  # concentration of PFOA in liver (ug/L)
@@ -452,33 +467,6 @@ MB_ERROR <- MB_dataf %>% ggplot() +
 ggsave(filename=file.path(Saveoutput, "MB_ERROR.png"),
        dpi = 300)
 
-
-
-TOTAL_CALCULATED <- MB_dataf %>% 
-  pivot_longer(cols = c(TOTAL, Input1, Input2, CALCULATED), 
-               names_to = "variable", 
-               values_to = "value") %>% 
-  ggplot() + 
-  geom_path(aes(x = time, y = value, color = variable)) +
-  scale_color_manual(
-    name = '', 
-    values = c(
-      "TOTAL" = "darkblue", 
-      "Input1" = "royalblue", 
-      "Input2" = "blue", 
-      "CALCULATED" = "red"), 
-    labels = c(
-      "TOTAL" = "Sum of all input amounts", 
-      "Input1" = "Oral exposure input", 
-      "Input2" = "Skin exposure input", 
-      "CALCULATED" = "Sum of PFOA amount in all simulated tissues")) +
-  labs(x = "Time (years)", y = "Amount") +
-  theme_CP() +
-  theme(legend.position = "bottom") 
-
-TOTAL_CALCULATED
-ggsave(filename=file.path(Saveoutput, "TOTAL_CALCULATED.png"),
-       dpi = 300)
 
 
 # add the time to the data frames
