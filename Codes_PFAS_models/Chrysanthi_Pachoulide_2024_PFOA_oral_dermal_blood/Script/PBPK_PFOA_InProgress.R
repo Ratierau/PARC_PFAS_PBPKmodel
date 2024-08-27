@@ -24,7 +24,7 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 setwd(HOME)
 
 # creating a new folder to store the results 
-WhatAmITesting <- "NEW_DAY_WITH_ORIGINAL_Free_VALUE"
+WhatAmITesting <- "CHANGE_SKIN_COMPARTMENT"
 Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
 dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
 
@@ -105,7 +105,13 @@ for (i in 1:nPeople) {
   SkinTarea = 9.1*(BW*1000)^0.666  # Total area of the skin (cm^2)
   Skinthickness = 0.1 # Skin thickness (cm)
   
-  
+  ## UPDATED: Skin barrier or epidermis (stratum corneum & viable epidermis)
+  SkbTarea = 9.1*BW*1000^0.666  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
+  fSkbarea = 0.107 # (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
+  # checked the reference, 0.972m^2 is the 95th percentile of the lower extremities; I think that was a mistake when copying the information as the hand data is just above. For hands the 95th percentile is 0.131 (mean value is 0.107m^2)
+  Skbthickness = 83.1/1000 # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
+  VSkb = fSkbarea*Skbthickness/1000  # (L); Skin barrier volume; as previously coded by Trine
+
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   ## Scaled cardiac output and blood flows##
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -197,6 +203,9 @@ for (i in 1:nPeople) {
   # PR = Free/FreePR  # rest of the body
   # PG = Free/FreePG  # gut
   
+  # UPDATED Skin absorption
+  Papp = 3.82 * 10^-3 #cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
+  kperm = Papp  #cm/h 
   
   
   # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -207,11 +216,9 @@ for (i in 1:nPeople) {
   
   ## Dermal exposure ##
   
-  
-  
   Dermconc = 0.000542 #mean of #as.numeric(SumExpPFOA_LB_val[i,14])
-  Dermdose = Dermconc*BW*AbsPFOA     # Internal dose from dermal absorption (Ug/day)
-  
+  #Dermdose = Dermconc*BW*AbsPFOA     # Internal dose from dermal absorption (Ug/day)
+  Dermdose = Dermconc*BW #(ug/day)
   
   
   ## Oral exposure ##
@@ -274,8 +281,8 @@ for (i in 1:nPeople) {
     VR,
     Tm,
     SkinTarea,
-    AbsPFOA
-    
+    AbsPFOA, 
+    kperm
   )))
   
   para
@@ -296,7 +303,8 @@ for (i in 1:nPeople) {
     Adelay = 0.0,  # amount of PFOA in storage compartment of urine
     Aurine = 0.0,  # amount of PFOA in urine
     Afaeces = 0.0, # amount of PFOA in faeces
-    ASk = 0.0,  # amount of PFOA in skin
+    ASk = 0.0,  # amount of PFOA in skin'
+    ASkb = 0.0, #ADDED #amount of PFOA in skin barrier
     AR = 0.0  # amount of PFOA in the rest of the body
   )))
   
@@ -310,7 +318,9 @@ for (i in 1:nPeople) {
       if(t<tchng){DoseOn=1} else{DoseOn=0}
       
       Input1 <- Oraldose/Tinput*(t %% tinterval<Tinput) 
+      #Input2 <- Dermdose/Tinput*(t %% tinterval<Tinput)
       Input2 <- Dermdose/Tinput*(t %% tinterval<Tinput)
+      
       
       # concentrations in the organs #
       CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
@@ -329,6 +339,11 @@ for (i in 1:nPeople) {
       CR <- AR/VR  # concentration of PFOA in rest of the body (ug/L)
       CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
       Cfil <- Afil/Vfil # concentration of PFOA in filtrate compartment
+      
+      ## UPDATED SKIN & SKIN BARRIER #### 
+      #CSk <- ASk/VSk  # concentration of PFOA in skin (ug/L)
+      CSkb <- ASkb/VSkb # concentration of PFOA in skin barrier (ug/L)
+      
       
       
       ## Plasma compartment
@@ -367,7 +382,16 @@ for (i in 1:nPeople) {
       Rfaeces <- CG*FreeG*CLfaeces #µg/h
       
       ## Skin compartment
-      RSk <- QSk*(CA*Free-CSk*FreeSk)+Input2*DoseOn # Rate of PFOA amount change in skin
+      #RSk <- QSk*(CA*Free-CSk*FreeSk)+Input2*DoseOn # Rate of PFOA amount change in skin
+      
+      ## UPDATED ####
+      ## Skin barrier
+      RSkb <- Input2*DoseOn - kperm*fSkbarea*CSkb #(ug/h)
+      #                  cm/h*cm^2 ug/L
+      ## Skin tissue
+      RSk <- kperm*fSkbarea*CSkb + QSk*(CA*Free-CSk*FreeSk)
+      
+      
       
       ## Rest of the body
       RR <- QR*(CA*Free-CR*FreeR)
@@ -378,7 +402,7 @@ for (i in 1:nPeople) {
       # PFOAKidney <- AK/VK
       
       
-      return(list(c(Input1, Input2, RPlas, RG, RL, RF, RK, Rfil, Rdelay, Rurine,  Rfaeces, RSk, RR))) # This will be changed to measure the uncertainty/sensitivity in other organs
+      return(list(c(Input1, Input2, RPlas, RG, RL, RF, RK, Rfil, Rdelay, Rurine,  Rfaeces, RSk, RSkb, RR))) # This will be changed to measure the uncertainty/sensitivity in other organs
       
       
     })
@@ -408,6 +432,7 @@ for (i in 1:nPeople) {
   v[,"AK"] <- v[,"AK"]/VK
   v[,"Afil"] <- v[,"Afil"]/Vfil
   v[,"AR"] <- v[,"AR"]/VR
+  v[, "ASkb"] <- v[, "ASkb"]/VSkb
   
   
   PFOAconc <- as.data.frame(v)
@@ -442,7 +467,7 @@ Vbal = (0.84*BW)-(VL+VF+VK+Vfil+VG+VPlas+VSk+VR)  # Mass balance check for the v
 
 PFOA_bal <- sum(PFOAamount[,"Input1"]+ PFOAamount[,"Input2"]- PFOAamount[,"APlas"]- # Mass balance for PFOA
                   PFOAamount[,"AG"]-PFOAamount[,"AL"]-PFOAamount[,"AF"]-PFOAamount[,"AK"]-PFOAamount[,"AR"]-
-                  PFOAamount[,"ASk"]-PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])
+                  PFOAamount[,"ASk"]- PFOAamount[, "ASkb"] - PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])
 
 
 ## MASS BALANCE & ERROR ADDED BY CHRYSANTHI ####
