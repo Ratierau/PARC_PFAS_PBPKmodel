@@ -24,13 +24,12 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 setwd(HOME)
 
 # creating a new folder to store the results 
-WhatAmITesting <- "RECODING_FRACTIONUBOUND"
+WhatAmITesting <- "NEW_DAY_WITH_ORIGINAL_Free_VALUE"
 Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
 dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
 
 # bring my plotting function
 source("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Script/Theme_CP_function.R")
-
 
 # load packages
 library(lubridate)
@@ -142,9 +141,9 @@ for (i in 1:nPeople) {
   ## Chemical specific parameters (PFOA)
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
-  Free = 0.061 # from Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415; OLD FREE = 0.02 # Free fraction of PFOA in plasma
-  fut <- 1/(1+((1-Free)/Free)*0.5) #fraction unbound in the tissues
-  Free/fut
+  Free = 0.02 #initial free fraction; 0.061 # from Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415; OLD FREE = 0.02 # Free fraction of PFOA in plasma
+  # fut <- 1/(1+((1-Free)/Free)*0.5) #fraction unbound in the tissues
+  # Free/fut
   
   PL =2.2  # Plasma/liver partition coefficient
   PF = 0.04  # Plasma/fat partition coefficient
@@ -314,9 +313,9 @@ for (i in 1:nPeople) {
       Input2 <- Dermdose/Tinput*(t %% tinterval<Tinput)
       
       # concentrations in the organs #
-      # CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
-      # CA <- CAFree/Free  # total concentration in plasma
-      CA <- APlas/VPlas # total concentration in plasma #RECODED
+      CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
+      CA <- CAFree/Free  # total concentration in plasma
+      #CA <- APlas/VPlas # total concentration in plasma #RECODED
       CG <- AG/VG  # concentration of PFOA in gut (ug/L)
       CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
       CL <- AL/VL  # concentration of PFOA in liver (ug/L)
@@ -463,6 +462,8 @@ MB_ERROR <- MB_dataf %>% ggplot() +
   labs(x = "Time (years)", y = "Value",
        caption = "Massbalance in grey, Error in black") +
   theme_CP()
+
+MB_ERROR
 
 ggsave(filename=file.path(Saveoutput, "MB_ERROR.png"),
        dpi = 300)

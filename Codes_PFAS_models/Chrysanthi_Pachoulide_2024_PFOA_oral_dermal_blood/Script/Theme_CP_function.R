@@ -4,9 +4,9 @@
 theme_CP <- function() {
   theme_bw()+
     theme(
-      text = element_text(size = 20, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
-      axis.title = element_text(size = 20),
-      axis.text = element_text(size = 20),
+      text = element_text(size = 7, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
+      axis.title = element_text(size = 7),
+      axis.text = element_text(size = 7),
       axis.line = element_line(linewidth = 0.05),
       plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
       panel.border = element_blank(), 
