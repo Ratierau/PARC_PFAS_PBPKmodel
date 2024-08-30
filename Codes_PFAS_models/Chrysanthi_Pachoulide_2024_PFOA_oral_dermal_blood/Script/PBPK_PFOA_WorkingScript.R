@@ -497,7 +497,7 @@ Vbal = (0.84*BW)-(VL+VF+VK+Vfil+VG+VPlas+VSk+VR)  # Mass balance check for the v
 
 PFOA_bal <- sum(PFOAamount[,"Input1"]+ PFOAamount[,"Input2"]- PFOAamount[,"APlas"]- # Mass balance for PFOA
                   PFOAamount[,"AG"]-PFOAamount[,"AL"]-PFOAamount[,"AF"]-PFOAamount[,"AK"]-PFOAamount[,"AR"]-
-                  PFOAamount[,"ASk"] - PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])# - PFOAamount[,"ASkb"])
+                  PFOAamount[,"ASk"] - PFOAamount[,"Afil"]-PFOAamount[,"AUr"]-PFOAamount[,"AEx_ur"]-PFOAamount[,"Afaeces"])# - PFOAamount[,"ASkb"]), PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]
 
 
 ## MASS BALANCE & ERROR ADDED BY CHRYSANTHI ####
