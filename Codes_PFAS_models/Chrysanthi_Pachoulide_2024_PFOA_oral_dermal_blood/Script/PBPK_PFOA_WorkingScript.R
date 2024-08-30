@@ -24,7 +24,7 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 setwd(HOME)
 
 # creating a new folder to store the results 
-WhatAmITesting <- "Change_Vmax_Km"
+WhatAmITesting <- "Change_Kidney_Code"
 Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
 dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
 
@@ -190,14 +190,8 @@ for (i in 1:nPeople) {
   Vmax = Vmaxc * MPT * SFOAT4 #ug/h
   Km = 47*MW #ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 
-
-  # QUr = 0.0625 #L/h (total urine loss per day is 1.5L, assuming that this also reflects the formation of urine)
-  # kUr = 0.03125 #/h (total volume capacity of bladder is 500ml, assuming a urine production of 1.5L/24h, the bladder needs to be emptied 3 times per day; the rate constant of emptying is the filling rate (=QUr)*max volume (0.5L))
-  # 
-  # Qfil = 0.2*QK #L/h GFR
-  # # Changing the Qfil, as from what I've read GFR is 10% of total kidney blood flow
-  # # Qfil = 0.2*QK  # (used to be GFR) Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
-  # 
+  QUr = 0.0625 #L/h (total urine loss per day is 1.5L, assuming that this also reflects the formation of urine)
+  kUr = 0.03125 #/h (total volume capacity of bladder is 500ml, assuming a urine production of 1.5L/24h, the bladder needs to be emptied 3 times per day; the rate constant of emptying is the filling rate (=QUr)*max volume (0.5L))
   
   
   # Clearance parameters# 
@@ -208,10 +202,10 @@ for (i in 1:nPeople) {
   CLbiliary = CLbiliaryc*BW^0.1# L/h biliary clearence, BW adjusted to the volume from liver
   CLfaeces = CLfaecesc*BW^0.001  # L/h faeces clearance, BW adjusted to the volume of GI tract
   
-  kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  GFR = 0.1*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  # GFR = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  # Changing the GFR, as from what I've read GFR is 10% of total kidney blood flow, not 20%
   
-  # #GFR = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
-  # GFR = 0.2&QK
   
   ## Free fraction of chemical in tissues ##
   
@@ -297,7 +291,7 @@ for (i in 1:nPeople) {
     QL,
     QF,
     QK,
-    kfil,
+    GFR,
     QG,
     QSk,
     QR,
@@ -331,8 +325,10 @@ for (i in 1:nPeople) {
     AF = 0.0,  # amount of PFOA in fat
     AK = 0.0,  # amount of PFOA in kidney
     Afil = 0.0,  # amount of PFOA in kidney filtrate
-    Adelay = 0.0,  # amount of PFOA in storage compartment of urine
-    Aurine = 0.0,  # amount of PFOA in urine
+    AUr = 0.0, 
+    AEx_ur = 0.0,
+    #Adelay = 0.0,  # amount of PFOA in storage compartment of urine
+    #Aurine = 0.0,  # amount of PFOA in urine
     Afaeces = 0.0, # amount of PFOA in faeces
     ASk = 0.0,  # amount of PFOA in skin
     AR = 0.0  # amount of PFOA in the rest of the body
@@ -385,19 +381,41 @@ for (i in 1:nPeople) {
       ## Fat compartment
       RF <- QF*(CA*Free-CF*FreeF) # Rate of PFOA amount change in fat (ug/h)
       
+      # ## Kidney compartment
+      # RK <- QK*(CA*Free-CK*FreeK)+Vmax*Cfil/(Km+Cfil)-GFR*CK*FreeK # Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
+      # # Rate of PFOA amount change in kidney (ug/h)
+      # 
+      # ## Filtrate compartment
+      # Rfil <- GFR*(CK*FreeK-Cfil)-Vmax*Cfil/(Km+Cfil) # changed from Qfil*CA*Free 
+      # # Rate of PFOA amount change in filtrate compartment (ug/h)
+      # 
+      # ## Storage compartment for urine
+      # Rdelay <- GFR*Cfil-CLurine*Adelay # ug/h
+      # 
+      # ## Urine
+      # Rurine <- CLurine*Adelay # ug/h
+      # 
+      
       ## Kidney compartment
-      RK <- QK*(CA*Free-CK*FreeK)+Vmax*Cfil/(Km+Cfil)-kfil*CK*FreeK # Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
-      # Rate of PFOA amount change in kidney (ug/h)
+      ### Kidney: this is basically the kidney blood compartment
+      ### I think we're missing active secretion
+      RK <- QK*(CA*Free-CK*FreeK) + Vmax*Cfil/(Km+Cfil) - GFR*CK*FreeK 
+      #                             reabsorption         ultrafiltration
       
-      ## Filtrate compartment
-      Rfil <- kfil*(CK*FreeK-Cfil)-Vmax*Cfil/(Km+Cfil) # changed from Qfil*CA*Free 
-      # Rate of PFOA amount change in filtrate compartment (ug/h)
+      ### Filtrate compartment: rate of formation of the filtrate(=urine) in the lumen; this is the urinary tract from Aude's lifestage equations
+      Rfil <- GFR*CK*FreeK - Vmax*Cfil/(Km+Cfil) - QUr*Cfil 
+      #    ultrafiltration   reabsorption          urine flow rate to the bladder
       
-      ## Storage compartment for urine
-      Rdelay <- kfil*Cfil-CLurine*Adelay # ug/h
+      ### Urine: urine in the bladder 
+      ### ??? why do we need this compartment? I would try having a simple compartment first; i.e not having an excretion compartment
+      RUr <- QUr*Cfil - kUr*AUr #(ug/h)
+      #      urineflow  urine excretion
       
-      ## Urine
-      Rurine <- CLurine*Adelay # ug/h
+      ### Excretion urinary: cumulative PFOA concentration in the urine
+      REx_ur <- kUr*AUr #(ug/h)
+      
+      
+      
       
       ## Feaces
       
@@ -415,7 +433,7 @@ for (i in 1:nPeople) {
       # PFOAKidney <- AK/VK
       
       
-      return(list(c(Input1, Input2, RPlas, RG, RL, RF, RK, Rfil, Rdelay, Rurine,  Rfaeces, RSk, RR))) # This will be changed to measure the uncertainty/sensitivity in other organs
+      return(list(c(Input1, Input2, RPlas, RG, RL, RF, RK, Rfil, RUr, REx_ur, Rfaeces, RSk, RR))) #  Rdelay, Rurine, This will be changed to measure the uncertainty/sensitivity in other organs
       
       
     })
@@ -451,7 +469,7 @@ for (i in 1:nPeople) {
   
   PFOASerum[,(i)] <- PFOAconc$APlas
   PFOAFat[,(i)] <- PFOAconc$AF
-  PFOAUrine[,(i)] <- PFOAconc$Aurine
+  PFOAUrine[,(i)] <- PFOAconc$AEx_ur
   PFOAKidney[,(i)] <- PFOAconc$AK
   PFOALiver[,(i)] <- PFOAconc$AL
   
