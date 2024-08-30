@@ -24,7 +24,7 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 setwd(HOME)
 
 # creating a new folder to store the results 
-WhatAmITesting <- "CHANGE_KIDNEY"
+WhatAmITesting <- "Change_Vmax_Km"
 Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
 dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
 
@@ -105,12 +105,12 @@ for (i in 1:nPeople) {
   SkinTarea = 9.1*(BW*1000)^0.666  # Total area of the skin (cm^2)
   Skinthickness = 0.1 # Skin thickness (cm)
   
-  ## UPDATED: Skin barrier or epidermis (stratum corneum & viable epidermis)
-  SkbTarea = 9.1*BW*1000^0.666  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
-  fSkbarea = 0.107 # (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
-  # checked the reference, 0.972m^2 is the 95th percentile of the lower extremities; I think that was a mistake when copying the information as the hand data is just above. For hands the 95th percentile is 0.131 (mean value is 0.107m^2)
-  Skbthickness = 83.1/1000 # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
-  VSkb = fSkbarea*Skbthickness/1000  # (L); Skin barrier volume; as previously coded by Trine
+  # ## UPDATED: Skin barrier or epidermis (stratum corneum & viable epidermis)
+  # SkbTarea = 9.1*BW*1000^0.666  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
+  # fSkbarea = 0.107 # (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
+  # # checked the reference, 0.972m^2 is the 95th percentile of the lower extremities; I think that was a mistake when copying the information as the hand data is just above. For hands the 95th percentile is 0.131 (mean value is 0.107m^2)
+  # Skbthickness = 83.1/1000 # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
+  # VSkb = fSkbarea*Skbthickness/1000  # (L); Skin barrier volume; as previously coded by Trine
 
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   ## Scaled cardiac output and blood flows##
@@ -164,45 +164,40 @@ for (i in 1:nPeople) {
   
   # kidney and urine #
   
-  Tmc = 5842.308 # average of as.numeric(SumExpPFOA_LB_val[i,5]) #5000  # ug/h/kg^0.75 Maximum resorption rate, changed from 6 in the original Loccisano 2011 model (ug)
+  #Tmc = 5842.308 # average of as.numeric(SumExpPFOA_LB_val[i,5]) #5000  # ug/h/kg^0.75 Maximum resorption rate, changed from 6 in the original Loccisano 2011 model (ug)
   # representing a half-life of 2.3 years
   
-  Tm = Tmc*BW^0.75 # transporter maximum
+  #Tm = Tmc*BW^0.75 # transporter maximum
   
-  Kt = 55  # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
+  #Kt = 55  # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
   # Expressed in ug to be consistent with the other parameters
   
-  ## UPDATED TRANSPORTER KINETICS ####
+  CLurinec = 0.00000183  # 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
+  # 0.0003 urinary clearance (/h/kg^-0.25); estimated from Harada et al 2005 NOT USED
+  CLurine = CLurinec*BW^(-0.25) # clearance urine (L/h), 
+  
+  
+  # ## UPDATED TRANSPORTER KINETICS ####
   ### Kidney scaling factors
   MK = VKC*BW*1000	 # total kidney mass (g)
   Kcells = 6E7	# number of cells per gram kidney
   Kprotein = 2.0e-9	# gram protein/proximal tubule cell
   MPT = MK*Kcells*Kprotein	#mass proximal tubule in gram based on BW
-  SFOAT4 = 1 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed" 
+  SFOAT4 = 1 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
   
   MW = 414.07 #PFOA MW
   Vmaxc = 4.5*MW/1000*60 #nmol/min/mg protein *MW/1000*60 ug/h ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
-  Vmax = Vmaxc * MPT * SFOAT4 #ug/h 
+  Vmax = Vmaxc * MPT * SFOAT4 #ug/h
   Km = 47*MW #ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
-  
-  
-  CLurinec = 0.00000183  # 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
-  # 0.0003 urinary clearance (/h/kg^-0.25); estimated from Harada et al 2005 NOT USED
-  CLurine = CLurinec*BW^(-0.25) # clearance urine (L/h), 
- 
 
-  QUr = 0.0625 #L/h (total urine loss per day is 1.5L, assuming that this also reflects the formation of urine)
-  kUr = 0.03125 #/h (total volume capacity of bladder is 500ml, assuming a urine production of 1.5L/24h, the bladder needs to be emptied 3 times per day; the rate constant of emptying is the filling rate (=QUr)*max volume (0.5L))
-  
-  CLfil = 0.1*QK #L/h GFR
-  # Changing the CLfil, as from what I've read GFR is 10% of total kidney blood flow
-  # CLfil = 0.2*QK  # (used to be kfil) Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
-  
-  
-  # Not used anymore
-  # CLurinec = 0.00000183  # (used to be CLurinec) 0.044/24/1000 urinary clearance L/h/kg calculated from the urinary clearance of 0.044 ml/h/kg  taken from Fujii et al 2015 
-  # # 0.0003 urinary clearance (/h/kg^-0.25); estimated from Harada et al 2005 NOT USED
-  # CLurine = CLurinec*BW^(-0.25) # (used to be CLurine) clearance urine (L/h), 
+
+  # QUr = 0.0625 #L/h (total urine loss per day is 1.5L, assuming that this also reflects the formation of urine)
+  # kUr = 0.03125 #/h (total volume capacity of bladder is 500ml, assuming a urine production of 1.5L/24h, the bladder needs to be emptied 3 times per day; the rate constant of emptying is the filling rate (=QUr)*max volume (0.5L))
+  # 
+  # Qfil = 0.2*QK #L/h GFR
+  # # Changing the Qfil, as from what I've read GFR is 10% of total kidney blood flow
+  # # Qfil = 0.2*QK  # (used to be GFR) Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  # 
   
   
   # Clearance parameters# 
@@ -213,8 +208,10 @@ for (i in 1:nPeople) {
   CLbiliary = CLbiliaryc*BW^0.1# L/h biliary clearence, BW adjusted to the volume from liver
   CLfaeces = CLfaecesc*BW^0.001  # L/h faeces clearance, BW adjusted to the volume of GI tract
   
-  #kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
-  Qfil = 0.2&QK
+  kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  
+  # #GFR = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  # GFR = 0.2&QK
   
   ## Free fraction of chemical in tissues ##
   
@@ -270,11 +267,10 @@ for (i in 1:nPeople) {
   
   para <- unlist(c(data.frame(
     Htc,
-    Tmc,
-    Kt,
-    Vmax,
-    Km, 
-    kUr,
+    Vmaxc,
+    #Tmc,
+    Km,
+    #Kt,
     Free,
     BW,
     CLurinec,
@@ -302,7 +298,6 @@ for (i in 1:nPeople) {
     QF,
     QK,
     kfil,
-    Qfil,
     QG,
     QSk,
     QR,
@@ -314,10 +309,11 @@ for (i in 1:nPeople) {
     VPlas,
     VSk,
     VR,
-    Tm,
+    Vmax,
+    #Tm,
     SkinTarea,
     AbsPFOA
-    #kperm
+    
   )))
   
   para
@@ -334,17 +330,14 @@ for (i in 1:nPeople) {
     AL = 0.0,  # amount of PFOA in liver
     AF = 0.0,  # amount of PFOA in fat
     AK = 0.0,  # amount of PFOA in kidney
-    # Afil = 0.0,  # amount of PFOA in kidney filtrate
     Afil = 0.0,  # amount of PFOA in kidney filtrate
     Adelay = 0.0,  # amount of PFOA in storage compartment of urine
     Aurine = 0.0,  # amount of PFOA in urine
-    # AUr = 0.0,  # amount of PFOA in storage compartment of urine
-    # AEx_ur = 0.0,  # amount of PFOA in urine
     Afaeces = 0.0, # amount of PFOA in faeces
-    ASk = 0.0,  # amount of PFOA in skin'
+    ASk = 0.0,  # amount of PFOA in skin
     AR = 0.0  # amount of PFOA in the rest of the body
   )))
-
+  
   
   # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   # Model for PFOA
@@ -356,12 +349,10 @@ for (i in 1:nPeople) {
       
       Input1 <- Oraldose/Tinput*(t %% tinterval<Tinput) 
       Input2 <- Dermdose/Tinput*(t %% tinterval<Tinput)
-
       
       # concentrations in the organs #
       CAFree <- APlas/VPlas  # free concentration of PFOA in plasma in (ug/L)
       CA <- CAFree/Free  # total concentration in plasma
-      #CA <- APlas/VPlas # total concentration in plasma #RECODED
       CG <- AG/VG  # concentration of PFOA in gut (ug/L)
       CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
       CL <- AL/VL  # concentration of PFOA in liver (ug/L)
@@ -375,14 +366,7 @@ for (i in 1:nPeople) {
       CR <- AR/VR  # concentration of PFOA in rest of the body (ug/L)
       CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
       Cfil <- Afil/Vfil # concentration of PFOA in filtrate compartment
-      # CFil <- Afil/Vfil # UPDATED concentration of PFOA in filtrate compartment
       
-      
-      # # UPDATED SKIN & SKIN BARRIER ####
-      # CSk <- ASk/VSk  # concentration of PFOA in skin (ug/L)
-      # CSkb <- ASkb/VSkb # concentration of PFOA in skin barrier (ug/L)
-      # 
-      # 
       
       ## Plasma compartment
       RPlas <- QF*CF*FreeF+(QL+QG)*CL*FreeL+QR*CR*FreeR+QSk*CSk*FreeSk+
@@ -402,40 +386,18 @@ for (i in 1:nPeople) {
       RF <- QF*(CA*Free-CF*FreeF) # Rate of PFOA amount change in fat (ug/h)
       
       ## Kidney compartment
-      RK <- QK*(CA*Free-CK*FreeK)+Tm*Cfil/(Kt+Cfil)-kfil*CK*FreeK # Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
+      RK <- QK*(CA*Free-CK*FreeK)+Vmax*Cfil/(Km+Cfil)-kfil*CK*FreeK # Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
       # Rate of PFOA amount change in kidney (ug/h)
-
+      
       ## Filtrate compartment
-      Rfil <- kfil*(CK*FreeK-Cfil)-Tm*Cfil/(Kt+Cfil) # changed from Qfil*CA*Free
+      Rfil <- kfil*(CK*FreeK-Cfil)-Vmax*Cfil/(Km+Cfil) # changed from Qfil*CA*Free 
       # Rate of PFOA amount change in filtrate compartment (ug/h)
-
+      
       ## Storage compartment for urine
       Rdelay <- kfil*Cfil-CLurine*Adelay # ug/h
-
+      
       ## Urine
       Rurine <- CLurine*Adelay # ug/h
-      
-      
-      # ## UPDATED KIDNEY ####
-      # 
-      # ## Kidney compartment
-      # ### Kidney: this is basically the kidney blood compartment
-      # ### I think we're missing active secretion
-      # RK <- QK*(CA*Free-CK*FreeK) + Vmax*CFil/Km+CFil - Qfil*CK*FreeK
-      # #                   re-absorption       ultrAfiltration
-      # 
-      # ### Filtrate compartment: rate of formation of the filtrate(=urine) in the lumen; this is the urinary tract from Aude's lifestage equations
-      # RFil <- Qfil*CK*FreeK - Vmax*CFil/Km+CFil - QUr*CFil 
-      # #        ultrAfiltration  REABSORPTION      urine flow rate to the bladder
-      # 
-      # ### Urine: urine accumulation in the bladder; ### ??? why do we need this compartment? I would try having a simple compartment first; i.e not having an excretion compartment
-      # RUr <- QUr*CFil - kUr*AUr #(ug/h)
-      # #      urineflow  urine excretion
-      # 
-      # ### Excretion urinary: cumulative PFOA concentration in the urine
-      # REx_ur <- kUr*AUr #(ug/h)
-      
-      
       
       ## Feaces
       
@@ -443,13 +405,6 @@ for (i in 1:nPeople) {
       
       ## Skin compartment
       RSk <- QSk*(CA*Free-CSk*FreeSk)+Input2*DoseOn # Rate of PFOA amount change in skin
-      
-      # ## UPDATED ####
-      # ## Skin barrier
-      # RSkb <- Input2*DoseOn - kperm*CSkb #(ug/h)
-      # ## Skin tissue
-      # RSk <- kperm*CSkb + QSk*(CA*Free-CSk*FreeSk)
-      
       
       ## Rest of the body
       RR <- QR*(CA*Free-CR*FreeR)
@@ -460,7 +415,9 @@ for (i in 1:nPeople) {
       # PFOAKidney <- AK/VK
       
       
-      return(list(c(Input1, Input2, RPlas, RG, RL, RF, RK, Rfil, Rdelay, Rurine, Rfaeces, RSk, RR))) # RFil, RUr, REx_ur,  RSkb, This will be changed to measure the uncertainty/sensitivity in other organs
+      return(list(c(Input1, Input2, RPlas, RG, RL, RF, RK, Rfil, Rdelay, Rurine,  Rfaeces, RSk, RR))) # This will be changed to measure the uncertainty/sensitivity in other organs
+      
+      
     })
   }
   
@@ -488,7 +445,6 @@ for (i in 1:nPeople) {
   v[,"AK"] <- v[,"AK"]/VK
   v[,"Afil"] <- v[,"Afil"]/Vfil
   v[,"AR"] <- v[,"AR"]/VR
-  #v[, "ASkb"] <- v[, "ASkb"]/VSkb
   
   
   PFOAconc <- as.data.frame(v)
@@ -523,8 +479,7 @@ Vbal = (0.84*BW)-(VL+VF+VK+Vfil+VG+VPlas+VSk+VR)  # Mass balance check for the v
 
 PFOA_bal <- sum(PFOAamount[,"Input1"]+ PFOAamount[,"Input2"]- PFOAamount[,"APlas"]- # Mass balance for PFOA
                   PFOAamount[,"AG"]-PFOAamount[,"AL"]-PFOAamount[,"AF"]-PFOAamount[,"AK"]-PFOAamount[,"AR"]-
-                  PFOAamount[,"ASk"] - PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"]
-                )# - PFOAamount[,"ASkb"])
+                  PFOAamount[,"ASk"] - PFOAamount[,"Afil"]-PFOAamount[,"Aurine"]-PFOAamount[,"Adelay"]-PFOAamount[,"Afaeces"])# - PFOAamount[,"ASkb"])
 
 
 ## MASS BALANCE & ERROR ADDED BY CHRYSANTHI ####
