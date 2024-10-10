@@ -67,6 +67,7 @@ Variables_df <- Variables_df %>%
   mutate(age = TIME/365) # add column 2 = age in days
 
 # Body weight
+# Comment Joost on 10-10-2024: Note that the constant bodyweight during adulthood causes a negative mass balance, as the term AdiposeMass is independent of the bodyweight but it is included in the adipose tissue volume
 Variables_df <- Variables_df %>%
   # BW_M_Ratier_2024 & BW_F_Ratier_2024 = Equation extracted from supplemental material from Ratier et al., 2024
   # mutate(BW_M_Ratier_2024 = if_else(age <19.00093277, 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000)))),
@@ -457,19 +458,26 @@ Variables_df <- Variables_df %>%
   mutate(Qhepatic_F = Qliver_F + Qspleen_F + Qstomach_F + Qpancreas_F) %>% 
   
   ## Rest (Rest = Total - Organs included in the model)
-  mutate(VrestFraction_M = VtotalFraction_M - VskinFraction_M - VurinarytractFraction_M - VkidneyFraction_M - VgutFraction_M - VliverFraction_M - VplasmaFraction_M - VadiposeFraction_M) %>%
-  mutate(Vrest_M = VrestFraction_M*BDW_M) %>%
-  mutate(QrestFraction_M = Qtotal_M - Qskin_M - Qurinarytract_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
-  mutate(Qrest_M = QrestFraction_M/QtotalFraction_M*CardOut_M) %>% 
-  mutate(VrestFraction_F = VtotalFraction_F - VskinFraction_F - VurinarytractFraction_F - VkidneyFraction_F - VgutFraction_F - VliverFraction_F - VplasmaFraction_F - VadiposeFraction_F) %>%
-  mutate(Vrest_F = VrestFraction_F*BDW_F) %>%
-  mutate(QrestFraction_F = Qtotal_F - Qskin_F - Qurinarytract_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
-  mutate(Qrest_F = QrestFraction_F/QtotalFraction_F*CardOut_F) %>% 
+  # Change made by Joost on 10-10-2024: Since the sum of the fractions of the volumes and blood flows are time-dependent and > 1 the volume of and blood flow to the rest compartment needs to be calculated differently
+  # mutate(VrestFraction_M = VtotalFraction_M - VskinFraction_M - VurinarytractFraction_M - VkidneyFraction_M - VgutFraction_M - VliverFraction_M - VplasmaFraction_M - VadiposeFraction_M) %>%
+  # mutate(Vrest_M = VrestFraction_M*BDW_M) %>%
+  # mutate(QrestFraction_M = Qtotal_M - Qskin_M - Qurinarytract_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
+  # mutate(Qrest_M = QrestFraction_M/QtotalFraction_M*CardOut_M) %>% 
+  # mutate(VrestFraction_F = VtotalFraction_F - VskinFraction_F - VurinarytractFraction_F - VkidneyFraction_F - VgutFraction_F - VliverFraction_F - VplasmaFraction_F - VadiposeFraction_F) %>%
+  # mutate(Vrest_F = VrestFraction_F*BDW_F) %>%
+  # mutate(QrestFraction_F = Qtotal_F - Qskin_F - Qurinarytract_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
+  # mutate(Qrest_F = QrestFraction_F/QtotalFraction_F*CardOut_F) %>% 
+  mutate(Vrest_M = Vtotal_M - Vskin_M - Vurinarytract_M - Vkidney_M - Vgut_M - Vliver_M - Vplasma_M - Vadipose_M) %>%
+  mutate(Qrest_M = Qtotal_M - Qskin_M - Qurinarytract_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>%
+  
+  mutate(Vrest_F = Vtotal_F - Vskin_F - Vurinarytract_F - Vkidney_F - Vgut_F - Vliver_F - Vplasma_F - Vadipose_F) %>%
+  mutate(Qrest_F = Qtotal_F - Qskin_F - Qurinarytract_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>%
   
   ## MassBalance Flow #better be 0
   # !!!!! Issue with the mass balance of the flows
+  # Change made by Joost on 10-10-2024: in Qmass_balance_F Qhepatic_M was changed into Qhepatic_F
   mutate(Qmass_balance_M = CardOut_M - (Qskin_M + Qurinarytract_M + Qkidney_M + Qgut_M + Qhepatic_M + Qadipose_M + Qrest_M)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
-  mutate(Qmass_balance_F = CardOut_F - (Qskin_F + Qurinarytract_F + Qkidney_F + Qgut_F + Qhepatic_M + Qadipose_F + Qrest_F)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
+  mutate(Qmass_balance_F = CardOut_F - (Qskin_F + Qurinarytract_F + Qkidney_F + Qgut_F + Qhepatic_F + Qadipose_F + Qrest_F)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
   
   ## MassBalance Volumes #better be 0
   # !!!!! Issue with the mass balance of the flows
