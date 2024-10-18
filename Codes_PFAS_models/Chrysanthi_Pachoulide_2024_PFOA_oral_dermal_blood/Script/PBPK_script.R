@@ -77,27 +77,27 @@ Variables_df <- Variables_df %>%
   mutate(BDW_M_Ratier_2024 = 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000))))) %>%
   mutate(BDW_F_Ratier_2024 = 62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))
 #?? What is the difference between BW and BDW, we actually only use BDW in the script ?? The difference appears after 19.00274 years, where BW starts to be bigger than BDW
-  
-# Plot BW changes over time
-PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>% 
-  rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>% 
-  pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female) 
-
-# PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>% 
-#   rename(Male = BW_M_Ratier_2024, Female = BW_F_Ratier_2024) %>% 
-#   pivot_longer(names_to = "Gender", values_to = "BW", Male:Female) 
-
-ggplot() +
-  geom_path(data = PlotBDW, aes(age, BDW, colour = Gender, linetype = "BDW")) +
-  #geom_path(data = PlotBW, aes(age, BW, colour = Gender, linetype = "BW")) +
-  CP_theme() +
-  labs(x = "Age", 
-       y = "Values",
-       colour = "Gender", 
-       linetype = "Bodyweight method") +
-  scale_linetype_manual(values = c("BDW" = "dashed", "BW" = "solid"))
-ggsave("BWovertime.png", dpi = 300)
-
+# 
+# # Plot BW changes over time
+# PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>% 
+#   rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>% 
+#   pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female) 
+# 
+# PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>%
+#   rename(Male = BW_M_Ratier_2024, Female = BW_F_Ratier_2024) %>%
+#   pivot_longer(names_to = "Gender", values_to = "BW", Male:Female)
+# 
+# ggplot() +
+#   geom_path(data = PlotBDW, aes(age, BDW, colour = Gender, linetype = "BDW")) +
+#   geom_path(data = PlotBW, aes(age, BW, colour = Gender, linetype = "BW")) +
+#   CP_theme() +
+#   labs(x = "Age", 
+#        y = "Values",
+#        colour = "Gender", 
+#        linetype = "Bodyweight method") +
+#   scale_linetype_manual(values = c("BDW" = "dashed", "BW" = "solid"))
+# ggsave("BWovertime.png", dpi = 300)
+# 
 
 
 # Using Ratier et al. (2024) model, Fraction of arterial plasma, calculated from Filser 2000 p.43
@@ -331,7 +331,7 @@ Variables_df <- Variables_df %>%
   mutate(QlungFraction_F = (VlungFraction_F/0.0070)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
   ## Adipose tissue 
-  # ?? Where does the 0.96 comes from ??
+  # ?? Where does the 0.96 comes from / This is assuming that we don't have the total body weight ??
   mutate(VadiposeFraction_M = 0.96 - VadrenalFraction_M - VboneFraction_M - VbonenonperfusedFraction_M - VbrainFraction_M - VbreastFraction_M - 
            VheartFraction_M - VmarrowFraction_M - VmuscleFraction_M - VreproFraction_M - VpancreasFraction_M -
            VskinFraction_M - VspleenFraction_M - VthyroidFraction_M - VurinarytractFraction_M - VkidneyFraction_M -
@@ -351,7 +351,6 @@ Variables_df <- Variables_df %>%
   mutate(QadiposeFraction_F = (VadiposeFraction_F/0.3167)*0.087) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
   ## Total volume (sum of all organs) 
-  #?? Why is this changing over time and not staying constant?
   mutate(VtotalFraction_M = VplasmaFraction_M + VadrenalFraction_M + VboneFraction_M + VbrainFraction_M + VbreastFraction_M + 
            VheartFraction_M + VmarrowFraction_M + VmuscleFraction_M + VreproFraction_M + VpancreasFraction_M +
            VskinFraction_M + VspleenFraction_M + VthyroidFraction_M + VurinarytractFraction_M + VkidneyFraction_M +
@@ -530,7 +529,6 @@ VolumeMassBalance <- Variables_df %>% select(age, Vmass_balance_M, Vmass_balance
   geom_path() +
   facet_wrap(~Gender)
 VolumeMassBalance
-VtotalFraction_M
 
 # Plot mass balance organ volumes
 # !!!!! THERE SEEMS TO BE AN ISSUE !!!!!
@@ -539,6 +537,12 @@ VolumeTest <- Variables_df %>% select(age, VtotalFraction_M, VtotalFraction_F) %
   ggplot(aes(age, Volume, color = Gender)) +
   geom_path() 
 VolumeTest
+
+AdiposeTest <- Variables_df %>% select(age, AdiposeMass_M, AdiposeMass_F) %>% 
+  pivot_longer(names_to = "Gender", values_to = "AdiposeMass", AdiposeMass_M:AdiposeMass_F) %>% 
+  ggplot(aes(age, AdiposeMass, color = Gender)) +
+  geom_path() 
+AdiposeTest
 
 
 ## Compound specific ####
