@@ -485,7 +485,6 @@ Variables_df <- Variables_df %>%
   
   ## Biliary clearance
   mutate(CLbiliaryFraction_M = 0.000109) %>% #from Husoy; 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day taken from Fujii et al 2015 
-  mutate(CLbiliary_M = CLbiliaryFraction_M*BDW_M^VliverFraction_M) %>% #from Husoy; L/h biliary clearance rate, corrected for the fraction of liver to the total BDW (as done by Husoy)
   mutate(CLbiliaryFraction_F = 0.000109) %>% #from Husoy; 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day taken from Fujii et al 2015 
   mutate(CLbiliary_F = CLbiliaryFraction_M*BDW_F^VliverFraction_F) %>% #from Husoy; L/h biliary clearance rate, corrected for the fraction of liver to the total BDW (as done by Husoy)
   

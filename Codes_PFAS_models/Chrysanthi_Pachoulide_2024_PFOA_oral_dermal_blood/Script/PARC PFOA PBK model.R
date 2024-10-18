@@ -9,7 +9,8 @@ rm(list=ls()) # to clear out the global environment
 
 # Set working directory
 
-HOME <- "/home/westerj"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFAS_PARC"
+# HOME <- "/home/westerj"
 setwd(HOME)
 
 # OUTPUT <- file.path("Output/Data", Sys.Date())
@@ -36,6 +37,8 @@ sim_stop <- 80
 Oraldose <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
 skin_fraction <- 0.05 # fraction of the total skin surface exposed; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+# Comment Chrysa 18-10-2024: I used this instead: fSkbarea_M = 0.107 # (cm^2); exposed skin area = mean surface area of the hands of a 21 years adult male [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
+# Comment Chrysa 18-10-2024: I think the 0.05 above comes from the same reference: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
 
 #### chemical properties ----
 MW = 414.07 #PFOA MW
@@ -58,14 +61,16 @@ Kcells = 6E7	# number of cells per gram kidney
 Kprotein = 2.0e-9	# gram protein/proximal tubule cell
 SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
 
+
 # Renal clearance parameters
 CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
+# Comment Chrysa on 18-10-2024: CLurinec should be 0.001056 In Fujii et all it's 0.044ml/h/kg -> 0.044/1000(L)*24(d)/kg
 Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 
 # Hepatic clearance parameters
-CLbiliaryc = 0.00262 # 2.62 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
-CLfaecesc = 0.000052 # 0.052 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
+CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
+CLfaecesc = 0.000052 # L/d/kg ; 0.052 +/- 0.05 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 
 ## Lifetime equations ####
 
@@ -88,21 +93,19 @@ Variables_df <- Variables_df %>%
                                     -0.01258006*age^2 + 1.25029379*age + 44.4459234)) %>%
   mutate(BDW_M_Ratier_2024 = 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000))))) %>%
   mutate(BDW_F_Ratier_2024 = 62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))
-#?? What is the difference between BW and BDW, we actually only use BDW in the script ?? The difference appears after 19.00274 years, where BW starts to be bigger than BDW
 
 # Plot BW changes over time
-PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>%
-  rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>%
-  pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female)
-
-PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>%
-  rename(Male = BW_M_Ratier_2024, Female = BW_F_Ratier_2024) %>%
-  pivot_longer(names_to = "Gender", values_to = "BW", Male:Female)
-
+# Comment Chrysa on 18-10-2024: Should we then use the BDW term that is also changing during adulthood or are we OK with the massbalance issue in the total body volume?
+# PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>%
+#   rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>%
+#   pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female)
+# 
+# PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>%
+#   rename(Male = BW_M_Ratier_2024, Female = BW_F_Ratier_2024) %>%
+#   pivot_longer(names_to = "Gender", values_to = "BW", Male:Female)
 # ggplot() +
 #   geom_path(data = PlotBDW, aes(age, BDW, colour = Gender, linetype = "BDW")) +
 #   geom_path(data = PlotBW, aes(age, BW, colour = Gender, linetype = "BW")) +
-#   # CP_theme() +
 #   labs(x = "Age", 
 #        y = "Values",
 #        colour = "Gender", 
@@ -111,7 +114,7 @@ PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>
 #ggsave("BWovertime.png", dpi = 300)
 
 # Using Ratier et al. (2024) model, Fraction of arterial plasma, calculated from Filser 2000 p.43
-Fr_art_plasma = 0.0178 / (0.0178 + 0.0533)#fraction of arterial blood (corrected for plasma)
+Fr_art_plasma = 0.0178 / (0.0178 + 0.0533) #fraction of arterial blood (corrected for plasma)
 
 # Hematocrit - male                                                              # From Supp mat of Brochot et al. 2019
 Param1_M = 33.455469
@@ -156,7 +159,6 @@ Variables_df <- Variables_df %>%
   mutate(Dermaldose_F = if_else(age <= exposure_stop,Dermaldose_F,0)) %>%
   
   ## Hematocrit
-  # ?? Is this the hematocrit change over lifetime ??
   mutate(Hct_ven_M = if_else(age < 1, (Param1_M +(Param2_M-Param1_M)*exp(-Param3_M*age))*0.01,
                              if_else(age < 6, (a1_M + b1_M*age)*0.01,
                                      if_else(age < 15, Param4_M*0.01,
@@ -341,7 +343,7 @@ Variables_df <- Variables_df %>%
   mutate(QthyroidFraction_F = (VthyroidFraction_F/0.0003)*0.015) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
   ## Lungs; compartment [15] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  # Shouldn't the lungs take 100% of the blood flow?
+  # Comment Chrysa on 18-10-2024: Shouldn't the lungs take 100% of the blood flow?
   mutate(VlungFraction_M = 0.0068) %>%
   mutate(Vlung_M = VlungFraction_M*BDW_M) %>%
   mutate(QlungFraction_M = (VlungFraction_M/0.0068)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
@@ -350,7 +352,7 @@ Variables_df <- Variables_df %>%
   mutate(QlungFraction_F = (VlungFraction_F/0.0070)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
   ## Adipose tissue 
-  # ?? Where does the 0.96 comes from ??
+  # Comment Chrysa on 18-10-2024: With 0.96 we assume that we don't have 100% of the total body weight? 
   mutate(VadiposeFraction_M = 0.96 - VadrenalFraction_M - VboneFraction_M - VbonenonperfusedFraction_M - VbrainFraction_M - VbreastFraction_M - 
            VheartFraction_M - VmarrowFraction_M - VmuscleFraction_M - VreproFraction_M - VpancreasFraction_M -
            VskinFraction_M - VspleenFraction_M - VthyroidFraction_M - VurinarytractFraction_M - VkidneyFraction_M -
@@ -370,7 +372,7 @@ Variables_df <- Variables_df %>%
   mutate(QadiposeFraction_F = (VadiposeFraction_F/0.3167)*0.087) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
   ## Total volume (sum of all organs) 
-  #?? Why is this changing over time and not staying constant?
+  # Comment Chrysa: Why is this changing over time and not staying constant?
   mutate(VtotalFraction_M = VplasmaFraction_M + VadrenalFraction_M + VboneFraction_M + VbrainFraction_M + VbreastFraction_M + 
            VheartFraction_M + VmarrowFraction_M + VmuscleFraction_M + VreproFraction_M + VpancreasFraction_M +
            VskinFraction_M + VspleenFraction_M + VthyroidFraction_M + VurinarytractFraction_M + VkidneyFraction_M +
@@ -406,7 +408,7 @@ Variables_df <- Variables_df %>%
   mutate(TestQF_F = CardOut_F - QtotalFraction_F) %>% 
   
   mutate(Qliver_M = (QliverFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[21] = (sc_F[21] / (sum_sc_F / 1)) * CardOut * Free;
-  #Qliver is what was used to be Qhepatic
+  # Qliver is what was used to be Qhepatic
   mutate(Qstomach_M = (QstomachFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qgut_M = (QgutFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qkidney_M = (QkidneyFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
@@ -423,7 +425,6 @@ Variables_df <- Variables_df %>%
   mutate(Qpancreas_M = (QpancreasFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qspleen_M = (QspleenFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qthyroid_M = (QthyroidFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
-  #?? Shouldn't the lung take 100% of the blood flow?
   mutate(Qlung_M = (QlungFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qadipose_M = (QadiposeFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   
@@ -507,6 +508,7 @@ Variables_df <- Variables_df %>%
   # mutate(CLbiliary_M = CLbiliaryFraction_M*BDW_M^VliverFraction_M) %>% #from Husoy; L/h biliary clearance rate, corrected for the fraction of liver to the total BDW (as done by Husoy)
   # mutate(CLbiliaryFraction_F = 0.000109) %>% #from Husoy; 2.62/24/1000 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day taken from Fujii et al 2015 
   # mutate(CLbiliary_F = CLbiliaryFraction_M*BDW_F^VliverFraction_F) %>% #from Husoy; L/h biliary clearance rate, corrected for the fraction of liver to the total BDW (as done by Husoy)
+  # Comment Chrysa 18-10-2024: Shouldn't we be correcting for the fraction of liver changing during life?
   mutate(CLbiliary_M = CLbiliaryc*(BW_M^0.1)) %>% #from Husoy; L/d biliary clearance rate, corrected for the fraction of liver to the total BDW (as done by Husoy)
   mutate(CLbiliary_F = CLbiliaryc*(BW_F^0.1)) %>% #from Husoy; L/d biliary clearance rate, corrected for the fraction of liver to the total BDW (as done by Husoy)
   
@@ -519,15 +521,15 @@ Variables_df <- Variables_df %>%
   mutate(CLfecal_F = CLfaecesc*(BW_F^0.001)) %>% #from Husoy; L/d faeces clearance, BDW adjusted to the volume of GI tract as done by Husoy
   
   ## Urinary clearance 
-  mutate(QUr_M = 0.022*BW_M) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161]
-  mutate(QUr_F = 0.022*BW_F) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161]
+  mutate(QUr_M = 0.022*BW_M) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+  mutate(QUr_F = 0.022*BW_F) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089 
   mutate(kUr_M = 0.75) %>% # /d urine excretion rate
   mutate(kUr_F = 0.75) %>% # /d urine excretion rate
   # THIS IS ACTUALLY NOT NEEDED AS IT'S THE Urinary Tract compartment from Aude
   ## ???? NOT SURE ABOUT THIS from the same reference, GFR is 10% of the total renal blood flow, so it could also be GFR_M = GFRFraction_M*BDW_M*
   # mutate(GFRFraction_M = 0.1068) %>% #fraction of kidney blood flow that is ultrafiltrated; calculated from 1.78 mL/min/kg (DOI 10.1007/s11095-015-1749-4), 
   # mutate(GFR_M = GFRFraction_M*BW_M) %>% #L/h of ultrafiltration
-  mutate(GFR_M = 0.18*Qkidney_M) %>% #L/d ; as it's 18% of total renal plasma flow [ICRP 89]
+  mutate(GFR_M = 0.18*Qkidney_M) %>% #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
   # mutate(GFR_M = (((98.0/1000)*60*24)/1.73)*(SkbTarea_M/10000)) %>% # [Melsom 2022] doi: 10.1681/ASN.2022030323 mL/min/1.73 m2 -> L/d
   # mutate(GFRFraction_F = 0.1068) %>% #fraction of kidney blood flow that is ultrafiltrated; calculated from 1.78 mL/min/kg (DOI 10.1007/s11095-015-1749-4), is approx 10%
   # mutate(GFR_F = GFRFraction_F*BW_F) #L/h of ultrafiltration
