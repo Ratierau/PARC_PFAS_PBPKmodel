@@ -37,8 +37,7 @@ sim_stop <- 80
 Oraldose <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
 skin_fraction <- 0.05 # fraction of the total skin surface exposed; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
-# Comment Chrysa 18-10-2024: I used this instead: fSkbarea_M = 0.107 # (cm^2); exposed skin area = mean surface area of the hands of a 21 years adult male [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
-# Comment Chrysa 18-10-2024: I think the 0.05 above comes from the same reference: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
+# Note Chrysa 18-10-2024: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
 
 #### chemical properties ----
 MW = 414.07 #PFOA MW
@@ -51,6 +50,7 @@ PSk <- 0.1  # Plasma/skin partition coefficient; Rat tissue data (Kudo et al., 2
 PR <- 0.12  # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al., 2007)
 PG <- 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al., 2007)
 
+# Comment Chrysa 21-10-2024: AbsPFOA is used in the Dermaldose input, so we're already correcting before using the Papp?! not sure I agree with this
 AbsPFOA <- 0.016 # 0.00048     # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
@@ -95,7 +95,7 @@ Variables_df <- Variables_df %>%
   mutate(BDW_F_Ratier_2024 = 62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))
 
 # Plot BW changes over time
-# Comment Chrysa on 18-10-2024: Should we then use the BDW term that is also changing during adulthood or are we OK with the massbalance issue in the total body volume?
+# Comment Chrysa on 18-10-2024: MassBalance issue: should we then use the BDW term that is also changing during adulthood or are we OK with the massbalance issue in the total body volume?
 # PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>%
 #   rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>%
 #   pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female)
@@ -1138,6 +1138,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAFil <- QFil*CK*fup - (Vmax*CFil)/(Km+CFil) - QUr*CFil
     #        ultrafiltration  REABSORPTION  urine flow rate to the bladder
     
+    ### Remove this compartment
     ### Urine: urine in the bladder
     ### ??? why do we need this compartment? I would try having a simple compartment first; i.e not having an excretion compartment
     dAUr <- QUr*CFil - kUr*AUr #(ug/h)
