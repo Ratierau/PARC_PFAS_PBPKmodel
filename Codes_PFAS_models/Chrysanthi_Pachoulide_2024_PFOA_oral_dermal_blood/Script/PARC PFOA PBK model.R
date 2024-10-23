@@ -64,7 +64,6 @@ SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.
 
 # Renal clearance parameters
 CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
-# Comment Chrysa on 18-10-2024: CLurinec should be 0.001056 In Fujii et all it's 0.044ml/h/kg -> 0.044/1000(L)*24(d)/kg
 Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 
