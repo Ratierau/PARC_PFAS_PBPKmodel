@@ -623,7 +623,7 @@ Variables_df <- Variables_df %>%
 #   geom_line(data = Variables_M, aes(x=age, y=Vbrain_M, color="09_Vbrain")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Vmuscle_M, color="10_Vmuscle")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Vtotal_M, color="11_Vtotal")) +
-#   
+# 
 #   scale_colour_manual(name='',
 #                       values=c('01_BW'='black',
 #                                '02_Vplasma'='red',
@@ -647,7 +647,7 @@ Variables_df <- Variables_df %>%
 #                                '09_Vbrain'='Brain',
 #                                '10_Vmuscle'='Muscle tissue',
 #                                '11_Vtotal'='Sum of all tissues')) +
-#   
+# 
 #   theme_bw() +
 #   labs(title="Organ weight changes over time - males",x="\nAge (y)", y="Weight (kg)\n") +
 #   theme(plot.title = element_text(hjust = 0.5))
@@ -667,7 +667,7 @@ Variables_df <- Variables_df %>%
 #   geom_line(data = Variables_fractions_M, aes(x=age, y=VmuscleFraction_M, color="10_Vmuscle")) +
 #   geom_line(data = Variables_fractions_M, aes(x=age, y=VtotalFraction_M, color="11_Vtotal")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Fraction_M, color="12_Fraction")) +
-#   
+# 
 #   scale_colour_manual(name='',
 #                       values=c('02_Vplasma'='red',
 #                                '03_Vliver'='darkred',
@@ -691,7 +691,7 @@ Variables_df <- Variables_df %>%
 #                                '10_Vmuscle'='Muscle tissue',
 #                                '11_Vtotal'='Sum of all tissues',
 #                                '12_Fraction'='Sum tissues / BW')) +
-#   
+# 
 #   theme_bw() +
 #   labs(title="Organ fractional volume changes over time - males",x="\nAge (y)", y="Fraction of body weight\n") +
 #   theme(plot.title = element_text(hjust = 0.5))
@@ -710,7 +710,7 @@ Variables_df <- Variables_df %>%
 #   geom_line(data = Variables_M, aes(x=age, y=Qbrain_M, color="09_Qbrain")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Qmuscle_M, color="10_Qmuscle")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Qtotal_M, color="11_Qtotal")) +
-#   
+# 
 #   scale_colour_manual(name='',
 #                       values=c('01_CardOut'='black',
 #                                '03_Qliver'='darkred',
@@ -732,7 +732,7 @@ Variables_df <- Variables_df %>%
 #                                '09_Qbrain'='Brain',
 #                                '10_Qmuscle'='Muscle tissue',
 #                                '11_Qtotal'='Sum of all tissues')) +
-#   
+# 
 #   theme_bw() +
 #   labs(title="Plasma flow changes over time - males",x="\nAge (y)", y="Plasma flow (L/d)\n") +
 #   theme(plot.title = element_text(hjust = 0.5))
