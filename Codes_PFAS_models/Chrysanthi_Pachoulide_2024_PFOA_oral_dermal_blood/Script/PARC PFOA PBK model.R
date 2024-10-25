@@ -13,9 +13,13 @@ HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel
 # HOME <- "/home/westerj"
 setwd(HOME)
 
-# OUTPUT <- file.path("Output/Data", Sys.Date())
-# dir.create(OUTPUT, recursive = TRUE)
-# setwd(OUTPUT)
+
+# Set output storage directory
+ 
+OUTPUT <- file.path("Output/Data", Sys.Date())
+dir.create(OUTPUT, recursive = TRUE)
+setwd(OUTPUT)
+
 
 # Load packages
 
@@ -26,11 +30,12 @@ library(writexl)
 library(ggpubr)
 library(tidyverse)
 
-# -----------------------------------------------------------------------------
-# PBK MODEL PARAMETERS ####
-# -----------------------------------------------------------------------------
 
-#### EXPOSURE SCENARIO ----
+# ---------------------------------------------------------------------------- #
+# PBK MODEL PARAMETERS ####
+# ---------------------------------------------------------------------------- #
+
+## EXPOSURE SCENARIO ----
 exposure_stop <- 50
 sim_stop <- 80
 
@@ -38,11 +43,28 @@ Oraldose <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
 skin_fraction <- 0.05 # fraction of the total skin surface exposed; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
 # Note Chrysa 18-10-2024: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
+# Note Chrysa 24-20-2024: assumption that the main skin area exposed is the hands
 
-#### chemical properties ----
+# For future use; to enable input for dermal exposure from different cosmetics/ aggregate exposure scenarios etc
+# Eproduct = # mg/kg bw/d Effective dermal exposure depending to a product category, this takes into account the rinsing off, dilution etc; https://health.ec.europa.eu/system/files/2022-08/sccs_o_250.pdf
+# Dermconc = # Compound concentration in the specific product; https://health.ec.europa.eu/system/files/2022-08/sccs_o_250.pdf
+# Edermal = Eproduct * Dermconc # Dermal exposure, based on EFSA; https://health.ec.europa.eu/system/files/2022-08/sccs_o_250.pdf
+
+# From Ragnarsdottir et al.
+# DED = (Dermconc * BSA * DAS * Fa * IEF)/BW # daily exposure dose (ng/kg bw/day)
+# Dermconc # (ng/g) concentration in dust
+# BSA # body surface area exposed (cm^2)
+# DAS # (mg/cm^2) dust adhered to skin
+# Fa # fraction absorbed by the skin; 50% of fBAc
+# IEF # indoor exposure fraction
+
+## CHEMICAL SPECIFIC PARAMETERS ----
+
+### PFOA ----
 MW = 414.07 #PFOA MW
 fup <- 0.061 # from Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415; OLD fup = 0.02 # fup fraction of PFOA in plasma
 
+# Note Chrysa 24-20-2024: plasma/tissue partition coefficients to be changed, using the Allendorf paper:  https://doi.org/10.1002/etc.4954
 PL <- 2.2  # Plasma/liver partition coefficient; Rat tissue data (Kudo et al., 2007)
 PF <- 0.04  # Plasma/fat partition coefficient; Rat tissue data (Kudo et al., 2007)
 PK <- 1.05  # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al., 2007)
@@ -51,7 +73,8 @@ PR <- 0.12  # Plasma/rest of the body partition coefficient; Rat tissue data (Ku
 PG <- 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al., 2007)
 
 # Comment Chrysa 21-10-2024: AbsPFOA is used in the Dermaldose input, so we're already correcting before using the Papp?! not sure I agree with this
-AbsPFOA <- 0.016 # 0.00048     # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
+#fBAc <- # Fraction bio accessible; fraction of the compound released from the matrix (cosmetic formulation, dust etc) and is available to be absorbed from the epidermis
+AbsPFOA <- 0.016 # 0.00048 # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
 ## Human physiology ####
@@ -1032,15 +1055,15 @@ varCLbiliary_F <- approxfun(Variables_df$TIME, Variables_df$CLbiliary_F, rule = 
 varQUr_F <- approxfun(Variables_df$TIME, Variables_df$QUr_F, rule = 2)
 varkUr_F <- approxfun(Variables_df$TIME, Variables_df$kUr_F, rule = 2)
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 # PBPK MODEL PARAMETERS ####
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 
 parms <- c(fup, PG, PL, PF, PK, PSk, PR, Km)
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 # PBPK MODEL ####
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 ### Male ###
 PBPKmodPFOA_M <- function(t, state, parameters){
   with(as.list(c(state, parameters)), {
@@ -1175,9 +1198,9 @@ PBPKmodPFOA_M <- function(t, state, parameters){
   )
 }
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 # INITIAL VALUES ####
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 A_init <- c(AP=0, 
             ASkb=0, 
             ASk=0, 
@@ -1192,18 +1215,18 @@ A_init <- c(AP=0,
             AEx_urine=0,
             Input=0)
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 # SOLVING THE PBPK MODEL ####
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 output_PFOA <- lsoda(A_init, TIME, PBPKmodPFOA_M, parms)
 output.PFOA.df <- as.data.frame(output_PFOA)
 output.df <- Variables_df %>%
   rename(time = TIME) %>%
   left_join(output.PFOA.df)
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 # RESULTS ####
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 
 CP_theme <- function() {
   theme_bw()+
