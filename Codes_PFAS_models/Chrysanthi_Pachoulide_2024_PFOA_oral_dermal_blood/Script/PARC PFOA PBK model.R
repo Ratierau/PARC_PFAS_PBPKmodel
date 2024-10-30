@@ -80,7 +80,7 @@ Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 ## Human physiology ####
 ## ------------------------------------------------------
 # Kidney scaling factors
-Kcells = 6E7	# number of cells per gram kidney
+Kcells = 6E7	# number of cells per gram kidney from DOI 10.1007/978-1-4614-8229-1_7, chapter 7
 Kprotein = 2.0e-9	# gram protein/proximal tubule cell
 SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
 
