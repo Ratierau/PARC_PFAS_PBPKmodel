@@ -83,29 +83,29 @@ PG <- 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al., 20
 AbsPFOA <- 0.016 # 0.00048 # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
-<<<<<<< HEAD
-=======
-## Human physiology ####
-## ------------------------------------------------------
-# Kidney scaling factors
-Kcells = 6E7	# number of cells per gram kidney from DOI 10.1007/978-1-4614-8229-1_7, chapter 7; they say it should be included in the sensitivity analysis
-Kprotein = 2.0e-9	# gram protein/proximal tubule cell
-SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
->>>>>>> 78921676037873f08b78c5f9b975f08691a41aa5
 
 ## PHYSIOLOGICAL PARAMETERS ####
 ## ------------------------------------------------------ #
 
-# Comment Chrysa 05-11-2014: Parameters not used, updated parameters below
+# Kidney scaling factors
+# Kcells = 6E7	# number of cells per gram kidney from DOI 10.1007/978-1-4614-8229-1_7, chapter 7; they say it should be included in the sensitivity analysis
+# Kprotein = 2.0e-9	# gram protein/proximal tubule cell
+# SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
+
+
+# Comment Chrysa 05-11-2024: Parameters not used, updated parameters below
 # # Kidney scaling factors
 # Kcells = 6E7	# number of cells per gram kidney
 # Kprotein = 2.0e-9	# gram protein/proximal tubule cell
 # SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
-# 
-# # Renal clearance parameters
 # CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
 # Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 # Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
+
+# Renal clearance parameters
+# Comment Chrysa 05-11-2024: Introducing the "affinity constants: kAap and kAbl, to compencate for the fact that the transporters have an affinity to one side.
+kAbl <- 0.01 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
+kAap <- 0.01 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
 
 # Hepatic clearance parameters
 CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
@@ -1129,14 +1129,16 @@ varCL_FiltPT <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT)
 
 
 ## FINAL PARAMS ----
-parms <- c(fup, PG, PL, PF, PK, PSk, PR) #Km
+parms <- c(fup, PG, PL, PF, PK, PSk, PR, kAap, kAbl) #Km
 
   
 # ---------------------------------------------------------------------------- #
-# PBPK MODEL ####
-# ---------------------------------------------------------------------------- #
 
-## Male ----
+
+## PBPK MODEl ####
+## ------------------------------------------------------ #
+
+### Male ####
 PBPKmodPFOA_M <- function(t, state, parameters){
   with(as.list(c(state, parameters)), {
     
@@ -1181,6 +1183,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     VR <- varVrest_M(t) #rest of the body
     VUr <- 1 # QUr*Timeframe #NEED TO DEFINE THE TIMEFRAME
     
+    
+    
     ### Concentrations ----
     
     # Organ concentrations (ug/L); these are TOTAL concentrations
@@ -1218,7 +1222,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # Rest compartment
     dAR <- QR*(CP-CVR) # (ug/h)
     
-    # NEW/CHANGED---------------
+    #### NEW/CHANGED---------------
     
     # Gut compartment: plasma to gut then to liver. Biliary clearance to gut, based on free concentration in the liver; faecal clearance based on total gut concentration; not only the free fraction as partitioning is not needed
     dAG <- Oraldose + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfaeces*CG #(ug/h)
@@ -1231,7 +1235,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # Rate of PFOA amount change in the liver (ug/h)
     
     # Comment Chrysa 04-11-2024: see updated kidney compartment below
-    ## OLD Kidney compartment ----
+    #### OLD Kidney compartment ----
     # ### Kidney: this is basically the kidney blood compartment
     # ### I think we're missing active secretion
     # dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - QFil*CK*fup
@@ -1250,7 +1254,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # ### Excretion urinary: cumulative PFOA concentration in the urine
     # dAEx_urine <- kUr*AUr #(ug/h)
     
-    ## Updated Kidney compartment ----
+    #### Updated Kidney compartment ----
     # Kidney Blood
     AKB <- QK*(CP-CVKB) - QFil*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
     #                    ToFiltrate    UptakeToTissue
@@ -1293,10 +1297,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
   )
 }
 
-# ---------------------------------------------------------------------------- #
+### Initials ####
 
-  # INITIAL VALUES ####
-# ---------------------------------------------------------------------------- #
 A_init <- c(AP=0, 
             ASkb=0, 
             ASk=0, 
@@ -1312,18 +1314,17 @@ A_init <- c(AP=0,
             AEx_urine=0,
             Input=0)
 
-# ---------------------------------------------------------------------------- #
-# SOLVING THE PBPK MODEL ####
-# ---------------------------------------------------------------------------- #
+
+### Solving the model ####
 output_PFOA <- lsoda(A_init, TIME, PBPKmodPFOA_M, parms)
 output.PFOA.df <- as.data.frame(output_PFOA)
 output.df <- Variables_df %>%
   rename(time = TIME) %>%
   left_join(output.PFOA.df)
 
-# ---------------------------------------------------------------------------- #
-# RESULTS ####
-# ---------------------------------------------------------------------------- #
+
+## RESULTS ####
+## ------------------------------------------------------ #
 
 CP_theme <- function() {
   theme_bw()+
