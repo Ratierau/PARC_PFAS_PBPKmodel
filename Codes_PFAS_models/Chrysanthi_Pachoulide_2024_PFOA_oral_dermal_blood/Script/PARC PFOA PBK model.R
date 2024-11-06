@@ -31,7 +31,6 @@ library(ggpubr)
 library(tidyverse)
 
 
-# ---------------------------------------------------------------------------- #
 # PBK MODEL PARAMETERS ####
 # ---------------------------------------------------------------------------- #
 
@@ -83,6 +82,32 @@ PG <- 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al., 20
 AbsPFOA <- 0.016 # 0.00048 # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
+# Renal clearance parameters
+# # CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
+# Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
+# Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-
+# Comment Chrysa 05-11-2024: 
+## Assuming that the kidney PFAS concentrations never reaches Km concentrations, therefore transforming Vmax and Km to a Clearance; in the paper what they call transporter efficiency : Louisse, Pedroni et al. 2024 https://doi.org/10.1016/j.tox.2024.153961)
+## OAT1 and OAT3 are determining transport between blood and proximal tubule
+## OAT4 is determining transport between proximal tubule and filtrate
+## All transporters are bi-directional, therefore the equation is written assuming that direction is determined based on the equilibrium between the two compartments
+## Introducing the "affinity constants: kAap and kAbl, to compensate for the fact that the transporters have an affinity to one side.
+kAbl <- 0.01 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
+kAap <- 0.01 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
+CL_OAT1 <- 19/1000000*60*24/1000000 #L/d/kg protein protein; initial ul/min/mg protein
+CL_OAT3 <- 17/1000000*60*24/1000000 #L/d/kg protein; initial ul/min/mg protein
+CL_OAT4 <- 96/1000000*60*24/1000000 #L/d/kg protein; initial ul/min/mg protein
+PTCPGK <- 99.4*10^6/1000 # cells/kg kidney cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504
+REF_OAT1 <- 4.3/26.6 # relative expression factor: expression in the human kidneys /expression in the cells (4.3 ± 0.3 pmol/mg membrane protein in the human kidney cortex and 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells  https://doi.org/10.1124/dmd.121.000367); alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
+REF_OAT3 <- 2.7/7.3 # relative expression factor: expression in the human kidneys /expression in the cells (2.7 ± 0.1 pmol/mg membrane protein in the human kidney cortex and 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT3 cells  https://doi.org/10.1124/dmd.121.000367);  alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
+REF_OAT4 <- 0.52/16 # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
+
+
+
+# Hepatic clearance parameters
+CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
+CLfaecesc = 0.000052 # L/d/kg ; 0.052 +/- 0.05 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
+
 
 ## PHYSIOLOGICAL PARAMETERS ####
 ## ------------------------------------------------------ #
@@ -91,25 +116,6 @@ Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 # Kcells = 6E7	# number of cells per gram kidney from DOI 10.1007/978-1-4614-8229-1_7, chapter 7; they say it should be included in the sensitivity analysis
 # Kprotein = 2.0e-9	# gram protein/proximal tubule cell
 # SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
-
-
-# Comment Chrysa 05-11-2024: Parameters not used, updated parameters below
-# # Kidney scaling factors
-# Kcells = 6E7	# number of cells per gram kidney
-# Kprotein = 2.0e-9	# gram protein/proximal tubule cell
-# SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
-# CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
-# Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
-# Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
-
-# Renal clearance parameters
-# Comment Chrysa 05-11-2024: Introducing the "affinity constants: kAap and kAbl, to compencate for the fact that the transporters have an affinity to one side.
-kAbl <- 0.01 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
-kAap <- 0.01 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
-
-# Hepatic clearance parameters
-CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
-CLfaecesc = 0.000052 # L/d/kg ; 0.052 +/- 0.05 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 
 
 
@@ -520,8 +526,8 @@ Variables_df <- Variables_df %>%
   mutate(Skbthickness_F = 83.1/1000) %>% # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
   mutate(VSkb_M = (fSkbarea_M*Skbthickness_M)/1000) %>%  #(L); Skin barrier volume; as previously coded by Trine
   mutate(VSkb_F = (fSkbarea_F*Skbthickness_F)/1000) %>%  #(L); Skin barrier volume; as previously coded by Trine 
-  mutate(QSkb_M = Qskin_M * (fSkbarea_M/SkbTarea_M)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
-  mutate(QSkb_F = Qskin_F * (fSkbarea_F/SkbTarea_F)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
+  #mutate(QSkb_M = Qskin_M * (fSkbarea_M/SkbTarea_M)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
+  #mutate(QSkb_F = Qskin_F * (fSkbarea_F/SkbTarea_F)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
   mutate(CLdermalabs_M = ((Papp*fSkbarea_M)/1000)*24) %>% # (L/d) ; cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
   mutate(CLdermalabs_F = ((Papp*fSkbarea_F)/1000)*24) %>% # (L/d) ; cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
   
@@ -591,23 +597,10 @@ Variables_df <- Variables_df %>%
   # mutate(MPT_F = Vkidney_F*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
   # mutate(Vmax_M = Vmaxc * MPT_M * SFOAT4) %>% #ug/d
   # mutate(Vmax_F = Vmaxc * MPT_F * SFOAT4) %>% #ug/d
-  mutate(CL_OAT1 = 19/1000000*60*24) %>% #L/d/mg protein; initial ul/min/mg protein
-  mutate(CL_OAT3 = 17/1000000*60*24) %>% #L/d/mg protein; initial ul/min/mg protein
-  mutate(CL_OAT4 = 96/1000000*60*24) %>% #L/d/mg protein; initial ul/min/mg protein
-  mutate(PTCPGK = 99.4 * 10^6) %>% # cells/g kidney cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504
-  mutate(REF_OAT1 = 4.3/26.6) %>% # relative expression factor: expression in the human kidneys /expression in the cells (4.3 ± 0.3 pmol/mg membrane protein in the human kidney cortex and 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells  https://doi.org/10.1124/dmd.121.000367); alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
-  mutate(REF_OAT3 = 2.7/7.3) %>% # relative expression factor: expression in the human kidneys /expression in the cells (2.7 ± 0.1 pmol/mg membrane protein in the human kidney cortex and 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT3 cells  https://doi.org/10.1124/dmd.121.000367);  alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
-  mutate(REF_OAT4 = 0.52/16) %>% # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
-  mutate(KW_cortex = 0.7*Vkidney_M) %>% # g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
-  mutate(CL_PltPT = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTCPGK * KW_cortex) %>% #plasma to proximal tubule
-  mutate(CL_FiltPT = (CL_OAT4*REF_OAT4) * PTCPGK * KW_cortex) #proximal tubule to filtrate
+  mutate(KW_cortex = 0.7*Vkidney_M) %>% # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
+  mutate(CL_PltPT = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTCPGK * KW_cortex) %>% #L/d/Kg plasma to proximal tubule clearance
+  mutate(CL_FiltPT = (CL_OAT4*REF_OAT4) * PTCPGK * KW_cortex) #L/d/Kg filtrate to proximal tubule clearance 
   
-## Assuming that the kidney PFAS concentrations never reaches Km concentrations, therefore transforming Vmax and Km to a Clearance; in the paper what they call transporter efficiency : Louisse, Pedroni et al. 2024 https://doi.org/10.1016/j.tox.2024.153961)
-# OAT1 and OAT3 are determining transport between blood and proximal tubule
-# OAT4 is determining transport between proximal tubule and filtrate
-# All transporters are bi-directional, therefore the equation is writen assuming that direction is determined based on the equilibrium between the two compartments
-
-
 # view(Variables_df)
 
 ##### Gender-specific data frames ----  
@@ -965,9 +958,9 @@ Variables_df <- Variables_df %>%
 
 
 
-#### Connecting the dose/flow/volume parameter to a timepoint  ####
+## Connecting the dose/flow/volume parameter to a timepoint  ####
 
-##### Male ----
+### Male ----
 ### Doses
 varOraldose_M <- approxfun(Variables_df$TIME, Variables_df$Oraldose_M, rule = 2)
 varOraldose_F <- approxfun(Variables_df$TIME, Variables_df$Oraldose_F, rule = 2)
@@ -1051,7 +1044,7 @@ varCL_PltPT <- approxfun(Variables_df$TIME, Variables_df$CL_PltPT)  # to discuss
 varCL_FiltPT <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) #proximal tubule to filtrate
 
 
-##### Female ----
+### Female ----
 
 ## Volumes - Female
 varBW_F <- approxfun(Variables_df$TIME, Variables_df$BW_F, rule = 2)
@@ -1135,8 +1128,9 @@ parms <- c(fup, PG, PL, PF, PK, PSk, PR, kAap, kAbl) #Km
 # ---------------------------------------------------------------------------- #
 
 
-## PBPK MODEl ####
-## ------------------------------------------------------ #
+
+# PBK MODEL ####
+# ---------------------------------------------------------------------------- #
 
 ### Male ####
 PBPKmodPFOA_M <- function(t, state, parameters){
@@ -1175,8 +1169,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     VL <- varVliver_M(t) #liver
     VF <- varVadipose_M(t) #adipose (used to be called VF)
     VK <- varVkidney_M(t) #kidney
-    VKB <- varVkidneyTissue_M(t) 
-    VKT <- varVkidneyBlood_M(t)
+    VKT <- varVkidneyTissue_M(t) 
+    VKB <- varVkidneyBlood_M(t)
     VFil <- varVFil_M(t) #filtrate
     VSk <- varVskin_M(t) #skin
     VSkb <- varVSkb_M(t) #skin
@@ -1256,15 +1250,15 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     #### Updated Kidney compartment ----
     # Kidney Blood
-    AKB <- QK*(CP-CVKB) - QFil*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
+    dAKB <- QK*(CP-CVKB) - QFil*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
     #                    ToFiltrate    UptakeToTissue
     # Filtrate
-    AFil <- QFil*fup*CKB - CL_FiltPT*(CFil - (CKT*kAap)) - QUr*CFil
+    dAFil <- QFil*fup*CKB - CL_FiltPT*(CFil - (CKT*kAap)) - QUr*CFil
     #                     ReabsorbToProx                  Excretion
     # Urine
-    AUr <- QUr*CFil
+    dAUr <- QUr*CFil
     # Kidney Tissue
-    AKT <- CL_PltPT*(CKB - (CKT*kAbl)) + CL_FiltPT*(CFil - (CKT*kAap))
+    dAKT <- CL_PltPT*(CKB - (CKT*kAbl)) + CL_FiltPT*(CFil - (CKT*kAap))
     #      FromPlasma                    FromFiltrate
     
     # Skin compartment
@@ -1278,18 +1272,18 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAP <- - (QSk + QG + QH + QF + QK + QR)*CP +
       QSk*CVSk + (QH+QG)*CVL + QF*CVF + QK*CVKB + QR*CVR #(ug/h)
     
-    Atot <- AP + ASkb + ASk + AG + AL + AF + AKB + AKT +  AFil + AUr + AR + AEx_feces + AEx_urine
+    Atot <- AP + ASkb + ASk + AG + AL + AF + AKB + AKT +  AFil + AUr + AR + AEx_feces # + AEx_urine
     dInput <- Oraldose + Dermaldose
     MB = Input - Atot
     
-    list(c(dAP, dASkb, dASk, dAG, dAL, dAF, dAKB, dAKT, dAFil, dAUr, dAR, dAEx_feces, dAEx_urine, dInput),
+    list(c(dAP, dASkb, dASk, dAG, dAL, dAF, dAKB, dAKT, dAFil, dAUr, dAR, dAEx_feces, dInput), #dAEx_urine
          c(CP=CP, 
            CSkb=CSkb, CSk=CSk,
            CG=CG, CVG=CVG, 
            CL=CL, CVL=CVL, 
            CF=CF, CVF=CVF,
-           CKB=CKB, CKT-CKT, CFil=CFil,  
-           CK=CKB + CKT, CVKB=CVKB, 
+           CKB=CKB, CKT=CKT, CFil=CFil,  
+           CK= (CKB + CKT), CVKB=CVKB, 
            CR=CR, CVR=CVR,
            Atot=Atot,MB=MB))
     
@@ -1311,7 +1305,7 @@ A_init <- c(AP=0,
             AUr=0, 
             AR=0, 
             AEx_feces=0, 
-            AEx_urine=0,
+            #AEx_urine=0,
             Input=0)
 
 
