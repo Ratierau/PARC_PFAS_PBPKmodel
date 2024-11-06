@@ -35,7 +35,10 @@ library(tidyverse)
 # PBK MODEL PARAMETERS ####
 # ---------------------------------------------------------------------------- #
 
-## EXPOSURE SCENARIO ----
+
+## EXPOSURE SCENARIO ####
+## ------------------------------------------------------ #
+
 exposure_stop <- 50
 sim_stop <- 80
 
@@ -58,9 +61,12 @@ skin_fraction <- 0.05 # fraction of the total skin surface exposed; hands are 5%
 # Fa # fraction absorbed by the skin; 50% of fBAc
 # IEF # indoor exposure fraction
 
-## CHEMICAL SPECIFIC PARAMETERS ----
 
-### PFOA ----
+
+## CHEMICAL SPECIFIC PARAMETERS ####
+## ------------------------------------------------------ #
+
+# PFOA 
 MW = 414.07 #PFOA MW
 fup <- 0.061 # from Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415; OLD fup = 0.02 # fup fraction of PFOA in plasma
 
@@ -77,26 +83,30 @@ PG <- 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al., 20
 AbsPFOA <- 0.016 # 0.00048 # Changed to the absorption measured by Abraham and Monien 2022, of 1.6% of applied dose from sunscreen. 
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
-## Human physiology ####
-## ------------------------------------------------------
-# Kidney scaling factors
-Kcells = 6E7	# number of cells per gram kidney
-Kprotein = 2.0e-9	# gram protein/proximal tubule cell
-SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
 
+## PHYSIOLOGICAL PARAMETERS ####
+## ------------------------------------------------------ #
 
-# Renal clearance parameters
-CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
-Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
-Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
+# Comment Chrysa 05-11-2014: Parameters not used, updated parameters below
+# # Kidney scaling factors
+# Kcells = 6E7	# number of cells per gram kidney
+# Kprotein = 2.0e-9	# gram protein/proximal tubule cell
+# SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
+# 
+# # Renal clearance parameters
+# CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
+# Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
+# Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
 
 # Hepatic clearance parameters
 CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 CLfaecesc = 0.000052 # L/d/kg ; 0.052 +/- 0.05 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 
-## Lifetime equations ####
 
-# Duration of lifetime (0 - 80 years old) 
+
+### Lifetime equations ####
+
+#### Duration of lifetime (0 - 80 years old) ----
 TSTART <- 0
 TSTOP <- 365*sim_stop # years in days
 DT <- 1
@@ -106,7 +116,7 @@ Variables_df <- as.data.frame(list(TIME = TIME)) #df column 1 = simulation time,
 Variables_df <- Variables_df %>%
   mutate(age = TIME/365) # add column 2 = age in days
 
-# Body weight
+##### Body weight ----
 Variables_df <- Variables_df %>%
   # BW_M_Ratier_2024 & BW_F_Ratier_2024 = Equation extracted from supplemental material from Ratier et al., 2024
   mutate(BW_M_Ratier_2024 = if_else(age <19.00093277, 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000)))),
@@ -116,6 +126,7 @@ Variables_df <- Variables_df %>%
   mutate(BDW_M_Ratier_2024 = 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000))))) %>%
   mutate(BDW_F_Ratier_2024 = 62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))
 
+##### Plots ----
 # Plot BW changes over time
 # Comment Chrysa on 18-10-2024: MassBalance issue: should we then use the BDW term that is also changing during adulthood or are we OK with the massbalance issue in the total body volume?
 # PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>%
@@ -135,6 +146,7 @@ Variables_df <- Variables_df %>%
 #   scale_linetype_manual(values = c("BDW" = "dashed", "BW" = "solid"))
 #ggsave("BWovertime.png", dpi = 300)
 
+##### Blood/Plasma/Hematocrit ----
 # Using Ratier et al. (2024) model, Fraction of arterial plasma, calculated from Filser 2000 p.43
 Fr_art_plasma = 0.0178 / (0.0178 + 0.0533) #fraction of arterial blood (corrected for plasma)
 
@@ -162,7 +174,7 @@ a1_F = Param4_F - 3*b1_F
 b2_F = (Param5_F - Param4_F)/7
 a2_F = Param5_F - 10*b2_F
 
-### Changes in body composition over time  ####                                            
+##### Storage data frame ----                                            
 Variables_df <- Variables_df %>%
   select(TIME,age,BW_M_Ratier_2024,BW_F_Ratier_2024,BDW_M_Ratier_2024,BDW_F_Ratier_2024) %>%
   rename(BW_M = BW_M_Ratier_2024) %>% #could actually be ignored as we only use BDW and not BW
@@ -247,7 +259,14 @@ Variables_df <- Variables_df %>%
   mutate(Vkidney_F = VkidneyFraction_F*BDW_F) %>%
   mutate(QkidneyFraction_F = (VkidneyFraction_F/0.0046)*0.175) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Urinary tract (Filtrate); compartment [13] in Ratier 2024
+  ## New Chrysa 05-11-2014
+  ## Kidney blood and Kidney tissue volumes; based on Brown1997, Table30
+  mutate(VKidneyBlood_M = Vkidney_M*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys
+  mutate(VKidneyBlood_F = Vkidney_F*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys
+  mutate(VKidneyTissue_M = Vkidney_M*0.64) %>% # 1-0.36
+  mutate(VKidneyTissue_F = Vkidney_F*0.64) %>% # 1-0.36
+  
+  ## Urinary tract (bladder, ureters, urethra); compartment [13] in Ratier 2024
   mutate(VurinarytractFraction_M = 0.00104) %>%
   mutate(Vurinarytract_M = VurinarytractFraction_M*BDW_M) %>%
   mutate(QurinarytractFraction_M = (VurinarytractFraction_M/0.00104)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
@@ -374,7 +393,6 @@ Variables_df <- Variables_df %>%
   mutate(QlungFraction_F = (VlungFraction_F/0.0070)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
   ## Adipose tissue 
-  # Comment Chrysa on 18-10-2024: With 0.96 we assume that we don't have 100% of the total body weight? 
   mutate(VadiposeFraction_M = 0.96 - VadrenalFraction_M - VboneFraction_M - VbonenonperfusedFraction_M - VbrainFraction_M - VbreastFraction_M - 
            VheartFraction_M - VmarrowFraction_M - VmuscleFraction_M - VreproFraction_M - VpancreasFraction_M -
            VskinFraction_M - VspleenFraction_M - VthyroidFraction_M - VurinarytractFraction_M - VkidneyFraction_M -
@@ -480,9 +498,10 @@ Variables_df <- Variables_df %>%
            Qskin_F + Qspleen_F + Qthyroid_F + Qurinarytract_F + Qkidney_F +
            Qlung_F + Qgut_F + Qstomach_F + Qliver_F + Qadipose_F) %>% 
   
-  ### CHANGED
   
-  ## Skin barrier or epidermis (stratum corneum & viable epidermis): these data are not dynamic yet
+##### CHANGED ----
+  
+  ## Skin barrier or epidermis (stratum corneum & viable epidermis)
   mutate(SkbTarea_M = 9.1*((BW_M*1000)^0.666)) %>%  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
   mutate(SkbTarea_F = 9.1*((BW_F*1000)^0.666)) %>%  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
   mutate(fSkbarea_M = skin_fraction*SkbTarea_M) %>% # 1070 (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
@@ -496,6 +515,7 @@ Variables_df <- Variables_df %>%
   mutate(QSkb_F = Qskin_F * (fSkbarea_F/SkbTarea_F)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
   mutate(CLdermalabs_M = ((Papp*fSkbarea_M)/1000)*24) %>% # (L/d) ; cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
   mutate(CLdermalabs_F = ((Papp*fSkbarea_F)/1000)*24) %>% # (L/d) ; cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
+  
   ## This is the portal vein input to the liver, all excluding Qgut which is added individually as we have a gut compartment
   mutate(Qhepatic_M = Qliver_M + Qspleen_M + Qstomach_M + Qpancreas_M) %>% 
   mutate(Qhepatic_F = Qliver_F + Qspleen_F + Qstomach_F + Qpancreas_F) %>% 
@@ -509,21 +529,30 @@ Variables_df <- Variables_df %>%
   # mutate(Vrest_F = VrestFraction_F*BDW_F) %>%
   # mutate(QrestFraction_F = Qtotal_F - Qskin_F - Qurinarytract_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
   # mutate(Qrest_F = QrestFraction_F/QtotalFraction_F*CardOut_F) %>% 
-  mutate(Vrest_M = Vtotal_M - Vskin_M - Vurinarytract_M - Vkidney_M - Vgut_M - Vliver_M - Vplasma_M - Vadipose_M) %>%
-  mutate(Qrest_M = Qtotal_M - Qskin_M - Qurinarytract_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>%
+  mutate(Vrest_M = Vtotal_M - Vskin_M - Vkidney_M - Vgut_M - Vliver_M - Vplasma_M - Vadipose_M) %>%
+  mutate(Qrest_M = Qtotal_M - Qskin_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>%
+  mutate(Vrest_F = Vtotal_F - Vskin_F - Vkidney_F - Vgut_F - Vliver_F - Vplasma_F - Vadipose_F) %>%
+  mutate(Qrest_F = Qtotal_F - Qskin_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>%
   
-  mutate(Vrest_F = Vtotal_F - Vskin_F - Vurinarytract_F - Vkidney_F - Vgut_F - Vliver_F - Vplasma_F - Vadipose_F) %>%
-  mutate(Qrest_F = Qtotal_F - Qskin_F - Qurinarytract_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>%
+  ## New Chrysa 05-11-2014
+  ## Kidney blood and Kidney tissue volumes; 
+  mutate(VKidneyBlood_M = Vkidney_M*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys based on Brown1997, Table30
+  mutate(VKidneyBlood_F = Vkidney_F*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys based on Brown1997, Table30
+  mutate(VKidneyTissue_M = Vkidney_M*0.64) %>% # 1-0.36
+  mutate(VKidneyTissue_F = Vkidney_F*0.64) %>% # 1-0.36
+  mutate(VFil_M = Vkidney_M*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
+  mutate(VFil_F = Vkidney_F*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
+  
   
   ## MassBalance Flow #better be 0
   # !!!!! Issue with the mass balance of the flows
-  mutate(Qmass_balance_M = CardOut_M - (Qskin_M + Qurinarytract_M + Qkidney_M + Qgut_M + Qhepatic_M + Qadipose_M + Qrest_M)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
-  mutate(Qmass_balance_F = CardOut_F - (Qskin_F + Qurinarytract_F + Qkidney_F + Qgut_F + Qhepatic_F + Qadipose_F + Qrest_F)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
+  mutate(Qmass_balance_M = CardOut_M - (Qskin_M + Qkidney_M + Qgut_M + Qhepatic_M + Qadipose_M + Qrest_M)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
+  mutate(Qmass_balance_F = CardOut_F - (Qskin_F + Qkidney_F + Qgut_F + Qhepatic_F + Qadipose_F + Qrest_F)) %>% #Qhepatic includes Qliver, Qstomach and Qpancreas
   
   ## MassBalance Volumes #better be 0
   # !!!!! Issue with the mass balance of the flows
-  mutate(Vmass_balance_M = BW_M - (Vplasma_M + Vskin_M + Vurinarytract_M + Vkidney_M + Vgut_M + Vliver_M + Vadipose_M + Vrest_M)) %>% 
-  mutate(Vmass_balance_F = BW_F - (Vplasma_F + Vskin_F + Vurinarytract_F + Vkidney_F + Vgut_F + Vliver_F + Vadipose_F + Vrest_F)) %>% 
+  mutate(Vmass_balance_M = BW_M - (Vplasma_M + Vskin_M + Vkidney_M + Vgut_M + Vliver_M + Vadipose_M + Vrest_M)) %>% 
+  mutate(Vmass_balance_F = BW_F - (Vplasma_F + Vskin_F + Vkidney_F + Vgut_F + Vliver_F + Vadipose_F + Vrest_F)) %>% 
   
   ## Biliary clearance
   # mutate(CLbiliaryFraction_M = 0.000109) %>% #from Husoy; 2.62 biliary clearance L/h/kg calculated from the biliary clearance of 2.62 ml/day taken from Fujii et al 2015 
@@ -545,28 +574,34 @@ Variables_df <- Variables_df %>%
   ## Urinary clearance 
   mutate(QUr_M = 0.022*BW_M) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
   mutate(QUr_F = 0.022*BW_F) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089 
-  mutate(kUr_M = 0.75) %>% # /d urine excretion rate
-  mutate(kUr_F = 0.75) %>% # /d urine excretion rate
-  # THIS IS ACTUALLY NOT NEEDED AS IT'S THE Urinary Tract compartment from Aude
-  ## ???? NOT SURE ABOUT THIS from the same reference, GFR is 10% of the total renal blood flow, so it could also be GFR_M = GFRFraction_M*BDW_M*
-  # mutate(GFRFraction_M = 0.1068) %>% #fraction of kidney blood flow that is ultrafiltrated; calculated from 1.78 mL/min/kg (DOI 10.1007/s11095-015-1749-4), 
-  # mutate(GFR_M = GFRFraction_M*BW_M) %>% #L/h of ultrafiltration
   mutate(GFR_M = 0.18*Qkidney_M) %>% #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-  # mutate(GFR_M = (((98.0/1000)*60*24)/1.73)*(SkbTarea_M/10000)) %>% # [Melsom 2022] doi: 10.1681/ASN.2022030323 mL/min/1.73 m2 -> L/d
-  # mutate(GFRFraction_F = 0.1068) %>% #fraction of kidney blood flow that is ultrafiltrated; calculated from 1.78 mL/min/kg (DOI 10.1007/s11095-015-1749-4), is approx 10%
-  # mutate(GFR_F = GFRFraction_F*BW_F) #L/h of ultrafiltration
   mutate(GFR_F = 0.18*Qkidney_F) %>% # L/d; as it's 18% of total renal plasma flow [ICRP 89]
-  # mutate(GFR_F = (((90.0/1000)*60*24)/1.73)*(SkbTarea_F/10000)) # [Melsom 2022] doi: 10.1681/ASN.2022030323 mL/min/1.73 m2 -> L/d
   # mutate(CLurine_M = CLurinec*BW_M^(-0.25)) %>% # clearance urine (L/d) # NOT USED
   # mutate(CLurine_F = CLurinec*BW_F^(-0.25)) %>% # clearance urine (L/d) # NOT USED
-  mutate(MPT_M = Vkidney_M*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
-  mutate(MPT_F = Vkidney_F*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
-  mutate(Vmax_M = Vmaxc * MPT_M * SFOAT4) %>% #ug/d
-  mutate(Vmax_F = Vmaxc * MPT_F * SFOAT4) #ug/d
+  # mutate(MPT_M = Vkidney_M*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
+  # mutate(MPT_F = Vkidney_F*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
+  # mutate(Vmax_M = Vmaxc * MPT_M * SFOAT4) %>% #ug/d
+  # mutate(Vmax_F = Vmaxc * MPT_F * SFOAT4) %>% #ug/d
+  mutate(CL_OAT1 = 19/1000000*60*24) %>% #L/d/mg protein; initial ul/min/mg protein
+  mutate(CL_OAT3 = 17/1000000*60*24) %>% #L/d/mg protein; initial ul/min/mg protein
+  mutate(CL_OAT4 = 96/1000000*60*24) %>% #L/d/mg protein; initial ul/min/mg protein
+  mutate(PTCPGK = 99.4 * 10^6) %>% # cells/g kidney cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504
+  mutate(REF_OAT1 = 4.3/26.6) %>% # relative expression factor: expression in the human kidneys /expression in the cells (4.3 ± 0.3 pmol/mg membrane protein in the human kidney cortex and 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells  https://doi.org/10.1124/dmd.121.000367); alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
+  mutate(REF_OAT3 = 2.7/7.3) %>% # relative expression factor: expression in the human kidneys /expression in the cells (2.7 ± 0.1 pmol/mg membrane protein in the human kidney cortex and 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT3 cells  https://doi.org/10.1124/dmd.121.000367);  alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
+  mutate(REF_OAT4 = 0.52/16) %>% # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
+  mutate(KW_cortex = 0.7*Vkidney_M) %>% # g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
+  mutate(CL_PltPT = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTCPGK * KW_cortex) %>% #plasma to proximal tubule
+  mutate(CL_FiltPT = (CL_OAT4*REF_OAT4) * PTCPGK * KW_cortex) #proximal tubule to filtrate
+  
+## Assuming that the kidney PFAS concentrations never reaches Km concentrations, therefore transforming Vmax and Km to a Clearance; in the paper what they call transporter efficiency : Louisse, Pedroni et al. 2024 https://doi.org/10.1016/j.tox.2024.153961)
+# OAT1 and OAT3 are determining transport between blood and proximal tubule
+# OAT4 is determining transport between proximal tubule and filtrate
+# All transporters are bi-directional, therefore the equation is writen assuming that direction is determined based on the equilibrium between the two compartments
+
 
 # view(Variables_df)
 
-#### Gender-specific data frames ----  
+##### Gender-specific data frames ----  
 # Variables_M <- Variables_df %>%
 #   select(TIME, age, BW_M, Hct_M, CardOut_M, Vplasma_M, Vart_M, Vven_M, Vliver_M, Vstomach_M, Vgut_M, Vkidney_M, Vurinarytract_M,
 #          Vskin_M, Vadipose_M, Vadrenal_M, Vbone_M, Vbonenonperfused_M, Vbrain_M, Vbreast_M, Vheart_M, Vmarrow_M, Vmuscle_M,
@@ -633,7 +668,7 @@ Variables_df <- Variables_df %>%
 #            QskinFraction_F + QspleenFraction_F + QthyroidFraction_F + QurinarytractFraction_F + QkidneyFraction_F +
 #            QlungFraction_F + QgutFraction_F + QstomachFraction_F + QliverFraction_F + QadiposeFraction_F)
 # 
-# #### Figure male organ volumes ----
+# Figure male organ volumes
 # Figure_M <- ggplot() +
 #   geom_line(data = Variables_M, aes(x=age, y=BW_M, color="01_BW")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Vplasma_M, color="02_Vplasma")) +
@@ -677,7 +712,7 @@ Variables_df <- Variables_df %>%
 # 
 # Figure_M
 # 
-# #### Figure male organ fractions ----
+# Figure male organ fractions 
 # Figure_fractions_M <- ggplot() +
 #   geom_line(data = Variables_fractions_M, aes(x=age, y=VplasmaFraction_M, color="02_Vplasma")) +
 #   geom_line(data = Variables_fractions_M, aes(x=age, y=VliverFraction_M, color="03_Vliver")) +
@@ -721,7 +756,7 @@ Variables_df <- Variables_df %>%
 # 
 # Figure_fractions_M
 # 
-# #### Figure male blood flows ----
+# Figure male blood flows 
 # Figure_Q_M <- ggplot() +
 #   geom_line(data = Variables_M, aes(x=age, y=CardOut_M, color="01_CardOut")) +
 #   geom_line(data = Variables_M, aes(x=age, y=Qliver_M, color="03_Qliver")) +
@@ -762,7 +797,7 @@ Variables_df <- Variables_df %>%
 # 
 # Figure_Q_M
 # 
-# #### Figure female organ volumes ----
+# Figure female organ volumes 
 # Figure_F <- ggplot() +
 #   geom_line(data = Variables_F, aes(x=age, y=BW_F, color="01_BW")) +
 #   geom_line(data = Variables_F, aes(x=age, y=Vplasma_F, color="02_Vplasma")) +
@@ -806,7 +841,7 @@ Variables_df <- Variables_df %>%
 # 
 # Figure_F
 # 
-# #### Figure female organ fractions ----
+# Figure female organ fractions 
 # Figure_fractions_F <- ggplot() +
 #   geom_line(data = Variables_fractions_F, aes(x=age, y=VplasmaFraction_F, color="02_Vplasma")) +
 #   geom_line(data = Variables_fractions_F, aes(x=age, y=VliverFraction_F, color="03_Vliver")) +
@@ -850,7 +885,7 @@ Variables_df <- Variables_df %>%
 # 
 # Figure_fractions_F
 # 
-# #### Figure female blood flows ----
+# Figure female blood flows 
 # Figure_Q_F <- ggplot() +
 #   geom_line(data = Variables_F, aes(x=age, y=CardOut_F, color="01_CardOut")) +
 #   geom_line(data = Variables_F, aes(x=age, y=Qliver_F, color="03_Qliver")) +
@@ -891,7 +926,7 @@ Variables_df <- Variables_df %>%
 # 
 # Figure_Q_F
 # 
-# ### Plot mass balance organ flow  ####
+# Plot mass balance organ flow  
 # 
 # # !!!!! THERE SEEMS TO BE AN ISSUE !!!!!
 # FlowMassBalance <- Variables_df %>% select(age, Qmass_balance_M, Qmass_balance_F) %>% 
@@ -918,7 +953,12 @@ Variables_df <- Variables_df %>%
 #   geom_path() 
 # VolumeTest
 
-### Connecting the dose/flow/volume parameter to a timepoint  ####
+
+
+
+#### Connecting the dose/flow/volume parameter to a timepoint  ####
+
+##### Male ----
 ### Doses
 varOraldose_M <- approxfun(Variables_df$TIME, Variables_df$Oraldose_M, rule = 2)
 varOraldose_F <- approxfun(Variables_df$TIME, Variables_df$Oraldose_F, rule = 2)
@@ -951,10 +991,15 @@ varVpancreas_M <- approxfun(Variables_df$TIME, Variables_df$Vpancreas_M, rule = 
 varVspleen_M <- approxfun(Variables_df$TIME, Variables_df$Vspleen_M, rule = 2)
 varVthyroid_M <- approxfun(Variables_df$TIME, Variables_df$Vthyroid_M, rule = 2)
 varVlung_M <- approxfun(Variables_df$TIME, Variables_df$Vlung_M, rule = 2)
+
 ### CHANGED
 varVrest_M <- approxfun(Variables_df$TIME, Variables_df$Vrest_M, rule = 2)
 varVSkb_M <- approxfun(Variables_df$TIME, Variables_df$VSkb_M, rule = 2)
 varSkbTarea_M <- approxfun(Variables_df$TIME, Variables_df$SkbTarea_M, rule = 2)
+varVkidneyBlood_M <- approxfun(Variables_df$TIME, Variables_df$VkidneyBlood_M, rule = 2)
+varVkidneyTissue_M <- approxfun(Variables_df$TIME, Variables_df$VkidneyTissue_M, rule = 2)
+varVFil_M <- approxfun(Variables_df$TIME, Variables_df$VFil_M, rule = 2)
+
 
 ## Blood flows - Male
 varCardOut_M <- approxfun(Variables_df$TIME, Variables_df$CardOut_M, rule = 2)
@@ -978,6 +1023,7 @@ varQpancreas_M <- approxfun(Variables_df$TIME, Variables_df$Qpancreas_M, rule = 
 varQspleen_M <- approxfun(Variables_df$TIME, Variables_df$Qspleen_M, rule = 2)
 varQthyroid_M <- approxfun(Variables_df$TIME, Variables_df$Qthyroid_M, rule = 2)
 varQlung_M <- approxfun(Variables_df$TIME, Variables_df$Qlung_M, rule = 2)
+
 ### CHANGED
 varQhepatic_M <- approxfun(Variables_df$TIME, Variables_df$Qhepatic_M, rule = 2)
 varQrest_M <- approxfun(Variables_df$TIME, Variables_df$Qrest_M, rule = 2)
@@ -988,7 +1034,15 @@ varVmax_M <- approxfun(Variables_df$TIME, Variables_df$Vmax_M, rule = 2)
 varCLfecal_M <- approxfun(Variables_df$TIME, Variables_df$CLfecal_M, rule = 2)
 varCLbiliary_M <- approxfun(Variables_df$TIME, Variables_df$CLbiliary_M, rule = 2)
 varQUr_M <- approxfun(Variables_df$TIME, Variables_df$QUr_M, rule = 2)
-varkUr_M <- approxfun(Variables_df$TIME, Variables_df$kUr_M, rule = 2)
+# varkUr_M <- approxfun(Variables_df$TIME, Variables_df$kUr_M, rule = 2)
+varGFR_M <- approxfun(Variables_df$TIME, Variables_df$GFR_M)  #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+varGFR_F <- approxfun(Variables_df$TIME, Variables_df$GFR_F)  #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+varKW_cortex <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)  # g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
+varCL_PltPT <- approxfun(Variables_df$TIME, Variables_df$CL_PltPT)  # to discuss
+varCL_FiltPT <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) #proximal tubule to filtrate
+
+
+##### Female ----
 
 ## Volumes - Female
 varBW_F <- approxfun(Variables_df$TIME, Variables_df$BW_F, rule = 2)
@@ -1019,7 +1073,9 @@ varVlung_F <- approxfun(Variables_df$TIME, Variables_df$Vlung_F, rule = 2)
 ### CHANGED
 varVrest_F <- approxfun(Variables_df$TIME, Variables_df$Vrest_F, rule = 2)
 varVSkb_F <- approxfun(Variables_df$TIME, Variables_df$VSkb_F, rule = 2)
-varSkbTarea_M <- approxfun(Variables_df$TIME, Variables_df$SkbTarea_M, rule = 2)
+varSkbTarea_F <- approxfun(Variables_df$TIME, Variables_df$SkbTarea_F, rule = 2)
+varVFil_F <- approxfun(Variables_df$TIME, Variables_df$VFil_F, rule = 2)
+
 
 ## Blood flows - Female
 varCardOut_F <- approxfun(Variables_df$TIME, Variables_df$CardOut_F, rule = 2)
@@ -1053,45 +1109,54 @@ varVmax_F <- approxfun(Variables_df$TIME, Variables_df$Vmax_F, rule = 2)
 varCLfecal_F <- approxfun(Variables_df$TIME, Variables_df$CLfecal_F, rule = 2)
 varCLbiliary_F <- approxfun(Variables_df$TIME, Variables_df$CLbiliary_F, rule = 2)
 varQUr_F <- approxfun(Variables_df$TIME, Variables_df$QUr_F, rule = 2)
-varkUr_F <- approxfun(Variables_df$TIME, Variables_df$kUr_F, rule = 2)
+varGFR_M <- approxfun(Variables_df$TIME, Variables_df$GFR_M) 
+varGFR_F <- approxfun(Variables_df$TIME, Variables_df$GFR_F)
+varKW_cortex <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)
+varCL_PltP <- approxfun(Variables_df$TIME, Variables_df$CL_PltP)  
+varCL_FiltPT <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) 
+  
 
 # ---------------------------------------------------------------------------- #
-# PBPK MODEL PARAMETERS ####
-# ---------------------------------------------------------------------------- #
 
-parms <- c(fup, PG, PL, PF, PK, PSk, PR, Km)
 
+## FINAL PARAMS ----
+parms <- c(fup, PG, PL, PF, PK, PSk, PR) #Km
+
+  
 # ---------------------------------------------------------------------------- #
 # PBPK MODEL ####
 # ---------------------------------------------------------------------------- #
-### Male ###
+
+## Male ----
 PBPKmodPFOA_M <- function(t, state, parameters){
   with(as.list(c(state, parameters)), {
     
-    # Time dependent variables
-    # ------------------------------------------------------
+    ### Time dependent variables ----
     Oraldose <- varOraldose_M(t)
     Dermaldose <- varDermaldose_M(t)
     
+    # Clearances
     CLdermalabs <- varCLdermalabs_M(t)
-    
-    Vmax <- varVmax_M(t)
+    # Vmax <- varVmax_M(t)
     CLfaeces <- varCLfecal_M(t)
     CLbiliary <- varCLbiliary_M(t)
-    QUr <- varQUr_M(t) #Urine secretion flow rate NEEDS TO BE CHANGED WHEN WE HAVE THE CORRECT VALUE.
-    kUr <- varkUr_M(t)
+    QUr <- varQUr_M(t) #Urine secretion flow rate NEEDS TO BE CHANGED WHEN WE HAVE THE CORRECT VALUE. Comment Chrysa 05-11-2024: I believe this value is ok, it's from ICRP89
+    #kUr <- varkUr_M(t)
+    CL_PltPT <- varCL_PltPT(t)
+    CL_FiltPT <- varCL_FiltPT(t)
     
-    # Flow rates
+    # Flow rates 
+    # ## Need to check if these are indeed in L/d
     QCP <- varCardOut_M(t) #cardiac output plasma
     QG <- varQgut_M(t) #gut (=intestine only)
     QH <- varQhepatic_M(t) #portal vein except gut
     QL <- varQliver_M(t) #vena cava
     QF <- varQadipose_M(t) #adipose (used to be called QF)
     QK <- varQkidney_M(t) #kidney
-    QFil <- varQurinarytract_M(t) #filtrate
+    # QFil <- varQurinarytract_M(t) #filtrate #Comment Chrysa 05-11-2024 this is GFR now
+    QFil <- varGFR_M(t) #filtrate
     QSk <- varQskin_M(t) #skin
     QR <- varQrest_M(t) #rest of the body
-    #Qp <- varQp_M(t) # needs to be incorporated when inhalation exposure is included
     
     # Volumes
     VP <- varVplasma_M(t) #plasma
@@ -1099,14 +1164,15 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     VL <- varVliver_M(t) #liver
     VF <- varVadipose_M(t) #adipose (used to be called VF)
     VK <- varVkidney_M(t) #kidney
-    VFil <- varVurinarytract_M(t) #filtrate
+    VKB <- varVkidneyTissue_M(t) 
+    VKT <- varVkidneyBlood_M(t)
+    VFil <- varVFil_M(t) #filtrate
     VSk <- varVskin_M(t) #skin
     VSkb <- varVSkb_M(t) #skin
     VR <- varVrest_M(t) #rest of the body
     VUr <- 1 # QUr*Timeframe #NEED TO DEFINE THE TIMEFRAME
     
-    ## Concentrations
-    # ------------------------------------------------------
+    ### Concentrations ----
     
     # Organ concentrations (ug/L); these are TOTAL concentrations
     CP <- AP/VP  # concentration in plasma (ug/L)
@@ -1114,12 +1180,15 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CL <- AL/VL  # concentration of PFOA in liver (ug/L)
     CF <- AF/VF  # concentration of PFOA in adipose (ug/L)
     CFil <- AFil/VFil # concentration of PFOA in filtrate compartment
-    CK <- AK/VK  # concentration of PFOA in kidney (ug/L)
+    #CK <- AK/VK  # concentration of PFOA in kidney (ug/L)
     # NEW
     CUr <- AUr/VUr # concentration of PFOA in urine (ug/L)
     CSk <- ASk/VSk  # concentration of PFOA in skin (ug/L)
     CSkb <- ASkb/VSkb # concentration of PFOA in skin barrier (ug/L)
     CR <- AR/VR  # concentration of PFOA in rest of the body (ug/L)
+    CKB <- AKB/VKB # concentration in kidney blood
+    CKT <- AKT/VKT # concentration in kidney tissue
+    CK <- CKB + CKT
     
     # Venous concentrations (ug/L); these are the concentrations leaving the organs
     CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
@@ -1129,68 +1198,85 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CVSk <- CSk/PSk  # Concentration of PFOA leaving the skin (ug/L)
     # NEW
     CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
+    CVKB <- CKB/PK # concentration of PFOA leaving kidney blood (ug/L)
     
-    ## Differential equations
-    # ------------------------------------------------------
-    ## Fat compartment
+    
+    
+    ### Differential equations ----
+    # Fat compartment
     dAF <- QF*(CP-CVF) # (ug/h)
     
-    ## Rest compartment
+    # Rest compartment
     dAR <- QR*(CP-CVR) # (ug/h)
     
     # NEW/CHANGED---------------
     
-    ## Gut compartment: plasma to gut then to liver. Biliary clearance to gut, based on free concentration in the liver; faecal clearance based on total gut concentration; not only the free fraction as partitioning is not needed
+    # Gut compartment: plasma to gut then to liver. Biliary clearance to gut, based on free concentration in the liver; faecal clearance based on total gut concentration; not only the free fraction as partitioning is not needed
     dAG <- Oraldose + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfaeces*CG #(ug/h)
     
-    ## Excretion fecal: cumulative
+    # Excretion fecal: cumulative
     dAEx_feces <- CLfaeces*CG #ug/h, used to be CVG but I think this is wrong as it's not the tissue plasma partition that defines fecal excretion
     
-    ## Liver compartment
+    # Liver compartment
     dAL <- QH*CP + QG*CVG - (QH+QG)*CVL - CLbiliary*CL*fup #input from the hepatic artery
     # Rate of PFOA amount change in the liver (ug/h)
     
-    ## Kidney compartment
-    ### Kidney: this is basically the kidney blood compartment
-    ### I think we're missing active secretion
-    dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - QFil*CK*fup
-    #                    re-absorption     ultrafiltration
+    # Comment Chrysa 04-11-2024: see updated kidney compartment below
+    ## OLD Kidney compartment ----
+    # ### Kidney: this is basically the kidney blood compartment
+    # ### I think we're missing active secretion
+    # dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - QFil*CK*fup
+    # #                    re-absorption     ultrafiltration
+    # 
+    # ### Filtrate compartment: rate of formation of the filtrate(=urine) in the lumen; this is the urinary tract from Aude's lifestage equations
+    # dAFil <- QFil*CK*fup - (Vmax*CFil)/(Km+CFil) - QUr*CFil
+    # #        ultrafiltration  REABSORPTION  urine flow rate to the bladder
+    # 
+    # ### Remove this compartment
+    # ### Urine: urine in the bladder
+    # ### ??? why do we need this compartment? I would try having a simple compartment first; i.e not having an excretion compartment
+    # dAUr <- QUr*CFil - kUr*AUr #(ug/h)
+    # #       urineflow  urine excretion
+    # 
+    # ### Excretion urinary: cumulative PFOA concentration in the urine
+    # dAEx_urine <- kUr*AUr #(ug/h)
     
-    ### Filtrate compartment: rate of formation of the filtrate(=urine) in the lumen; this is the urinary tract from Aude's lifestage equations
-    dAFil <- QFil*CK*fup - (Vmax*CFil)/(Km+CFil) - QUr*CFil
-    #        ultrafiltration  REABSORPTION  urine flow rate to the bladder
+    ## Updated Kidney compartment ----
+    # Kidney Blood
+    AKB <- QK*(CP-CVKB) - QFil*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
+    #                    ToFiltrate    UptakeToTissue
+    # Filtrate
+    AFil <- QFil*fup*CKB - CL_FiltPT*(CFil - (CKT*kAap)) - QUr*CFil
+    #                     ReabsorbToProx                  Excretion
+    # Urine
+    AUr <- QUr*CFil
+    # Kidney Tissue
+    AKT <- CL_PltPT*(CKB - (CKT*kAbl)) + CL_FiltPT*(CFil - (CKT*kAap))
+    #      FromPlasma                    FromFiltrate
     
-    ### Remove this compartment
-    ### Urine: urine in the bladder
-    ### ??? why do we need this compartment? I would try having a simple compartment first; i.e not having an excretion compartment
-    dAUr <- QUr*CFil - kUr*AUr #(ug/h)
-    #       urineflow  urine excretion
-    
-    ### Excretion urinary: cumulative PFOA concentration in the urine
-    dAEx_urine <- kUr*AUr #(ug/h)
-    
-    ## Skin compartment
-    ## Skin barrier
+    # Skin compartment
+    # Skin barrier
     dASkb <- Dermaldose - CLdermalabs*CSkb #(ug/h)
-    #                  cm/h*cm^2 ug/L
-    ## Skin tissue
+    #                     cm/h*cm^2 ug/L
+    # Skin tissue
     dASk <- CLdermalabs*CSkb + QSk*(CP - CVSk)
     
-    ## Plasma compartment
+    # Plasma compartment
     dAP <- - (QSk + QG + QH + QF + QK + QR)*CP +
-      QSk*CVSk + (QH+QG)*CVL + QF*CVF + QK*CVK + QR*CVR #(ug/h)
+      QSk*CVSk + (QH+QG)*CVL + QF*CVF + QK*CVKB + QR*CVR #(ug/h)
     
-    Atot <- AP + ASkb + ASk + AG + AL + AF + AK + AFil + AUr + AR + AEx_feces + AEx_urine
+    Atot <- AP + ASkb + ASk + AG + AL + AF + AKB + AKT +  AFil + AUr + AR + AEx_feces + AEx_urine
     dInput <- Oraldose + Dermaldose
     MB = Input - Atot
     
-    list(c(dAP, dASkb, dASk, dAG, dAL, dAF, dAK, dAFil, dAUr, dAR, dAEx_feces, dAEx_urine, dInput),
+    list(c(dAP, dASkb, dASk, dAG, dAL, dAF, dAKB, dAKT, dAFil, dAUr, dAR, dAEx_feces, dAEx_urine, dInput),
          c(CP=CP, 
            CSkb=CSkb, CSk=CSk,
            CG=CG, CVG=CVG, 
            CL=CL, CVL=CVL, 
            CF=CF, CVF=CVF,
-           CK=CK, CVK=CVK, CFil=CFil, 
+           CKB=CKB, CKT-CKT, CFil=CFil,  
+           CK=CKB + CKT, CVKB=CVKB, 
            CR=CR, CVR=CVR,
            Atot=Atot,MB=MB))
     
@@ -1199,7 +1285,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
 }
 
 # ---------------------------------------------------------------------------- #
-# INITIAL VALUES ####
+
+  # INITIAL VALUES ####
 # ---------------------------------------------------------------------------- #
 A_init <- c(AP=0, 
             ASkb=0, 
@@ -1207,7 +1294,8 @@ A_init <- c(AP=0,
             AG=0, 
             AL=0, 
             AF=0, 
-            AK=0, 
+            AKB=0,
+            AKT=0,
             AFil=0, 
             AUr=0, 
             AR=0, 
