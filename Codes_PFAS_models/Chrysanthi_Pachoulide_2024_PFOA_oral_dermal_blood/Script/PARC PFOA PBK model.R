@@ -103,7 +103,6 @@ REF_OAT3 <- 2.7/7.3 # relative expression factor: expression in the human kidney
 REF_OAT4 <- 0.52/16 # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
 
 
-
 # Hepatic clearance parameters
 CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 CLfaecesc = 0.000052 # L/d/kg ; 0.052 +/- 0.05 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
@@ -278,8 +277,10 @@ Variables_df <- Variables_df %>%
   ## Kidney blood and Kidney tissue volumes; based on Brown1997, Table30
   mutate(VkidneyBlood_M = Vkidney_M*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys
   mutate(VkidneyBlood_F = Vkidney_F*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys
-  mutate(VKidneyTissue_M = Vkidney_M*0.64) %>% # 1-0.36
-  mutate(VKidneyTissue_F = Vkidney_F*0.64) %>% # 1-0.36
+  mutate(VkidneyTissue_M = Vkidney_M*0.64) %>% # 1-0.36
+  mutate(VkidneyTissue_F = Vkidney_F*0.64) %>% # 1-0.36
+  mutate(VFil_M = Vkidney_M*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
+  mutate(VFil_F = Vkidney_F*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
   
   ## Urinary tract (bladder, ureters, urethra); compartment [13] in Ratier 2024
   mutate(VurinarytractFraction_M = 0.00104) %>%
@@ -548,16 +549,6 @@ Variables_df <- Variables_df %>%
   mutate(Qrest_M = Qtotal_M - Qskin_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>%
   mutate(Vrest_F = Vtotal_F - Vskin_F - Vkidney_F - Vgut_F - Vliver_F - Vplasma_F - Vadipose_F) %>%
   mutate(Qrest_F = Qtotal_F - Qskin_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>%
-  
-  ## New Chrysa 05-11-2014
-  ## Kidney blood and Kidney tissue volumes; 
-  mutate(VkidneyBlood_M = Vkidney_M*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys based on Brown1997, Table30
-  mutate(VkidneyBlood_F = Vkidney_F*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys based on Brown1997, Table30
-  mutate(VKidneyTissue_M = Vkidney_M*0.64) %>% # 1-0.36
-  mutate(VKidneyTissue_F = Vkidney_F*0.64) %>% # 1-0.36
-  mutate(VFil_M = Vkidney_M*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
-  mutate(VFil_F = Vkidney_F*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
-  
   
   ## MassBalance Flow #better be 0
   # !!!!! Issue with the mass balance of the flows
@@ -1036,11 +1027,11 @@ varVmax_M <- approxfun(Variables_df$TIME, Variables_df$Vmax_M, rule = 2)
 varCLfecal_M <- approxfun(Variables_df$TIME, Variables_df$CLfecal_M, rule = 2)
 varCLbiliary_M <- approxfun(Variables_df$TIME, Variables_df$CLbiliary_M, rule = 2)
 varQUr_M <- approxfun(Variables_df$TIME, Variables_df$QUr_M, rule = 2)
-# varkUr_M <- approxfun(Variables_df$TIME, Variables_df$kUr_M, rule = 2)
+#varkUr_M <- approxfun(Variables_df$TIME, Variables_df$kUr_M, rule = 2)
 varGFR_M <- approxfun(Variables_df$TIME, Variables_df$GFR_M)  #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-varKW_cortex <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)  # g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
-varCL_PltPT <- approxfun(Variables_df$TIME, Variables_df$CL_PltPT)  # to discuss
-varCL_FiltPT <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) #proximal tubule to filtrate
+varKW_cortex_M <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)  # g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
+varCL_PltPT_M <- approxfun(Variables_df$TIME, Variables_df$CL_PltPT)  # to discuss
+varCL_FiltPT_M <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) #proximal tubule to filtrate
 
 
 ### Female ----
@@ -1075,8 +1066,9 @@ varVlung_F <- approxfun(Variables_df$TIME, Variables_df$Vlung_F, rule = 2)
 varVrest_F <- approxfun(Variables_df$TIME, Variables_df$Vrest_F, rule = 2)
 varVSkb_F <- approxfun(Variables_df$TIME, Variables_df$VSkb_F, rule = 2)
 varSkbTarea_F <- approxfun(Variables_df$TIME, Variables_df$SkbTarea_F, rule = 2)
+varVkidneyBlood_F <- approxfun(Variables_df$TIME, Variables_df$VkidneyBlood_F, rule = 2)
+varVkidneyTissue_F <- approxfun(Variables_df$TIME, Variables_df$VkidneyTissue_F, rule = 2)
 varVFil_F <- approxfun(Variables_df$TIME, Variables_df$VFil_F, rule = 2)
-
 
 ## Blood flows - Female
 varCardOut_F <- approxfun(Variables_df$TIME, Variables_df$CardOut_F, rule = 2)
@@ -1110,11 +1102,12 @@ varVmax_F <- approxfun(Variables_df$TIME, Variables_df$Vmax_F, rule = 2)
 varCLfecal_F <- approxfun(Variables_df$TIME, Variables_df$CLfecal_F, rule = 2)
 varCLbiliary_F <- approxfun(Variables_df$TIME, Variables_df$CLbiliary_F, rule = 2)
 varQUr_F <- approxfun(Variables_df$TIME, Variables_df$QUr_F, rule = 2)
-varGFR_F <- approxfun(Variables_df$TIME, Variables_df$GFR_F)
-varKW_cortex <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)
-varCL_PltP <- approxfun(Variables_df$TIME, Variables_df$CL_PltP)  
-varCL_FiltPT <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) 
-  
+#varkUr_F <- approxfun(Variables_df$TIME, Variables_df$kUr_F, rule = 2)
+varGFR_F <- approxfun(Variables_df$TIME, Variables_df$GFR_F)  #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+varKW_cortex_F <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)  # this is male for now; need to change KW_cortex to Vkidney_F for Female !!! g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
+varCL_PltPT_F <- approxfun(Variables_df$TIME, Variables_df$CL_PltPT)  # to discuss
+varCL_FiltPT_F <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) #proximal tubule to filtrate
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -1141,8 +1134,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CLbiliary <- varCLbiliary_M(t)
     QUr <- varQUr_M(t) #Urine secretion flow rate NEEDS TO BE CHANGED WHEN WE HAVE THE CORRECT VALUE. Comment Chrysa 05-11-2024: I believe this value is ok, it's from ICRP89
     #kUr <- varkUr_M(t)
-    CL_PltPT <- varCL_PltPT(t)
-    CL_FiltPT <- varCL_FiltPT(t)
+    CL_PltPT <- varCL_PltPT_M(t)
+    CL_FiltPT <- varCL_FiltPT_M(t)
     
     # Flow rates 
     QCP <- varCardOut_M(t) #cardiac output plasma
@@ -1151,8 +1144,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     QL <- varQliver_M(t) #vena cava
     QF <- varQadipose_M(t) #adipose (used to be called QF)
     QK <- varQkidney_M(t) #kidney
-    # QFil <- varQurinarytract_M(t) #filtrate #Comment Chrysa 05-11-2024 this is GFR now
-    QFil <- varGFR_M(t) #filtrate
+    # used to be QFil <- varQurinarytract_M(t) #filtrate #Comment Chrysa 05-11-2024 this is GFR now
+    GFR <- varGFR_M(t) #filtrate
     QSk <- varQskin_M(t) #skin
     QR <- varQrest_M(t) #rest of the body
     #Qp <- varQp_M(t) # needs to be incorporated when inhalation exposure is included
@@ -1190,13 +1183,12 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CR <- AR/VR  # concentration of PFOA in rest of the body (ug/L)
     CKB <- AKB/VKB # concentration in kidney blood
     CKT <- AKT/VKT # concentration in kidney tissue
-    CK <- CKB + CKT
     
     # Venous concentrations (ug/L); these are the concentrations leaving the organs
     CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
     CVL <- CL/PL  # concentration of PFOA leaving liver (ug/L)
     CVF <- CF/PF # concentration of PFOA leaving adipose (ug/L)
-    CVK <- CK/PK  # concentration of PFOA leaving the kidney (ug/L)
+    # CVK <- CK/PK  # concentration of PFOA leaving the kidney (ug/L)
     CVSk <- CSk/PSk  # Concentration of PFOA leaving the skin (ug/L)
     # NEW
     CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
@@ -1227,11 +1219,11 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     #### OLD Kidney compartment ----
     # ### Kidney: this is basically the kidney blood compartment
     # ### I think we're missing active secretion
-    # dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - QFil*CK*fup
+    # dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - GFR*CK*fup
     # #                    re-absorption     ultrafiltration
     # 
     # ### Filtrate compartment: rate of formation of the filtrate(=urine) in the lumen; this is the urinary tract from Aude's lifestage equations
-    # dAFil <- QFil*CK*fup - (Vmax*CFil)/(Km+CFil) - QUr*CFil
+    # dAFil <- GFR*CK*fup - (Vmax*CFil)/(Km+CFil) - QUr*CFil
     # #        ultrafiltration  REABSORPTION  urine flow rate to the bladder
     # 
     # ### Remove this compartment
@@ -1245,10 +1237,10 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     #### Updated Kidney compartment ----
     # Kidney Blood
-    dAKB <- QK*(CP-CVKB) - QFil*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
+    dAKB <- QK*(CP-CVKB) - GFR*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
     #                    ToFiltrate    UptakeToTissue
     # Filtrate
-    dAFil <- QFil*fup*CKB - CL_FiltPT*(CFil - (CKT*kAap)) - QUr*CFil
+    dAFil <- GFR*fup*CKB - CL_FiltPT*(CFil - (CKT*kAap)) - QUr*CFil
     #                     ReabsorbToProx                  Excretion
     # Urine
     dAUr <- QUr*CFil
@@ -1266,7 +1258,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAP <- - (QSk + QG + QH + QF + QK + QR)*CP +
       QSk*CVSk + (QH+QG)*CVL + QF*CVF + QK*CVKB + QR*CVR #(ug/h)
     
-    Atot <- AP + ASkb + ASk + AG + AL + AF + AKB + AKT +  AFil + AUr + AR + AEx_feces # + AEx_urine
+    Atot <- AP + ASkb + ASk + AG + AL + AF + AKB + AKT + AFil + AUr + AR + AEx_feces # + AEx_urine
     dInput <- Oraldose + Dermaldose
     MB = Input - Atot
     
@@ -1276,8 +1268,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            CG=CG, CVG=CVG, 
            CL=CL, CVL=CVL, 
            CF=CF, CVF=CVF,
-           CKB=CKB, CKT=CKT, CFil=CFil,  
-           CK= (CKB + CKT), CVKB=CVKB, 
+           CKB=CKB, CKT=CKT, 
+           CFil=CFil, CVKB=CVKB, 
            CR=CR, CVR=CVR,
            Atot=Atot,MB=MB))
     
