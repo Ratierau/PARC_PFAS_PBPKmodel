@@ -94,10 +94,10 @@ Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 ## Introducing the "affinity constants: kAap and kAbl, to compensate for the fact that the transporters have an affinity to one side.
 kAbl <- 0.01 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
 kAap <- 0.01 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
-CL_OAT1 <- 19/1000000*60*24/1000000 #L/d/kg protein protein; initial ul/min/mg protein
-CL_OAT3 <- 17/1000000*60*24/1000000 #L/d/kg protein; initial ul/min/mg protein
-CL_OAT4 <- 96/1000000*60*24/1000000 #L/d/kg protein; initial ul/min/mg protein
-PTCPGK <- 99.4*10^6/1000 # cells/kg kidney cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504
+CL_OAT1 <- 19 * 10^-6 *60*24 * 10^-6 #L/d/kg protein protein; initial ul/min/mg protein
+CL_OAT3 <- 17* 10^-6 *60*24 * 10^-6 #L/d/kg protein; initial ul/min/mg protein
+CL_OAT4 <- 96* 10^-6 *60*24 * 10^-6 #L/d/kg protein; initial ul/min/mg protein
+PTCPGK <- 99.4 * 1000 # proximal tubule cells/kg kidney cortexl initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c00504
 REF_OAT1 <- 4.3/26.6 # relative expression factor: expression in the human kidneys /expression in the cells (4.3 ± 0.3 pmol/mg membrane protein in the human kidney cortex and 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells  https://doi.org/10.1124/dmd.121.000367); alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 REF_OAT3 <- 2.7/7.3 # relative expression factor: expression in the human kidneys /expression in the cells (2.7 ± 0.1 pmol/mg membrane protein in the human kidney cortex and 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT3 cells  https://doi.org/10.1124/dmd.121.000367);  alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 REF_OAT4 <- 0.52/16 # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
@@ -1237,16 +1237,16 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     #### Updated Kidney compartment ----
     # Kidney Blood
-    dAKB <- QK*(CP-CVKB) - GFR*fup*CKB - CL_PltPT*(CKB - (CKT*kAbl))  
-    #                    ToFiltrate    UptakeToTissue
+    dAKB <- QK*(CP-CVKB) - GFR*fup*CKB - CL_PltPT*(CKB- (CKT*kAbl)) #  
+    
     # Filtrate
-    dAFil <- GFR*fup*CKB - CL_FiltPT*(CFil - (CKT*kAap)) - QUr*CFil
-    #                     ReabsorbToProx                  Excretion
+    dAFil <- GFR*fup*CKB - CL_FiltPT*(CFil- (CKT*kAap)) - QUr*CFil #
+    
     # Urine
     dAUr <- QUr*CFil
+    
     # Kidney Tissue
-    dAKT <- CL_PltPT*(CKB - (CKT*kAbl)) + CL_FiltPT*(CFil - (CKT*kAap))
-    #      FromPlasma                    FromFiltrate
+    dAKT <- CL_PltPT*(CKB- (CKT*kAbl)) + CL_FiltPT*(CFil- (CKT*kAap))
     
     # Skin compartment
     # Skin barrier
@@ -1303,30 +1303,10 @@ output.df <- Variables_df %>%
   left_join(output.PFOA.df)
 
 
-## RESULTS ####
-## ------------------------------------------------------ #
+# RESULTS ####
+# ---------------------------------------------------------------------------- #
 
-CP_theme <- function() {
-  theme_bw()+
-    theme(
-      text = element_text(size = 7, lineheight = unit(0.2, "lines")), # lineheight is adjusting the space between lines
-      axis.title = element_text(size = 7),
-      axis.text = element_text(size = 7),
-      axis.line = element_line(linewidth = 0.05),
-      plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
-      panel.border = element_blank(), 
-      panel.background = element_blank(),
-      panel.grid = element_line(linewidth = 0.1), 
-      strip.background = element_blank(),
-      legend.position = "right",
-      legend.box.margin = margin(0, 0, 0, 0, "cm"),
-      #legend.key.width = unit(0.1, "cm"),  # Make legend key width span the whole plot
-      legend.key.height = unit(0.2, "cm"),  # Adjust legend key height
-      legend.text = element_text(size = 7)
-    )
-}
-
-#### Figures ----
+### Figures ####
 # Plot_PFOA_doses <- ggplot()+
 #   geom_line(data = Variables_df, aes(x = age, y = Oraldose_M),col="red")+
 #   geom_line(data = Variables_df, aes(x = age, y = Dermaldose_M),col="blue")+
@@ -1336,50 +1316,30 @@ CP_theme <- function() {
 #   ylab("Dose (ug)")
 # 
 # Plot_PFOA_doses
-# 
-# Plot_PFOA_Filtrate <- ggplot()+
-#   geom_line(data = Variables_df, aes(x = age, y = Vmax_M),col="red")+
-#   geom_line(data = Variables_df, aes(x = age, y = QUr_M),col="blue")+
-#   CP_theme()+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   #scale_colour_hue()+
-#   ylab("Vmax (L/d)")
-# 
-# Plot_PFOA_Filtrate
-# 
-# Plot_PFOA_MB <- ggplot()+
-#   geom_path(data = output.df, aes(x = age, y = MB))+
-#   CP_theme()+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   #scale_colour_hue()+
-#   ylab("Mass balance (ug)")
-# 
-# Plot_PFOA_MB
+
 
 # PFOA in plasma of one individual
 Plot_PFOA_Plasma <- ggplot()+
   geom_path(data = output.df, aes(x = age, y = CP))+
-  # CP_theme()+
   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-  #scale_colour_hue()+
   ylab("Plasma (ng/ml)")
 
 Plot_PFOA_Plasma
+ggsave("PlasmaConcentration.1.png", dpi = 300)
 
-# Plot_PFOA_Gut <- ggplot()+
-#   geom_path(data = output.df, aes(x = age, y = CG))+
-#   CP_theme()+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   #scale_colour_hue()+
-#   ylab("Gut (ng/ml)")
-# 
-# Plot_PFOA_Gut
-# 
-# Plot_PFOA_Liver <- ggplot()+
-#   geom_path(data = output.df, aes(x = age, y = CL))+
-#   CP_theme()+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   #scale_colour_hue()+
-#   ylab("Liver (ng/ml)")
-# 
-# Plot_PFOA_Liver
+
+# PFOA in Kidney of one individual
+Plot_PFOA_Kidney <- ggplot()+
+  geom_path(data = output.df, aes(x = age, y = CKB, color="Kidney blood"))+
+  geom_path(data = output.df, aes(x = age, y = CKT, color="Kidney tissue"))+
+  geom_path(data = output.df, aes(x = age, y = CFil, color="Filtrate"))+
+  theme(axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7), 
+        axis.title = element_text(size = 8)) +
+  ylab("Kidney Compartments (ng/ml)") +
+  scale_color_manual(values = c("Kidney blood" = "lightblue", 
+                                "Kidney tissue" = "blue", 
+                                "Filtrate" = "darkblue"))
+
+Plot_PFOA_Kidney
+ggsave("KidneyConcentration.1.png", dpi = 300)
