@@ -93,7 +93,7 @@ Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 ## All transporters are bi-directional, therefore the equation is written assuming that direction is determined based on the equilibrium between the two compartments
 ## Introducing the "affinity constants: kAap and kAbl, to compensate for the fact that the transporters have an affinity to one side.
 kAbl <- 0.05 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
-kAap <- 1 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
+kAap <- 0.0000005 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
 CL_OAT1 <- 19 * 10^-6 *60*24 * 10^-6 #L/d/kg protein protein; initial ul/min/mg protein
 CL_OAT3 <- 17* 10^-6 *60*24 * 10^-6 #L/d/kg protein; initial ul/min/mg protein
 CL_OAT4 <- 96* 10^-6 *60*24 * 10^-6 #L/d/kg protein; initial ul/min/mg protein
