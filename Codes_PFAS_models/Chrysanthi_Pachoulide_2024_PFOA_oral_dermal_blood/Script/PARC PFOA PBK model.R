@@ -43,6 +43,9 @@ sim_stop <- 80
 
 Oraldose <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
+skin_fraction <- 0.05 # fraction of the total skin surface exposed; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+# Note Chrysa 18-10-2024: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
+# Note Chrysa 24-20-2024: assumption that the main skin area exposed is the hands
 
 # For future use; to enable input for dermal exposure from different cosmetics/ aggregate exposure scenarios etc
 # Eproduct = # mg/kg bw/d Effective dermal exposure depending to a product category, this takes into account the rinsing off, dilution etc; https://health.ec.europa.eu/system/files/2022-08/sccs_o_250.pdf
@@ -89,12 +92,12 @@ Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 ## OAT4 is determining transport between proximal tubule and filtrate
 ## All transporters are bi-directional, therefore the equation is written assuming that direction is determined based on the equilibrium between the two compartments
 ## Introducing the "affinity constants: kAap and kAbl, to compensate for the fact that the transporters have an affinity to one side.
-kAbl <- 0.05 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
-kAap <- 0.0000005 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
+kAbl <- 0.01 # affinity constant basolateral, this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells); this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
+kAap <- 0.01 # affinity constant apical, this is about OAT4 which has affinity to re-abs (movement from filtrate to cells); this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
 CL_OAT1 <- 19 * 10^-6 *60*24 * 10^-6 #L/d/kg protein protein; initial ul/min/mg protein
 CL_OAT3 <- 17* 10^-6 *60*24 * 10^-6 #L/d/kg protein; initial ul/min/mg protein
 CL_OAT4 <- 96* 10^-6 *60*24 * 10^-6 #L/d/kg protein; initial ul/min/mg protein
-PTCPGK <- 99.4 * 1000 # proximal tubule cells/kg kidney cortexl initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c00504
+PTCPGK <- 9.94* 10^7 * 10^3 # proximal tubule cells/kg kidney cortexl initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c00504
 REF_OAT1 <- 4.3/26.6 # relative expression factor: expression in the human kidneys /expression in the cells (4.3 ± 0.3 pmol/mg membrane protein in the human kidney cortex and 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells  https://doi.org/10.1124/dmd.121.000367); alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 REF_OAT3 <- 2.7/7.3 # relative expression factor: expression in the human kidneys /expression in the cells (2.7 ± 0.1 pmol/mg membrane protein in the human kidney cortex and 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT3 cells  https://doi.org/10.1124/dmd.121.000367);  alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 REF_OAT4 <- 0.52/16 # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
@@ -1234,16 +1237,16 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     #### Updated Kidney compartment ----
     # Kidney Blood
-    dAKB <- QK*(CP-CVKB) - GFR*fup*CKB - CL_PltPT*(CKB- (CKT*kAbl)) #  
+    dAKB <- QK*(CP-CVKB) - GFR*fup*CKB - CL_PltPT*fup*(CKB- (CKT*kAbl)) #  
     
     # Filtrate
-    dAFil <- GFR*fup*CKB - CL_FiltPT*(CFil- (CKT*kAap)) - QUr*CFil #
+    dAFil <- GFR*fup*CKB - CL_FiltPT*fup*(CFil- (CKT*kAap)) - QUr*CFil #
     
     # Urine
     dAUr <- QUr*CFil
     
     # Kidney Tissue
-    dAKT <- CL_PltPT*(CKB- (CKT*kAbl)) + CL_FiltPT*(CFil- (CKT*kAap))
+    dAKT <- CL_PltPT*fup*(CKB- (CKT*kAbl)) + CL_FiltPT*fup*(CFil- (CKT*kAap))
     
     # Skin compartment
     # Skin barrier
