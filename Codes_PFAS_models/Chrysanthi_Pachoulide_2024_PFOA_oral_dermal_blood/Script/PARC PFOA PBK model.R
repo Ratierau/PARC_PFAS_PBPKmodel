@@ -9,7 +9,7 @@ rm(list=ls()) # to clear out the global environment
 
 # Set working directory
 
-HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PFAS_PARC"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood"
 # HOME <- "/home/westerj"
 setwd(HOME)
 
@@ -43,9 +43,6 @@ sim_stop <- 80
 
 Oraldose <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
-skin_fraction <- 0.05 # fraction of the total skin surface exposed; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
-# Note Chrysa 18-10-2024: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
-# Note Chrysa 24-20-2024: assumption that the main skin area exposed is the hands
 
 # For future use; to enable input for dermal exposure from different cosmetics/ aggregate exposure scenarios etc
 # Eproduct = # mg/kg bw/d Effective dermal exposure depending to a product category, this takes into account the rinsing off, dilution etc; https://health.ec.europa.eu/system/files/2022-08/sccs_o_250.pdf

@@ -1,37 +1,56 @@
+# --------------------------------------------------------------------------- #
+# PBK MODEL FOR PFOA, TO BE USED TOGETHER WITH THE LATEST HBM DATA
 # Input file
+# CP, 10-11-2024
+# --------------------------------------------------------------------------- #
+
+rm(list=ls()) # to clear out the global environment
+
+
+# Set working directory
+
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood"
+# HOME <- "/home/westerj"
+setwd(HOME)
+
+
+# Set input storage directory
+INPUT <- file.path("Input/Data", Sys.Date())
+dir.create(INPUT, recursive = TRUE)
+setwd(INPUT)
+
 
 # Load packages
+
 library(lubridate)
 library(ggplot2)
+library(deSolve)
 library(writexl)
 library(ggpubr)
 library(tidyverse)
 
 
-## PHYSIOLOGICAL PARAMETERS ####
-## ------------------------------------------------------ #
+# PHYSIOLOGICAL PARAMETERS ####
+# ------------------------------------------------------ #
 
-# Kidney scaling factors
-# Kcells = 6E7	# number of cells per gram kidney from DOI 10.1007/978-1-4614-8229-1_7, chapter 7; they say it should be included in the sensitivity analysis
-# Kprotein = 2.0e-9	# gram protein/proximal tubule cell
-# SFOAT4 = 15 # for now it's 1; could be 1 pmole/g tissue from https://doi.org/10.1124/dmd.119.086579, but this is used for scaling between animals; as they mention in the article: "the data obtained from the absolute peptide approach should not be considered as absolute molar protein abundance data because complete trypsin digestion may not be confirmed"
+## Lifetime equations ####
 
-
-
-### Lifetime equations ####
-
-#### Duration of lifetime (0 - 80 years old) ----
+lifeTSTOP <- 80 # duration of lifetime (0 - 80 years old)  of simulation
 TSTART <- 0
-TSTOP <- 365*sim_stop # years in days
+TSTOP <- 365*lifeTSTOP # years in days
 DT <- 1
 TIME <- seq(TSTART,TSTOP,by=DT)
 
+
+# Creating a dataframe for all the variables
 Variables_df <- as.data.frame(list(TIME = TIME)) #df column 1 = simulation time, every step is 1 day
 Variables_df <- Variables_df %>%
   mutate(age = TIME/365) # add column 2 = age in days
 
-##### Body weight ----
 Variables_df <- Variables_df %>%
+  
+  ### Fractional Volumes ####
+  # Body weight
   # BW_M_Ratier_2024 & BW_F_Ratier_2024 = Equation extracted from supplemental material from Ratier et al., 2024
   mutate(BW_M_Ratier_2024 = if_else(age <19.00093277, 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000)))),
                                     -0.01129273*age^2 + 1.11817056*age + 56.74397436)) %>%
@@ -39,31 +58,11 @@ Variables_df <- Variables_df %>%
                                     -0.01258006*age^2 + 1.25029379*age + 44.4459234)) %>%
   mutate(BDW_M_Ratier_2024 = 74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000))))) %>%
   mutate(BDW_F_Ratier_2024 = 62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))
-
-##### Plots ----
-# Plot BW changes over time
-# Comment Chrysa on 18-10-2024: MassBalance issue: should we then use the BDW term that is also changing during adulthood or are we OK with the massbalance issue in the total body volume?
-# PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>%
-#   rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>%
-#   pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female)
-# 
-# PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>%
-#   rename(Male = BW_M_Ratier_2024, Female = BW_F_Ratier_2024) %>%
-#   pivot_longer(names_to = "Gender", values_to = "BW", Male:Female)
-# ggplot() +
-#   geom_path(data = PlotBDW, aes(age, BDW, colour = Gender, linetype = "BDW")) +
-#   geom_path(data = PlotBW, aes(age, BW, colour = Gender, linetype = "BW")) +
-#   labs(x = "Age", 
-#        y = "Values",
-#        colour = "Gender", 
-#        linetype = "Bodyweight method") +
-#   scale_linetype_manual(values = c("BDW" = "dashed", "BW" = "solid"))
-#ggsave("BWovertime.png", dpi = 300)
-
-##### Blood/Plasma/Hematocrit ----
+  
+# Blood/Plasma/Hematocrit 
 # Using Ratier et al. (2024) model, Fraction of arterial plasma, calculated from Filser 2000 p.43
 Fr_art_plasma = 0.0178 / (0.0178 + 0.0533) #fraction of arterial blood (corrected for plasma)
-
+  
 # Hematocrit - male                                                              # From Supp mat of Brochot et al. 2019
 Param1_M = 33.455469
 Param2_M = 53.206039
@@ -82,13 +81,12 @@ Param2_F = 53.188459
 Param3_F = 7.699418
 Param4_F = 37.531463
 Param5_F = 40.055284
-
+  
 b1_F = (Param4_F - Param1_F - (Param2_F-Param1_F)*exp(-Param3_F))/2
 a1_F = Param4_F - 3*b1_F
 b2_F = (Param5_F - Param4_F)/7
 a2_F = Param5_F - 10*b2_F
 
-##### Storage data frame ----                                            
 Variables_df <- Variables_df %>%
   select(TIME,age,BW_M_Ratier_2024,BW_F_Ratier_2024,BDW_M_Ratier_2024,BDW_F_Ratier_2024) %>%
   rename(BW_M = BW_M_Ratier_2024) %>% #could actually be ignored as we only use BDW and not BW
@@ -96,17 +94,120 @@ Variables_df <- Variables_df %>%
   rename(BDW_M = BDW_M_Ratier_2024) %>%
   rename(BDW_F = BDW_F_Ratier_2024) %>%
   
-  mutate(Oraldose_M = Oraldose*BW_M) %>%
-  mutate(Oraldose_F = Oraldose*BW_F) %>%
-  mutate(Oraldose_M = if_else(age <= exposure_stop,Oraldose_M,0)) %>%
-  mutate(Oraldose_F = if_else(age <= exposure_stop,Oraldose_F,0)) %>%
+  # Adrenal; compartment [1] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_adrenalFraction_M = 0.0002 + (0.00171 - 0.0002)*exp(-2.02*age)) %>%
+  mutate(V_adrenalFraction_F = 0.0002 + (0.00171 - 0.0002)*exp(-2.02*age)) %>%
   
-  mutate(Dermaldose_M = AbsPFOA*Dermconc*BW_M) %>% # dermal concentration is expressed as ug/kg BW/day
-  mutate(Dermaldose_F = AbsPFOA*Dermconc*BW_F) %>% # dermal concentration is expressed as ug/kg BW/day
-  mutate(Dermaldose_M = if_else(age <= exposure_stop,Dermaldose_M,0)) %>%
-  mutate(Dermaldose_F = if_else(age <= exposure_stop,Dermaldose_F,0)) %>%
+ # Bone; compartment [2] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_boneFraction_M = (0.313 + (0.506 - 0.313)*exp(-0.0907*age))*0.095) %>%
+  mutate(V_bonenonperfusedFraction_M = 0.095 - V_boneFraction_M) %>%
+  mutate(V_boneFraction_F = (0.298 + (0.505 - 0.298)*exp(-0.0792*age))*0.085) %>%
+  mutate(V_bonenonperfusedFraction_F = 0.085 - V_boneFraction_F) %>%
   
-  ## Hematocrit
+  # Brain; compartment [3] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_brainFraction_M = (1.450 + (0.353 - 1.450) * exp (-0.440*age))/BDW_M) %>%
+  mutate(V_brainFraction_F = (1.300 + (0.347 - 1.300) * exp (-0.573*age))/BDW_F) %>%
+  
+  # Breast; compartment [4] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_breastFraction_M = 3.42E-4*1/(1 + exp(-1.42*age + 20.1))) %>%
+  mutate(V_breastFraction_F = 0.00833/(1 + exp(-1.92*age+ 28.6))) %>%
+  
+  # Heart; compartment [5] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_heartFraction_M = 0.0045) %>%
+  mutate(V_heartFraction_F = 0.0042) %>%
+  
+  # Marrow; compartment [6] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_marrowFraction_M = 0.05 + (0.0138 - 0.05)*exp(-0.112*age)) %>%
+  mutate(V_marrowFraction_F = 0.045 + (0.0138 - 0.045)*exp(-0.136*age)) %>%
+  
+  # Muscle; compartment [7] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(MuscleAtrophy_M = if_else(age < 24.3, 1,
+                                   (-0.0001264*age^2 + 0.006131*age + 0.926))) %>%
+  mutate(V_muscleFraction_M = (0.3973 + (0.201 - 0.3973)*exp(-0.141*age)) * MuscleAtrophy_M) %>%
+  mutate(MuscleAtrophy_F = if_else(age < 25.90709, 1,
+                                   (-0.0001264*age^2 + 0.006131*age + 0.926))) %>%
+  mutate(V_muscleFraction_F = (0.2917 + (0.207 - 0.2917)*exp(-0.339*age)) * MuscleAtrophy_F) %>%
+  
+  # Reproductive organs; compartment [8] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_reproFraction_M = if_else(age < 20.01, -1.5156E-07*age^3 + 9.3351E-06*age^2 - 1.1177E-04*age + 4.7966E-04,
+                                    0.0008)) %>%
+  mutate(V_reproFraction_F = if_else(age < 1, -1.064E-3*age + 1.338E-3,
+                                    if_else(age < 20, 2.6380E-7*age^3 - 1.7943E-6*age^2 - 5.6465E-6*age + 2.8105E-4,
+                                            0.001552))) %>%
+  
+  # Pancreas; compartment [9] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_pancreasFraction_M = 0.00192) %>%
+  mutate(V_pancreasFraction_F = 0.002) %>%
+  
+  # Skin; compartment [10] in Ratier 2024
+  mutate(V_skinFraction_M = if_else(age < 20.01, -1.1706E-05*age^3 + 5.4130E-04*age^2 - 6.1966E-03*age + 4.6231E-02,
+                                   0.0452)) %>%
+  mutate(V_skinFraction_F = if_else(age < 19.45, -7.8882E-06*age^3 + 4.0224E-04*age^2 - 5.2146E-03*age + 4.5605E-02,
+                                   0.0383)) %>%
+
+  # Spleen; compartment [11] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_spleenFraction_M = 0.0021) %>%
+  mutate(V_spleenFraction_F = 0.0022) %>%
+  
+  # Thyroid; compartment [12] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(V_thyroidFraction_M = 0.000274) %>%
+  mutate(V_thyroidFraction_F = 0.0003) %>%
+  
+  # Urinary tract (bladder, ureters, urethra); compartment [13] in Ratier 2024
+  mutate(V_urinarytractFraction_M = 0.00104) %>%
+  mutate(V_urinarytractFraction_F = 0.0010) %>%
+  
+  # Kidney; compartment [14] in Ratier 2024
+  mutate(V_kidneyFraction_M = 0.0042 + (0.00767 - 0.0042)*exp(-0.206*age)) %>%
+  mutate(V_kidneyFraction_F = 0.0046 + (0.0071 - 0.0046)*exp(-0.221*age)) %>%
+  
+  # Lungs; compartment [15] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  # Comment Chrysa on 18-10-2024: Shouldn't the lungs take 100% of the blood flow?
+  mutate(V_lungFraction_M = 0.0068) %>%
+  mutate(V_lungFraction_F = 0.0070) %>%
+  
+  # Gut; compartment [16] in Ratier 2024
+  mutate(V_gutFraction_M = if_else(age < 16, -0.000082562*age^2 + 0.0013523*age + 0.01293,
+                                  0.0140)) %>%
+  mutate(V_gutFraction_F = if_else(age < 14.453301, -7.42E-5*age^2 + 1.28E-3*age + 1.30E-2,
+                                  0.0160)) %>%
+  
+  # Stomach; compartment [17] in Ratier 2024
+  mutate(V_stomachFraction_M = 0.0021) %>%
+  mutate(V_stomachFraction_F = 0.0023) %>%
+  
+  # Liver; compartments [18] (liver) and [21] (liver artery) in Ratier 2024
+  mutate(V_liverFraction_M = 0.0247 + (0.0409 - 0.0247)*exp(-0.218*age)) %>%
+  mutate(V_liverFraction_F = 0.0233 + (0.038 - 0.0233)*exp(-0.122*age)) %>%
+  
+  # Plasma volume; compartment [22] in Ratier 2024 -> USED TO BE BLOOD volume, as it's corrected for hematocrit then it's plasma
+  mutate(V_plasmaFraction_M = if_else(age < 1, (-0.0273*age + 0.0771),
+                                     0.0761 + (0.0289 - 0.0761)*exp(-0.592*age))) %>%
+  mutate(V_plasmaFraction_F = if_else(age < 1, (-0.0273*age + 0.0771),
+                                     if_else(age < 14.019723, 3.28E-5*age^3 - 1.21E-3*age^2 + 1.24E-2*age + 3.86E-2,
+                                             0.065))) %>%
+  
+  # Adipose tissue 
+  mutate(V_adiposeFraction_M = 0.96 - V_adrenalFraction_M - V_boneFraction_M - V_bonenonperfusedFraction_M - V_brainFraction_M - V_breastFraction_M +
+           - V_heartFraction_M - V_marrowFraction_M - V_muscleFraction_M - V_reproFraction_M - V_pancreasFraction_M +
+           - V_skinFraction_M - V_spleenFraction_M - V_thyroidFraction_M - V_urinarytractFraction_M - V_kidneyFraction_M +
+           - V_lungFraction_M - V_gutFraction_M - V_stomachFraction_M - V_liverFraction_M - V_plasmaFraction_M) %>%
+  mutate(AdiposeMass_M = if_else(age < 19.00093277, 0,
+                                 (-0.01129273*age^2 + 1.11817056*age + 56.74397436) - (74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000))))))) %>% # age and not BW dependent 
+  mutate(V_adiposeFraction_F = 0.96 - V_adrenalFraction_F - V_boneFraction_F - V_bonenonperfusedFraction_F - V_brainFraction_F - V_breastFraction_F +
+           - V_heartFraction_F - V_marrowFraction_F - V_muscleFraction_F - V_reproFraction_F - V_pancreasFraction_F +
+           - V_skinFraction_F - V_spleenFraction_F - V_thyroidFraction_F - V_urinarytractFraction_F - V_kidneyFraction_F +
+           - V_lungFraction_F - V_gutFraction_F - V_stomachFraction_F - V_liverFraction_F - V_plasmaFraction_F) %>%
+  mutate(AdiposeMass_F = if_else(age < 17.9374115, 0,
+                                 if_else(((-0.01258006*age^2 + 1.25029379*age + 44.4459234) - (62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))) < 0, 0,
+                                         (-0.01258006*age^2 + 1.25029379*age + 44.4459234) - (62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))))) # what does this mean?!!
+  
+  
+### Fractional Blood Flows ####
+
+  Variables_df <- Variables_df %>% 
+  
+  # Hematocrit
   mutate(Hct_ven_M = if_else(age < 1, (Param1_M +(Param2_M-Param1_M)*exp(-Param3_M*age))*0.01,
                              if_else(age < 6, (a1_M + b1_M*age)*0.01,
                                      if_else(age < 15, Param4_M*0.01,
@@ -119,16 +220,167 @@ Variables_df <- Variables_df %>%
                                              Param5_F*0.01)))) %>%
   mutate(Hct_F = Hct_ven_F*0.91) %>%
   
-  
-  ## Cardiac output (plasma; L/min*60*24 = L/d)
+  # Cardiac output (plasma; L/min*60*24 = L/d)
   mutate(CardOut_M = if_else(age < 33.37, (6.642 + (0.6 - 6.642)*exp(-0.1323*age))*(1-Hct_M)*60*24,
                              (-0.000895*age^2 + 0.0607*age + 5.54)*(1-Hct_M)*60*24)) %>%
   mutate(CardOut_F = if_else(age < 16.027, (7.734 + (0.6 - 7.734)*exp(-0.09747*age))*(1-Hct_F)*60*24,
                              (0.000473*age^2 - 0.0782*age + 7.37)*(1-Hct_F)*60*24)) %>%
   
-  ## Plasma volume; compartment [22] in Ratier 2024 -> USED TO BE BLOOD volume, as it's corrected for hematocrit then it's plasma
-  mutate(VplasmaFraction_M = if_else(age < 1, (-0.0273*age + 0.0771),
-                                     0.0761 + (0.0289 - 0.0761)*exp(-0.592*age))) %>%
+  # Adrenal; compartment [1] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_adrenalFraction_M = (V_adrenalFraction_M/0.0002)*0.003) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_adrenalFraction_F = (V_adrenalFraction_F/0.0002)*0.003) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Bone; compartment [2] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_boneFraction_M = (V_boneFraction_M/(0.095*0.32))*0.021) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_boneFraction_F = (V_boneFraction_F/(0.085*0.298))*0.021) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Brain; compartment [3] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_brainFraction_M = (V_brainFraction_M/0.01986)*0.124) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_brainFraction_F = (V_brainFraction_F/0.0217)*0.124) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Breast; compartment [4] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_breastFraction_M = (V_breastFraction_M/0.00035)*0.0002) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_breastFraction_F = (V_breastFraction_F/0.0083)*0.004) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Heart; compartment [5] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_heartFraction_M = (V_heartFraction_M/0.0045)*0.041) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_heartFraction_F = (V_heartFraction_F/0.0042)*0.051) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Marrow; compartment [6] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_marrowFraction_M = (V_marrowFraction_M/0.050)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_marrowFraction_F = (V_marrowFraction_F/0.045)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Muscle; compartment [7] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_muscleFraction_M = (V_muscleFraction_M/0.3973)*0.175) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_muscleFraction_F = (V_muscleFraction_F/0.2917)*0.124) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Reproductive organs; compartment [8] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_reproFraction_M = (V_reproFraction_M/0.0008)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_reproFraction_F = (V_reproFraction_F/0.0016)*0.004) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Pancreas; compartment [9] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_pancreasFraction_M = (V_pancreasFraction_M/0.00192)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_pancreasFraction_F = (V_pancreasFraction_F/0.002)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Skin; compartment [10] in Ratier 2024
+  mutate(Q_skinFraction_M = (V_skinFraction_M/0.0452)*0.052) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_skinFraction_F = (V_skinFraction_F/0.0383)*0.051) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Spleen; compartment [11] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_spleenFraction_M = (V_spleenFraction_M/0.0021)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_spleenFraction_F = (V_spleenFraction_F/0.0022)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Thyroid; compartment [12] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  mutate(Q_thyroidFraction_M = (V_thyroidFraction_M/0.000274)*0.015) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_thyroidFraction_F = (V_thyroidFraction_F/0.0003)*0.015) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Urinary tract (bladder, ureters, urethra); compartment [13] in Ratier 2024
+  mutate(Q_urinarytractFraction_M = (V_urinarytractFraction_M/0.00104)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_urinarytractFraction_F = (V_urinarytractFraction_F/0.0010)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Kidney; compartment [14] in Ratier 2024
+  mutate(Q_kidneyFraction_M = (V_kidneyFraction_M/0.0042)*0.196) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_kidneyFraction_F = (V_kidneyFraction_F/0.0046)*0.175) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Lungs; compartment [15] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
+  # Comment Chrysa on 18-10-2024: Shouldn't the lungs take 100% of the blood flow?
+  mutate(Q_lungFraction_M = (V_lungFraction_M/0.0068)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_lungFraction_F = (V_lungFraction_F/0.0070)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Gut; compartment [16] in Ratier 2024
+  mutate(Q_gutFraction_M = (V_gutFraction_M/0.0140)*0.144) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_gutFraction_F = (V_gutFraction_F/0.0160)*0.165) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Stomach; compartment [17] in Ratier 2024
+  mutate(Q_stomachFraction_M = (V_stomachFraction_M/0.0021)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_stomachFraction_F = (V_stomachFraction_F/0.0023)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+  # Liver; compartments [18] (liver) and [21] (liver artery) in Ratier 2024
+  mutate(Q_liverFraction_M = (V_liverFraction_M/0.0247)*0.065) %>% # sc_F[21] = (sc_V[18] / sc_V_adult[18]) * sc_F_adult[21];
+  mutate(Q_liverFraction_F = (V_liverFraction_F/0.0233)*0.065) %>% # sc_F[21] = (sc_V[18] / sc_V_adult[18]) * sc_F_adult[21];
+  
+  # Adipose tissue 
+  mutate(Q_adiposeFraction_M = (V_adiposeFraction_M/0.20)*0.052) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  mutate(Q_adiposeFraction_F = (V_adiposeFraction_F/0.3167)*0.087) # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
+  
+
+### Check mass balance volumes and flows ####
+Variables_M_df <- Variables_df %>%  
+  select(.,ends_with("_M")) %>% 
+  mutate(BloodFlowSum = rowSums(select(., starts_with("Q_")))) %>% 
+  mutate(VolumesSum = rowSums(select(., starts_with("V_")))) %>% 
+  mutate(TIME = TIME) %>% 
+  mutate(age = TIME/365) 
+
+Variables_F_df <- Variables_df %>% 
+  select(.,ends_with("_F")) %>% 
+  mutate(BloodFlowSum = rowSums(select(., starts_with("Q_")))) %>% 
+  mutate(VolumesSum = rowSums(select(., starts_with("V_")))) %>% 
+  mutate(TIME = TIME) %>% 
+  mutate(age = TIME/365)
+
+PLOT_VolumeTotal <-  
+  ggplot() + 
+  geom_path(data = Variables_M_df, aes(TIME, VolumesSum), colour = "lavenderblush4") +
+  geom_path(data = Variables_F_df, aes(TIME, VolumesSum), colour = "purple")
+PLOT_VolumeTotal # Is 1
+
+PLOT_BloodFlowTotal <-  
+  ggplot()+ 
+  geom_path(data = Variables_M_df, aes(TIME, BloodFlowSum), colour = "lavenderblush4") +
+  geom_path(data = Variables_F_df, aes(TIME, BloodFlowSum), colour = "purple")
+PLOT_BloodFlowTotal # Not 1; shouldn't it be 1?
+
+
+### Actual Volumes and Blood Flows ####
+MaleVariables_df <- Variables_df %>% 
+  select(ends_with('_M')) %>% 
+  select(!c(V_boneFraction_M, V_bonenonperfusedFraction_M, V_adiposeFraction_M, V_plasmaFraction_M)) %>% 
+  mutate(across(starts_with('V_'), ~ . * BDW_M)) %>% # Final Organ Volume = Fractional Organ Volume * Body Weight (age specific)
+  mutate(V_boneFraction_M = Variables_df$V_boneFraction_M*BDW_M/2, # 2 is the bone density
+         V_bonenonperfusedFraction_M = Variables_df$V_bonenonperfusedFraction_M*BDW_M/2, # 2 is the bone density
+         V_adiposeFraction_M = (Variables_df$V_adiposeFraction_M*BDW_M/0.9) + (AdiposeMass_M/0.9), # 0.9 is the bone density
+         V_plasmaFraction_M = Variables_df$V_plasmaFraction_M*BDW_M*(1-Variables_df$Hct_M)) %>%  # (1-Hematocrite) corrects for the plasma volume (if not is total blood) 
+  mutate(TotalBloodFlow = Variables_M_df$BloodFlowSum) %>% 
+  mutate(across(starts_with("Q_"), ~ . /TotalBloodFlow * CardOut_M))  # Final Blood Flow = Fractional Blood Flow/Total Fractional Blood Flow * Cardiac Output (age specific)
+  #select((matches("(Q_|V_)"))) 
+colnames(MaleVariables_df) <- str_remove(colnames(MaleVariables_df), "Fraction")
+
+FemaleVariables_df <- Variables_df %>% 
+  select(ends_with('_F')) %>% 
+  select(!c(V_boneFraction_F, V_bonenonperfusedFraction_F, V_adiposeFraction_F, V_plasmaFraction_F)) %>% 
+  mutate(across(starts_with('V_'), ~ . * BDW_F)) %>% # Final Organ Volume = Fractional Organ Volume * Body Weight (age specific)
+  mutate(V_boneFraction_F = Variables_df$V_boneFraction_F*BDW_F/2, # 2 is the bone density
+         V_bonenonperfusedFraction_F = Variables_df$V_bonenonperfusedFraction_F*BDW_F/2, # 2 is the bone density
+         V_adiposeFraction_F = (Variables_df$V_adiposeFraction_F*BDW_F/0.9) + (AdiposeMass_F/0.9), # 0.9 is the bone density
+         V_plasmaFraction_F = Variables_df$V_plasmaFraction_F*BDW_F*(1-Variables_df$Hct_F)) %>%  # (1-Hematocrite) corrects for the plasma volume (if not is total blood) 
+  mutate(TotalBloodFlow = Variables_F_df$BloodFlowSum) %>% 
+  mutate(across(starts_with("Q_"), ~ . /TotalBloodFlow * CardOut_F)) %>%  # Final Blood Flow = Fractional Blood Flow/Total Fractional Blood Flow * Cardiac Output (age specific)
+  select((matches("(Q_|V_)"))) 
+colnames(FemaleVariables_df) <- str_remove(colnames(FemaleVariables_df), "Fraction")
+
+
+### PFAS SPECIFIC ####
+
+# Model compartments: Skin, Kidney (K.Plasma, K.Tissue, K.Filtrate), Gut, Liver, Plasma, Adipose
+
+# Rest compartment
+
+ 
+
+mutate(Vrest_M = Vtotal_M - Vskin_M - Vkidney_M - Vgut_M - Vliver_M - Vplasma_M - Vadipose_M) %>%
+  mutate(Qrest_M = Qtotal_M - Qskin_M - Qkidney_M - Qhepatic_M - Qgut_M - Qadipose_M) %>%
+  mutate(Vrest_F = Vtotal_F - Vskin_F - Vkidney_F - Vgut_F - Vliver_F - Vplasma_F - Vadipose_F) %>%
+  mutate(Qrest_F = Qtotal_F - Qskin_F - Qkidney_F - Qhepatic_F - Qgut_F - Qadipose_F) %>%
+  
+
+
+  
+
+
+## Plasma volume; compartment [22] in Ratier 2024 -> USED TO BE BLOOD volume, as it's corrected for hematocrit then it's plasma
+mutate(VplasmaFraction_M = if_else(age < 1, (-0.0273*age + 0.0771),
+                                   0.0761 + (0.0289 - 0.0761)*exp(-0.592*age))) %>%
   mutate(Vplasma_M = VplasmaFraction_M*BDW_M) %>%
   mutate(Vart_M = Vplasma_M*Fr_art_plasma*(1-Hct_M)) %>% #arterial blood (plasma)
   mutate(Vven_M = Vplasma_M*(1-Hct_M) - Vart_M) %>% #venous blood (plasma)
@@ -139,207 +391,65 @@ Variables_df <- Variables_df %>%
   mutate(Vart_F = Vplasma_F*Fr_art_plasma*(1-Hct_F)) %>%
   mutate(Vven_F = Vplasma_F*(1-Hct_F) - Vart_F) %>%
   
-  ## Liver; compartments [18] (liver) and [21] (liver artery) in Ratier 2024
-  mutate(VliverFraction_M = 0.0247 + (0.0409 - 0.0247)*exp(-0.218*age)) %>%
-  mutate(Vliver_M = VliverFraction_M*BDW_M) %>%
-  mutate(QliverFraction_M = (VliverFraction_M/0.0247)*0.065) %>% # sc_F[21] = (sc_V[18] / sc_V_adult[18]) * sc_F_adult[21];
-  mutate(VliverFraction_F = 0.0233 + (0.038 - 0.0233)*exp(-0.122*age)) %>%
-  mutate(Vliver_F = VliverFraction_F*BDW_F) %>%
-  mutate(QliverFraction_F = (VliverFraction_F/0.0233)*0.065) %>% # sc_F[21] = (sc_V[18] / sc_V_adult[18]) * sc_F_adult[21];
   
-  ## Stomach; compartment [17] in Ratier 2024
-  mutate(VstomachFraction_M = 0.0021) %>%
-  mutate(Vstomach_M = VstomachFraction_M*BDW_M) %>%
-  mutate(QstomachFraction_M = (VstomachFraction_M/0.0021)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VstomachFraction_F = 0.0023) %>%
-  mutate(Vstomach_F = VstomachFraction_F*BDW_F) %>%
-  mutate(QstomachFraction_F = (VstomachFraction_F/0.0023)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Gut; compartment [16] in Ratier 2024
-  mutate(VgutFraction_M = if_else(age < 16, -0.000082562*age^2 + 0.0013523*age + 0.01293,
-                                  0.0140)) %>%
-  mutate(Vgut_M = VgutFraction_M*BDW_M) %>%
-  mutate(QgutFraction_M = (VgutFraction_M/0.0140)*0.144) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VgutFraction_F = if_else(age < 14.453301, -7.42E-5*age^2 + 1.28E-3*age + 1.30E-2,
-                                  0.0160)) %>%
-  mutate(Vgut_F = VgutFraction_F*BDW_F) %>%
-  mutate(QgutFraction_F = (VgutFraction_F/0.0160)*0.165) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Kidney; compartment [14] in Ratier 2024
-  mutate(VkidneyFraction_M = 0.0042 + (0.00767 - 0.0042)*exp(-0.206*age)) %>%
-  mutate(Vkidney_M = VkidneyFraction_M*BDW_M) %>%
-  mutate(QkidneyFraction_M = (VkidneyFraction_M/0.0042)*0.196) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VkidneyFraction_F = 0.0046 + (0.0071 - 0.0046)*exp(-0.221*age)) %>%
-  mutate(Vkidney_F = VkidneyFraction_F*BDW_F) %>%
-  mutate(QkidneyFraction_F = (VkidneyFraction_F/0.0046)*0.175) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## New Chrysa 05-11-2014
-  ## Kidney blood and Kidney tissue volumes; based on Brown1997, Table30
-  mutate(VkidneyBlood_M = Vkidney_M*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys
-  mutate(VkidneyBlood_F = Vkidney_F*0.36) %>% # 0.36+-0.01 volume fraction of blood in the kidneys
-  mutate(VkidneyTissue_M = Vkidney_M*0.64) %>% # 1-0.36
-  mutate(VkidneyTissue_F = Vkidney_F*0.64) %>% # 1-0.36
-  mutate(VFil_M = Vkidney_M*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
-  mutate(VFil_F = Vkidney_F*0.05) %>% #corresponds to the volume of the collecting system in ICRP89
   
-  ## Urinary tract (bladder, ureters, urethra); compartment [13] in Ratier 2024
-  mutate(VurinarytractFraction_M = 0.00104) %>%
-  mutate(Vurinarytract_M = VurinarytractFraction_M*BDW_M) %>%
-  mutate(QurinarytractFraction_M = (VurinarytractFraction_M/0.00104)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VurinarytractFraction_F = 0.0010) %>%
-  mutate(Vurinarytract_F = VurinarytractFraction_F*BDW_F) %>%
-  mutate(QurinarytractFraction_F = (VurinarytractFraction_F/0.0010)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Skin; compartment [10] in Ratier 2024
-  mutate(VskinFraction_M = if_else(age < 20.01, -1.1706E-05*age^3 + 5.4130E-04*age^2 - 6.1966E-03*age + 4.6231E-02,
-                                   0.0452)) %>%
-  mutate(Vskin_M = VskinFraction_M*BDW_M) %>%
-  mutate(QskinFraction_M = (VskinFraction_M/0.0452)*0.052) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VskinFraction_F = if_else(age < 19.45, -7.8882E-06*age^3 + 4.0224E-04*age^2 - 5.2146E-03*age + 4.5605E-02,
-                                   0.0383)) %>%
-  mutate(Vskin_F = VskinFraction_F*BDW_F) %>%
-  mutate(QskinFraction_F = (VskinFraction_F/0.0383)*0.051) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Adrenal; compartment [1] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VadrenalFraction_M = 0.0002 + (0.00171 - 0.0002)*exp(-2.02*age)) %>%
-  mutate(Vadrenal_M = VadrenalFraction_M*BDW_M) %>%
-  mutate(QadrenalFraction_M = (VadrenalFraction_M/0.0002)*0.003) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VadrenalFraction_F = 0.0002 + (0.00171 - 0.0002)*exp(-2.02*age)) %>%
-  mutate(Vadrenal_F = VadrenalFraction_F*BDW_F) %>%
-  mutate(QadrenalFraction_F = (VadrenalFraction_F/0.0002)*0.003) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Bone; compartment [2] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VboneFraction_M = (0.313 + (0.506 - 0.313)*exp(-0.0907*age))*0.095) %>%
-  mutate(VbonenonperfusedFraction_M = 0.095 - VboneFraction_M) %>%
-  mutate(Vbone_M = VboneFraction_M*BDW_M/2) %>% # 2 is bone density
-  mutate(Vbonenonperfused_M = VbonenonperfusedFraction_M*BDW_M/2) %>% # 2 is bone density
-  mutate(QboneFraction_M = (VboneFraction_M/(0.095*0.32))*0.021) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VboneFraction_F = (0.298 + (0.505 - 0.298)*exp(-0.0792*age))*0.085) %>%
-  mutate(VbonenonperfusedFraction_F = 0.085 - VboneFraction_F) %>%
-  mutate(Vbone_F = VboneFraction_F*BDW_F/2) %>% # 2 is bone density
-  mutate(Vbonenonperfused_F = VbonenonperfusedFraction_F*BDW_F/2) %>% # 2 is bone density
-  mutate(QboneFraction_F = (VboneFraction_F/(0.085*0.298))*0.021) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Brain; compartment [3] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VbrainFraction_M = (1.450 + (0.353 - 1.450) * exp (-0.440*age))/BDW_M) %>%
-  mutate(Vbrain_M = VbrainFraction_M*BDW_M) %>%
-  mutate(QbrainFraction_M = (VbrainFraction_M/0.01986)*0.124) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VbrainFraction_F = (1.300 + (0.347 - 1.300) * exp (-0.573*age))/BDW_F) %>%
-  mutate(Vbrain_F = VbrainFraction_F*BDW_F) %>%
-  mutate(QbrainFraction_F = (VbrainFraction_F/0.0217)*0.124) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Breast; compartment [4] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VbreastFraction_M = 3.42E-4*1/(1 + exp(-1.42*age + 20.1))) %>%
-  mutate(Vbreast_M = VbreastFraction_M*BDW_M) %>%
-  mutate(QbreastFraction_M = (VbreastFraction_M/0.00035)*0.0002) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VbreastFraction_F = 0.00833/(1 + exp(-1.92*age+ 28.6))) %>%
-  mutate(Vbreast_F = VbreastFraction_F*BDW_F) %>%
-  mutate(QbreastFraction_F = (VbreastFraction_F/0.0083)*0.004) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Heart; compartment [5] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VheartFraction_M = 0.0045) %>%
-  mutate(Vheart_M = VheartFraction_M*BDW_M) %>%
-  mutate(QheartFraction_M = (VheartFraction_M/0.0045)*0.041) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VheartFraction_F = 0.0042) %>%
-  mutate(Vheart_F = VheartFraction_F*BDW_F) %>%
-  mutate(QheartFraction_F = (VheartFraction_F/0.0042)*0.051) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Marrow; compartment [6] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VmarrowFraction_M = 0.05 + (0.0138 - 0.05)*exp(-0.112*age)) %>%
-  mutate(Vmarrow_M = VmarrowFraction_M*BDW_M) %>%
-  mutate(QmarrowFraction_M = (VmarrowFraction_M/0.050)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VmarrowFraction_F = 0.045 + (0.0138 - 0.045)*exp(-0.136*age)) %>%
-  mutate(Vmarrow_F = VmarrowFraction_F*BDW_F) %>%
-  mutate(QmarrowFraction_F = (VmarrowFraction_F/0.045)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Muscle; compartment [7] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(MuscleAtrophy_M = if_else(age < 24.3, 1,
-                                   (-0.0001264*age^2 + 0.006131*age + 0.926))) %>%
-  mutate(VmuscleFraction_M = (0.3973 + (0.201 - 0.3973)*exp(-0.141*age)) * MuscleAtrophy_M) %>%
-  mutate(Vmuscle_M = VmuscleFraction_M*BDW_M) %>%
-  mutate(QmuscleFraction_M = (VmuscleFraction_M/0.3973)*0.175) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(MuscleAtrophy_F = if_else(age < 25.90709, 1,
-                                   (-0.0001264*age^2 + 0.006131*age + 0.926))) %>%
-  mutate(VmuscleFraction_F = (0.2917 + (0.207 - 0.2917)*exp(-0.339*age)) * MuscleAtrophy_F) %>%
-  mutate(Vmuscle_F = VmuscleFraction_F*BDW_F) %>%
-  mutate(QmuscleFraction_F = (VmuscleFraction_F/0.2917)*0.124) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Reproductive organs; compartment [8] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VreproFraction_M = if_else(age < 20.01, -1.5156E-07*age^3 + 9.3351E-06*age^2 - 1.1177E-04*age + 4.7966E-04,
-                                    0.0008)) %>%
-  mutate(Vrepro_M = VreproFraction_M*BDW_M) %>%
-  mutate(QreproFraction_M = (VreproFraction_M/0.0008)*0.001) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VreproFraction_F = if_else(age < 1, -1.064E-3*age + 1.338E-3,
-                                    if_else(age < 20, 2.6380E-7*age^3 - 1.7943E-6*age^2 - 5.6465E-6*age + 2.8105E-4,
-                                            0.001552))) %>%
-  mutate(Vrepro_F = VreproFraction_F*BDW_F) %>%
-  mutate(QreproFraction_F = (VreproFraction_F/0.0016)*0.004) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Pancreas; compartment [9] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VpancreasFraction_M = 0.00192) %>%
-  mutate(Vpancreas_M = VpancreasFraction_M*BDW_M) %>%
-  mutate(QpancreasFraction_M = (VpancreasFraction_M/0.00192)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VpancreasFraction_F = 0.002) %>%
-  mutate(Vpancreas_F = VpancreasFraction_F*BDW_F) %>%
-  mutate(QpancreasFraction_F = (VpancreasFraction_F/0.002)*0.01) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Spleen; compartment [11] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VspleenFraction_M = 0.0021) %>%
-  mutate(Vspleen_M = VspleenFraction_M*BDW_M) %>%
-  mutate(QspleenFraction_M = (VspleenFraction_M/0.0021)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VspleenFraction_F = 0.0022) %>%
-  mutate(Vspleen_F = VspleenFraction_F*BDW_F) %>%
-  mutate(QspleenFraction_F = (VspleenFraction_F/0.0022)*0.031) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Thyroid; compartment [12] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  mutate(VthyroidFraction_M = 0.000274) %>%
-  mutate(Vthyroid_M = VthyroidFraction_M*BDW_M) %>%
-  mutate(QthyroidFraction_M = (VthyroidFraction_M/0.000274)*0.015) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VthyroidFraction_F = 0.0003) %>%
-  mutate(Vthyroid_F = VthyroidFraction_F*BDW_F) %>%
-  mutate(QthyroidFraction_F = (VthyroidFraction_F/0.0003)*0.015) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Lungs; compartment [15] in Ratier 2024 (not used in our model, but needed for calculation of adipose tissue)
-  # Comment Chrysa on 18-10-2024: Shouldn't the lungs take 100% of the blood flow?
-  mutate(VlungFraction_M = 0.0068) %>%
-  mutate(Vlung_M = VlungFraction_M*BDW_M) %>%
-  mutate(QlungFraction_M = (VlungFraction_M/0.0068)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VlungFraction_F = 0.0070) %>%
-  mutate(Vlung_F = VlungFraction_F*BDW_F) %>%
-  mutate(QlungFraction_F = (VlungFraction_F/0.0070)*0.026) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Adipose tissue 
-  mutate(VadiposeFraction_M = 0.96 - VadrenalFraction_M - VboneFraction_M - VbonenonperfusedFraction_M - VbrainFraction_M - VbreastFraction_M - 
-           VheartFraction_M - VmarrowFraction_M - VmuscleFraction_M - VreproFraction_M - VpancreasFraction_M -
-           VskinFraction_M - VspleenFraction_M - VthyroidFraction_M - VurinarytractFraction_M - VkidneyFraction_M -
-           VlungFraction_M - VgutFraction_M - VstomachFraction_M - VliverFraction_M - VplasmaFraction_M) %>%
-  mutate(AdiposeMass_M = if_else(age < 19.00093277, 0,
-                                 (-0.01129273*age^2 + 1.11817056*age + 56.74397436)-(74.16235828-(2*(74.16235828-57.19957758)/(exp(0.63466182*(age-13.31018000))+exp(0.05457656*(age-13.31018000))))))) %>%
-  mutate(Vadipose_M = (AdiposeMass_M/0.9) + VadiposeFraction_M*BDW_M/0.9) %>% # 0.9 is adipose tissue density
-  mutate(QadiposeFraction_M = (VadiposeFraction_M/0.20)*0.052) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
-  mutate(VadiposeFraction_F = 0.96 - VadrenalFraction_F - VboneFraction_F - VbonenonperfusedFraction_F - VbrainFraction_F - VbreastFraction_F - 
-           VheartFraction_F - VmarrowFraction_F - VmuscleFraction_F - VreproFraction_F - VpancreasFraction_F -
-           VskinFraction_F - VspleenFraction_F - VthyroidFraction_F - VurinarytractFraction_F - VkidneyFraction_F -
-           VlungFraction_F - VgutFraction_F - VstomachFraction_F - VliverFraction_F - VplasmaFraction_F) %>%
-  mutate(AdiposeMass_F = if_else(age < 17.9374115, 0,
-                                 if_else(((-0.01258006*age^2 + 1.25029379*age + 44.4459234) - (62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))) < 0, 0,
-                                         (-0.01258006*age^2 + 1.25029379*age + 44.4459234) - (62.95490567-(2*(62.95490567-49.36574299)/(exp(0.84039606*(age-11.56691488))+exp(0.06710088*(age-11.56691488)))))))) %>%
-  mutate(Vadipose_F = (AdiposeMass_F/0.9) + VadiposeFraction_F*BDW_F/0.9) %>% # 0.9 is adipose tissue density
-  mutate(QadiposeFraction_F = (VadiposeFraction_F/0.3167)*0.087) %>% # sc_F[0-17] = (sc_V[i]  / sc_V_adult[i])  * sc_F_adult[i];
   
-  ## Total volume (sum of all organs) 
-  # Comment Chrysa: Why is this changing over time and not staying constant?
-  mutate(VtotalFraction_M = VplasmaFraction_M + VadrenalFraction_M + VboneFraction_M + VbrainFraction_M + VbreastFraction_M + 
-           VheartFraction_M + VmarrowFraction_M + VmuscleFraction_M + VreproFraction_M + VpancreasFraction_M +
-           VskinFraction_M + VspleenFraction_M + VthyroidFraction_M + VurinarytractFraction_M + VkidneyFraction_M +
-           VlungFraction_M + VgutFraction_M + VstomachFraction_M + VliverFraction_M + VadiposeFraction_M) %>%
-  mutate(VtotalFraction_F = VplasmaFraction_F + VadrenalFraction_F + VboneFraction_F + VbrainFraction_F + VbreastFraction_F + 
-           VheartFraction_F + VmarrowFraction_F + VmuscleFraction_F + VreproFraction_F + VpancreasFraction_F +
-           VskinFraction_F + VspleenFraction_F + VthyroidFraction_F + VurinarytractFraction_F + VkidneyFraction_F +
-           VlungFraction_F + VgutFraction_F + VstomachFraction_F + VliverFraction_F + VadiposeFraction_F) %>%
   
-  mutate(TestV_M = BDW_M - VtotalFraction_M) %>% 
-  mutate(TestV_F = BDW_F - VtotalFraction_F) %>% 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   mutate(Vtotal_M = Vplasma_M + Vadrenal_M + Vbone_M + Vbrain_M + Vbreast_M + 
            Vheart_M + Vmarrow_M + Vmuscle_M + Vrepro_M + Vpancreas_M +
@@ -363,8 +473,9 @@ Variables_df <- Variables_df %>%
   mutate(TestQF_M = CardOut_M - QtotalFraction_M) %>% 
   mutate(TestQF_F = CardOut_F - QtotalFraction_F) %>% 
   
+  
   mutate(Qliver_M = (QliverFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[21] = (sc_F[21] / (sum_sc_F / 1)) * CardOut * Free;
-  # Qliver is what was used to be Qhepatic
+  # Comment Chrysa: Qliver is what was used to be Qhepatic
   mutate(Qstomach_M = (QstomachFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qgut_M = (QgutFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
   mutate(Qkidney_M = (QkidneyFraction_M/QtotalFraction_M)*CardOut_M) %>% # Note the inclusion of the free fraction: F[0-17] = (sc_F[i]  / (sum_sc_F / 1)) * CardOut * Free;
@@ -415,26 +526,9 @@ Variables_df <- Variables_df %>%
            Qlung_F + Qgut_F + Qstomach_F + Qliver_F + Qadipose_F) %>% 
   
   
-  ##### CHANGED ----
-
-## Skin barrier or epidermis (stratum corneum & viable epidermis)
-mutate(SkbTarea_M = 9.1*((BW_M*1000)^0.666)) %>%  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
-  mutate(SkbTarea_F = 9.1*((BW_F*1000)^0.666)) %>%  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
-  mutate(fSkbarea_M = skin_fraction*SkbTarea_M) %>% # 1070 (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
-  mutate(fSkbarea_F = skin_fraction*SkbTarea_F) %>% # 1070 (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
-  # checked the reference, 0.972m^2 is the 95th percentile of the lower extremities; I think that was a mistake when copying the information as the hand data is just above. For hands the 95th percentile is 0.131 (mean value is 0.107m^2)
-  mutate(Skbthickness_M = 83.1/1000) %>% # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
-  mutate(Skbthickness_F = 83.1/1000) %>% # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
-  mutate(VSkb_M = (fSkbarea_M*Skbthickness_M)/1000) %>%  #(L); Skin barrier volume; as previously coded by Trine
-  mutate(VSkb_F = (fSkbarea_F*Skbthickness_F)/1000) %>%  #(L); Skin barrier volume; as previously coded by Trine 
-  #mutate(QSkb_M = Qskin_M * (fSkbarea_M/SkbTarea_M)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
-  #mutate(QSkb_F = Qskin_F * (fSkbarea_F/SkbTarea_F)) %>% #(L/h); NOT USED IN THE CODE Plasma flow to the skin barrier volume; as previously coded by Trine
+# Physicochemical
   mutate(CLdermalabs_M = ((Papp*fSkbarea_M)/1000)*24) %>% # (L/d) ; cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
   mutate(CLdermalabs_F = ((Papp*fSkbarea_F)/1000)*24) %>% # (L/d) ; cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
-  
-  ## This is the portal vein input to the liver, all excluding Qgut which is added individually as we have a gut compartment
-  mutate(Qhepatic_M = Qliver_M + Qspleen_M + Qstomach_M + Qpancreas_M) %>% 
-  mutate(Qhepatic_F = Qliver_F + Qspleen_F + Qstomach_F + Qpancreas_F) %>% 
   
   ## Rest (Rest = Total - Organs included in the model)
   # mutate(VrestFraction_M = VtotalFraction_M - VskinFraction_M - VurinarytractFraction_M - VkidneyFraction_M - VgutFraction_M - VliverFraction_M - VplasmaFraction_M - VadiposeFraction_M) %>%
@@ -478,19 +572,35 @@ mutate(SkbTarea_M = 9.1*((BW_M*1000)^0.666)) %>%  #Skin barrier (epidermis = str
   mutate(CLfecal_F = CLfaecesc*(BW_F^0.001)) %>% #from Husoy; L/d faeces clearance, BDW adjusted to the volume of GI tract as done by Husoy
   
   ## Urinary clearance 
-  mutate(QUr_M = 0.022*BW_M) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-  mutate(QUr_F = 0.022*BW_F) %>% # 22 mL/kg BW/d -> L/d urine flow rate to the bladder [ICRP 89 page 161] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089 
-  mutate(GFR_M = 0.18*Qkidney_M) %>% #L/d ; as it's 18% of total renal plasma flow [ICRP 89] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-  mutate(GFR_F = 0.18*Qkidney_F) %>% # L/d; as it's 18% of total renal plasma flow [ICRP 89]
   # mutate(CLurine_M = CLurinec*BW_M^(-0.25)) %>% # clearance urine (L/d) # NOT USED
   # mutate(CLurine_F = CLurinec*BW_F^(-0.25)) %>% # clearance urine (L/d) # NOT USED
   # mutate(MPT_M = Vkidney_M*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
   # mutate(MPT_F = Vkidney_F*1000*Kcells*Kprotein) %>%	# mass proximal tubule cells in gram based on BW
   # mutate(Vmax_M = Vmaxc * MPT_M * SFOAT4) %>% #ug/d
   # mutate(Vmax_F = Vmaxc * MPT_F * SFOAT4) %>% #ug/d
-  mutate(KW_cortex = 0.7*Vkidney_M) %>% # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
   mutate(CL_PltPT = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTCPGK * KW_cortex) %>% #L/d plasma to proximal tubule clearance
   mutate(CL_FiltPT = (CL_OAT4*REF_OAT4) * PTCPGK * KW_cortex) #L/d filtrate to proximal tubule clearance 
+
+## New Chrysa 
+# Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
+mutate(SkbTarea_M = 9.1*((BW_M*1000)^0.666)) %>%  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
+  mutate(SkbTarea_F = 9.1*((BW_F*1000)^0.666)) %>%  #Skin barrier (epidermis = stratum corneum and viable epidermis) area; assumed to be the same as the total area of the skin (cm^2) from Husoy
+  mutate(skin_fraction = 0.05) %>% # fraction of the total skin surface exposed; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+  # Note Chrysa 18-10-2024: the mean % of total surface area that is hands is 5.2 (in adult male 21+ years) and 4.8 (in adult female), so that would be 5 +/- 0.2 %
+  # Note Chrysa 24-20-2024: assumption that the main skin area exposed is the hands
+  mutate(fSkbarea_M = skin_fraction*SkbTarea_M) %>% # 1070 (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
+  mutate(fSkbarea_F = skin_fraction*SkbTarea_F) %>% # 1070 (cm^2); exposed skin area = surface area of the hands [https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf]
+  mutate(Skbthickness_M = 83.1/1000) %>% # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
+  mutate(Skbthickness_F = 83.1/1000) %>% # (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
+  mutate(VSkb_M = (fSkbarea_M*Skbthickness_M)/1000) %>%  #(L); Skin barrier volume; as previously coded by Trine
+  mutate(VSkb_F = (fSkbarea_F*Skbthickness_F)/1000) %>%  #(L); Skin barrier volume; as previously coded by Trine 
+  
+
+
+
+
+
+
 
 # view(Variables_df)
 
@@ -845,3 +955,37 @@ mutate(SkbTarea_M = 9.1*((BW_M*1000)^0.666)) %>%  #Skin barrier (epidermis = str
 #   ggplot(aes(age, Volume, color = Gender)) +
 #   geom_path() 
 # VolumeTest
+
+
+
+# mutate(Oraldose_M = Oraldose*BW_M) %>%
+# mutate(Oraldose_F = Oraldose*BW_F) %>%
+# mutate(Oraldose_M = if_else(age <= exposure_stop,Oraldose_M,0)) %>%
+# mutate(Oraldose_F = if_else(age <= exposure_stop,Oraldose_F,0)) %>%
+# 
+# mutate(Dermaldose_M = AbsPFOA*Dermconc*BW_M) %>% # dermal concentration is expressed as ug/kg BW/day
+# mutate(Dermaldose_F = AbsPFOA*Dermconc*BW_F) %>% # dermal concentration is expressed as ug/kg BW/day
+# mutate(Dermaldose_M = if_else(age <= exposure_stop,Dermaldose_M,0)) %>%
+# mutate(Dermaldose_F = if_else(age <= exposure_stop,Dermaldose_F,0)) %>%
+
+
+#### Plots ----
+#Plot BW changes over time
+#Comment Chrysa on 18-10-2024: MassBalance issue: should we then use the BDW term that is also changing during adulthood or are we OK with the massbalance issue in the total body volume?
+
+# PlotBDW <- Variables_df %>% select(c(age, BDW_M_Ratier_2024, BDW_F_Ratier_2024)) %>%
+#   rename(Male = BDW_M_Ratier_2024, Female = BDW_F_Ratier_2024) %>%
+#   pivot_longer(names_to = "Gender", values_to = "BDW", Male:Female)
+# 
+# PlotBW <- Variables_df %>% select(c(age, BW_M_Ratier_2024, BW_F_Ratier_2024)) %>%
+#   rename(Male = BW_M_Ratier_2024, Female = BW_F_Ratier_2024) %>%
+#   pivot_longer(names_to = "Gender", values_to = "BW", Male:Female)
+# ggplot() +
+#   geom_path(data = PlotBDW, aes(age, BDW, colour = Gender, linetype = "BDW")) +
+#   geom_path(data = PlotBW, aes(age, BW, colour = Gender, linetype = "BW")) +
+#   labs(x = "Age",
+#        y = "Values",
+#        colour = "Gender",
+#        linetype = "Bodyweight method") +
+#   scale_linetype_manual(values = c("BDW" = "dashed", "BW" = "solid"))
+# ggsave("BWovertime.png", dpi = 300)
