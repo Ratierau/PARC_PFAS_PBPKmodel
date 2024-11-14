@@ -39,8 +39,8 @@ Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen Univers
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 50*365            # years
-sim_stop <- 80*365                 # years
+exposure_stop <- 1 # 50*365            # years
+sim_stop <- 1*365 # 80*365                 # years
 
 TSTART <- 0
 TSTOP <- sim_stop                  # years in days
@@ -427,6 +427,47 @@ output.df <- Final_variables_M_df %>%
 # RESULTS ####
 # ---------------------------------------------------------------------------- #
 
+## Ploting per simulation time ####
+# Plot_PFOA_doses <- ggplot()+
+#   geom_line(data = Variables_df, aes(x = time, y = Oraldose_M),col="red")+
+#   geom_line(data = Variables_df, aes(x = time, y = Dermaldose_M),col="blue")+
+#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
+#   #scale_colour_hue()+
+#   ylab("Dose (ug)")
+# 
+# Plot_PFOA_doses
+
+
+# PFOA in plasma of one individual
+Plot_PFOA_Plasma <- ggplot()+
+  geom_path(data = output.PFOA.df, aes(x = time, y = CP))+
+  theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
+  ylab("Plasma (ng/ml)")
+
+Plot_PFOA_Plasma
+ggsave("PlasmaConcentration.1.png", dpi = 300)
+
+
+# PFOA in Kidney of one individual
+Plot_PFOA_Kidney <- ggplot()+
+  geom_path(data = output.PFOA.df, aes(x = time, y = CKP, color="Kidney blood"))+
+  geom_path(data = output.PFOA.df, aes(x = time, y = CKT, color="Kidney tissue"))+
+  geom_path(data = output.PFOA.df, aes(x = time, y = CFil, color="Filtrate"))+
+  theme(axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7), 
+        axis.title = element_text(size = 8)) +
+  ylab("Kidney Compartments (ng/ml)") +
+  scale_color_manual(values = c("Kidney blood" = "lightblue", 
+                                "Kidney tissue" = "blue", 
+                                "Filtrate" = "darkblue"))
+
+Plot_PFOA_Kidney
+ggsave("KidneyConcentration.2.png", dpi = 300)
+
+
+
+
+## Ploting per age ####
 # Plot_PFOA_doses <- ggplot()+
 #   geom_line(data = Variables_df, aes(x = age, y = Oraldose_M),col="red")+
 #   geom_line(data = Variables_df, aes(x = age, y = Dermaldose_M),col="blue")+
