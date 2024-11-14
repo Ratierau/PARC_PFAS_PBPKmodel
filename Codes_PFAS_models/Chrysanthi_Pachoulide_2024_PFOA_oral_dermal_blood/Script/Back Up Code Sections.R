@@ -15,7 +15,7 @@ setwd(HOME)
 
 # Set output storage directory
 workingtime <- gsub(":", "-", Sys.time())
-OUTPUT <- file.path("Output", Sys.Date(), workingtime)
+OUTPUT <- file.path("Output/Data", Sys.Date(), workingtime)
 dir.create(OUTPUT, recursive = TRUE)
 setwd(OUTPUT)
 
@@ -51,6 +51,20 @@ TIME <- seq(TSTART,TSTOP,by=DT)
 Oralconc <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
 
+# ## Dosing for lifestage simulation ####
+# Dosing <- Final_variables_M_df %>% 
+#   select(TIME, age, BDW_M, AbsPFOA) %>% 
+#   
+#   # Oral dose
+#   mutate(
+#     Oraldose = Oralconc*BDW_M,
+#     Oraldose = if_else(age <= exposure_stop,Oraldose,0)
+#   ) %>% 
+#   
+#   # Dermal does
+#   mutate(Dermaldose = AbsPFOA*Dermconc*BDW_M) %>% 
+#   mutate(Dermaldose = if_else(age <= exposure_stop,Dermaldose,0))
+# 
 ## Dosing for NOT lifestage simulation ####
 # Choose age accordingly
 BDW <- Final_variables_M_df %>%
@@ -62,9 +76,52 @@ AbsPFOA <- Final_variables_M_df %>%
 Oraldose <- Oralconc*BDW # ug/day
 Dermaldose <- AbsPFOA*Dermconc*BDW # ug/day
 
- 
+
 # PBK MODEL PARAMETERS ####
 # ---------------------------------------------------------------------------- #
+
+# ## For lifestage simulations ####
+# parms <- Final_variables_M_df %>% 
+#   select(
+#     TIME,
+#     # Not time dependend variables
+#     kAbl, # affinity constant basolateral this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells; this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
+#     kAap, # affinity constant apical this is about OAT4 which has affinity to re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
+#     fup,  # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
+#     PL,   # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
+#     PA,   # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
+#     PK,   # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007)
+#     PSk,  # Plasma/skin partition coefficient; Rat tissue data (Kudo et al. 2007)
+#     PR,   # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007)
+#     PG,
+#     # Time dependent variables
+#     V_skin_M,          
+#     V_skinPlasma_M,
+#     V_skinTissue_M,
+#     V_kidney_M,
+#     V_kidneyPlasma_M,
+#     V_kidneyTissue_M,
+#     V_filtrate_M,
+#     V_gut_M,
+#     V_liver_M,
+#     V_adipose_M,       
+#     V_rest_M, 
+#     V_plasma_M,
+#     Q_skin_M,
+#     Q_kidney_M,
+#     Q_gut_M,
+#     Q_liver_M,
+#     Q_hepatic_M, 
+#     Q_adipose_M,
+#     Q_rest_M, 
+#     QUr_M,
+#     GFR_M,
+#     CLdermalabs_M,      
+#     CL_PltPT_M,         
+#     CL_FiltPT_M,        
+#     CLbiliary_M,
+#     CLfecal_M 
+#   )
 
 ## For NOT lifestage simulations ####
 
@@ -143,9 +200,9 @@ parms <- c(
   CLfecal = Age_parms$CLfecal_M, 
   kfil = Age_parms$GFR_M, # parameter from Trine; in the original code: kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
   Tm = 5842.308*24*BDW^0.75, # ug/d from ug/h/kg^0.75 parameter from Trine; transporter maximum
-  Kt = 55, # ug/L; changed from Trine who had it as 55ug # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
+  Kt = 0.055, # ug/L; changed from Trine who had it as 55ug # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
   CLurine = 0.00000183*24*BDW^(-0.25)
-  )
+)
 
 
 # PBK MODEL ####
@@ -266,9 +323,47 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # Urine
     dAurine <- CLurine*Adelay # ug/h
     
+    ### Updated Kidney compartment STEP 1 ----
+    # ### Kidney: this is basically the kidney blood compartment
+    # ### I think we're missing active secretion
+    # dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - GFR*CK*fup
+    # #                    re-absorption     ultrafiltration
+    # 
+    # ### Filtrate compartment: rate of formation of the filtrate(=urine) in the lumen; this is the urinary tract from Aude's lifestage equations
+    # dAFil <- GFR*CK*fup - (Vmax*CFil)/(Km+CFil) - QUr*CFil
+    # #        ultrafiltration  REABSORPTION  urine flow rate to the bladder
+    # 
+    # ### Remove this compartment
+    # ### Urine: urine in the bladder
+    # ### ??? why do we need this compartment? I would try having a simple compartment first; i.e not having an excretion compartment
+    # dAUr <- QUr*CFil - kUr*AUr #(ug/h)
+    # #       urineflow  urine excretion
+    # 
+    # ### Excretion urinary: cumulative PFOA concentration in the urine
+    # dAEx_urine <- kUr*AUr #(ug/h)
+    
+    # ### Updated Kidney compartment STRP 2 ----
+    # # Kidney Blood
+    # dAKP <- QK*(CP-CVKP) - GFR*fup*CKP - CL_PltPT*fup*(CKP - (CKT*kAbl)) #  
+    # 
+    # # Filtrate
+    # dAFil <- GFR*fup*CKP - CL_FiltPT*fup*(CFil- (CKT*kAap)) - QUr*CFil #
+    # 
+    # # Urine
+    # dAUr <- QUr*CFil
+    # 
+    # # Kidney Tissue
+    # dAKT <- CL_PltPT*fup*(CKP - (CKT*kAbl)) + CL_FiltPT*fup*(CFil- (CKT*kAap))
+    # 
     ### OLD Skin compartment ----
     dASk <- QSk*(CP-CVSk) + Dermaldose # Rate of PFOA amount change in skin
     
+    # ### Updated Skin compartment ----
+    # # Skin barrier
+    # dASkb <- Dermaldose - CLdermalabs*CSkb #(ug/h)
+    # # Skin tissue
+    # dASk <- CLdermalabs*CSkb + QSk*(CP - CVSk)
+    # 
     ## Plasma compartment ----
     dAP <- - (QSk + QG + QL + QA + QK + QR)*CP +
       QSk*CVSk + (QL+QG)*CVL + QA*CVA + QK*CVK + QR*CVR #(ug/h) #QK*CVKP
@@ -309,7 +404,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            CFil = CFil, CVK = CVK, #CVKP = CVKP, 
            CR = CR, CVR = CVR,
            Atot = Atot,MB = MB)
-         )
+    )
   })
 }
 

@@ -17,16 +17,16 @@
 
 rm(list=ls()) # to clear out the global environment
 
-
-
-# set work directory
-HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Script"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood"
+# HOME <- "/home/westerj"
 setwd(HOME)
 
-# creating a new folder to store the results 
-WhatAmITesting <- "ChangeFu"
-Saveoutput <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Results', Sys.Date(), WhatAmITesting)
-dir.create(Saveoutput, WhatAmITesting, recursive = TRUE)
+
+# Set output storage directory
+workingtime <- gsub(":", "-", Sys.time())
+OUTPUT <- file.path("Output/Data", Sys.Date(), workingtime)
+dir.create(OUTPUT, recursive = TRUE)
+setwd(OUTPUT)
 
 # bring my plotting function
 source("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Script/Theme_CP_function.R")
