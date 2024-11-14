@@ -39,8 +39,8 @@ Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen Univers
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 1 # 50*365            # years
-sim_stop <- 10 #*365 # 80*365                 # years
+exposure_stop <- 4*365 # 50*365        # days
+sim_stop <- 5*365 # 80*365            # days
 
 TSTART <- 0
 TSTOP <- sim_stop                  # years in days
@@ -215,9 +215,6 @@ PBPKmodPFOA_M <- function(t, state, parameters){
   with(as.list(c(state, parameters)), {
     
     # ## Dose ----
-    # Oraldose <- Oraldose.time$Oraldose[round(t)]
-    # Dermaldose <- Dermaldose.time$Dermaldose[round(t)]
-    
     Oraldose <- if_else(t <= exposure_stop, Oralconc * BDW, 0)
     Dermaldose <- if_else(t <= exposure_stop, AbsPFOA * Dermconc * BDW, 0)
     
@@ -419,18 +416,21 @@ output_PFOA <- lsoda(y = A_init,
                      times = TIME, 
                      func = PBPKmodPFOA_M, 
                      parms = parms)
-output.PFOA.df <- as.data.frame(output_PFOA)
+output.PFOA.df <- as.data.frame(output_PFOA) 
 output.df <- Final_variables_M_df %>%
   rename(time = TIME) %>%
-  left_join(output.PFOA.df)
+  left_join(output.PFOA.df) %>% 
+  mutate(time = time/365) %>% 
+  rename(Years = time) %>% 
+  filter(Years <= 5) #according to sim_stop
 
 # RESULTS ####
 # ---------------------------------------------------------------------------- #
 
-## Ploting per simulation time ####
+## Plotting per simulation output.df ####
 # Plot_PFOA_doses <- ggplot()+
-#   geom_line(data = Variables_df, aes(x = time, y = Oraldose_M),col="red")+
-#   geom_line(data = Variables_df, aes(x = time, y = Dermaldose_M),col="blue")+
+#   geom_line(data = Variables_df, aes(x = output.df, y = Oraldose_M),col="red")+
+#   geom_line(data = Variables_df, aes(x = output.df, y = Dermaldose_M),col="blue")+
 #   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
 #   #scale_colour_hue()+
 #   ylab("Dose (ug)")
@@ -440,7 +440,7 @@ output.df <- Final_variables_M_df %>%
 
 # PFOA in plasma of one individual
 Plot_PFOA_Plasma <- ggplot()+
-  geom_path(data = output.PFOA.df, aes(x = time, y = CP))+
+  geom_path(data = output.df, aes(x = Years, y = CP))+
   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
   ylab("Plasma (ng/ml)")
 
@@ -450,9 +450,9 @@ ggsave("PlasmaConcentration.1.png", dpi = 300)
 
 # PFOA in Kidney of one individual
 Plot_PFOA_Kidney <- ggplot()+
-  geom_path(data = output.PFOA.df, aes(x = time, y = CKP, color="Kidney blood"))+
-  geom_path(data = output.PFOA.df, aes(x = time, y = CKT, color="Kidney tissue"))+
-  geom_path(data = output.PFOA.df, aes(x = time, y = CFil, color="Filtrate"))+
+  geom_path(data = output.df, aes(x = Years, y = CKP, color="Kidney blood"))+
+  geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
+  geom_path(data = output.df, aes(x = Years, y = CFil, color="Filtrate"))+
   theme(axis.text.x = element_text(size = 7),
         axis.text.y = element_text(size = 7), 
         axis.title = element_text(size = 8)) +
@@ -462,7 +462,25 @@ Plot_PFOA_Kidney <- ggplot()+
                                 "Filtrate" = "darkblue"))
 
 Plot_PFOA_Kidney
-ggsave("KidneyConcentration.2.png", dpi = 300)
+ggsave("KidneyConcentrations.png", dpi = 300)
+
+
+# PFOA in all organs of one individual
+Plot_PFOA_All <- output.df %>% 
+  mutate(CK = CKP + CKT) %>% 
+  select(Years, CK, CSk, CL, CA, CG, CR, CP) %>% 
+  rename(Kidney = CK, Skin = CSk, Liver = CL, Adipose = CA, Gut = CG, Rest = CR, Plasma = CP) %>% 
+  pivot_longer(names_to = "Organ", values_to = "Concentration", Skin:Plasma) %>% 
+  ggplot()+
+  geom_path(aes(x = Years, y = Concentration, color = Organ)) +
+  facet_wrap(~ Organ)+
+  theme(axis.text.x = element_text(size = 7),
+        axis.text.y = element_text(size = 7), 
+        axis.title = element_text(size = 8)) +
+  ylab("Organ Concentration (ng/ml)")
+
+Plot_PFOA_All
+ggsave("OrganConcentrations.png", dpi = 300)
 
 
 
