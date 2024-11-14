@@ -39,12 +39,12 @@ Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen Univers
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 50*365         # days
+exposure_stop <- 50*365          # days
 sim_stop <- 50*365 # 80*365     # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
-DT <- 1                         # days in hours
+DT <- 1                         # days
 TIME <- seq(TSTART,TSTOP,by=DT)
 
 
@@ -106,7 +106,7 @@ Age_parms <- Final_variables_M_df %>%
 parms <- c(
   kAbl = Indep_parms$kAbl, # affinity constant basolateral; this is about OAT1 and OAT3 which have affinity for the uptake (plasma to cells)
   kAap = Indep_parms$kAap,  # affinity constant apical; this is about OAT4 which has affinity for the re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
-  fup = Indep_parms$fup,   # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
+  fup = 0.02, #Indep_parms$fup,   # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
   PL = Indep_parms$PL,     # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
   PA = Indep_parms$PF,     # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
   PK = Indep_parms$PK,     # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007)
@@ -141,7 +141,7 @@ parms <- c(
   CL_FiltPT = Age_parms$CL_FiltPT_M,         
   CLbiliary = Age_parms$CLbiliary_M, 
   CLfecal = Age_parms$CLfecal_M, 
-  kfil = Age_parms$GFR_M, # parameter from Trine; in the original code: kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  kfil = 0.2*Age_parms$Q_kidney_M, #0.035, #Age_parms$GFR_M, # parameter from Trine; in the original code: kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
   Tm = 5842.308*24*BDW^0.75, # ug/d from ug/h/kg^0.75 parameter from Trine; transporter maximum
   Kt = 55, # ug/L; changed from Trine who had it as 55ug # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
   CLurine = 0.00000183*24*BDW^(-0.25)
@@ -351,6 +351,22 @@ output.df <- Final_variables_M_df %>%
 # RESULTS ####
 # ---------------------------------------------------------------------------- #
 
+# Plot MB
+Plot_PFOA_MB <- ggplot()+
+  geom_path(data = output.df, aes(x = Years, y = MB))+
+  theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
+  ylab("MB")
+Plot_PFOA_MB
+
+
+# Plot MB
+Plot_PFOA_InputOutput <- ggplot()+
+  # geom_path(data = output.df, aes(x = Years, y = Input, color = "blue"))+
+  geom_path(data = output.df, aes(x = Years, y = Atot, color = "green"))+
+  theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
+  ylab("InputOutput")
+Plot_PFOA_InputOutput
+
 ## Plotting per simulation output.df ####
 # Plot_PFOA_doses <- ggplot()+
 #   geom_line(data = Variables_df, aes(x = output.df, y = Oraldose_M),col="red")+
@@ -405,7 +421,6 @@ Plot_PFOA_All <- output.df %>%
 
 Plot_PFOA_All
 ggsave("OrganConcentrations.png", dpi = 300)
-
 
 
 
