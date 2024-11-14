@@ -15,7 +15,7 @@ setwd(HOME)
 
 
 # Set input storage directory
-INPUT = file.path("Input/Data", Sys.Date())
+INPUT = file.path("Input", Sys.Date())
 dir.create(INPUT, recursive = TRUE)
 setwd(INPUT)
 
@@ -34,12 +34,12 @@ library(tidyverse)
 # PHYSIOLOGICAL, PHYSICOCHEMICAL and BIOKINETIC PARAMETERS ####
 # ------------------------------------------------------ #
 # To directly call .csv files instead of re-running the life-stage code below everytime
-PhysioVariables_M_df = read_csv("PhysioVariablesMale.csv") %>% as.data.frame()
-PhysioVariables_F_df = read_csv("PhysioVariablesFemale.csv") %>% as.data.frame()
+PhysioVariables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-14/PhysioVariablesMale.csv") %>% as.data.frame()
+PhysioVariables_F_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-14/PhysioVariablesFemale.csv") %>% as.data.frame()
 
 
-# PFOA 
-MW = 414.07 
+# PFOA
+MW = 414.07
 
 # Fraction unbound in plasma
 
@@ -55,20 +55,20 @@ PF = 0.04  # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007
 PK = 1.05  # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007
 PSk = 0.1  # Plasma/skin partition coefficient; Rat tissue data (Kudo et al. 2007
 PR = 0.12  # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007
-PG = 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007 %>% 
+PG = 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007 %>%
 
 
 # Dermal absorption
 
 # Comment Chrysa 21-10-2024: AbsPFOA is used in the Dermaldose input so we're already correcting before using the Papp?! not sure I agree with this
 #fBAc = # Fraction bio accessible; fraction of the compound released from the matrix (cosmetic formulation dust etc and is available to be absorbed from the epidermis
-AbsPFOA = 0.016 # 0.00048 # Changed to the absorption measured by Abraham and Monien 2022 of 1.6% of applied dose from sunscreen. 
+AbsPFOA = 0.016 # from Trine; 0.00048 # Changed to the absorption measured by Abraham and Monien 2022 of 1.6% of applied dose from sunscreen.
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
 
 # Kidney clearance
 
-# Comment Chrysa 05-11-2024: 
+# Comment Chrysa 05-11-2024:
 ## Assuming that the kidney PFAS concentrations never reaches Km concentrations therefore transforming Vmax and Km to a Clearance; in the paper what they call transporter efficiency : Louisse Pedroni et al. 2024 https://doi.org/10.1016/j.tox.2024.153961
 ## OAT1 and OAT3 are determining transport between blood and proximal tubule
 ## OAT4 is determining transport between proximal tubule and filtrate
@@ -90,23 +90,28 @@ InVivo_OAT4 = 0.52 # 0.52 ± 0.23 pmol OAT4 /mg membrane protein in the human ki
 InVitro_OAT4 = (InVitro_OAT1 + InVitro_OAT3)/2 # OAT4 expression in HEK293-OAT4 cells not found
 
 
-REF_OAT1 = InVivo_OAT1/InVitro_OAT1 # relative expression factor OAT1: expression in the human kidneys /expression in the cells  
-REF_OAT3 = InVivo_OAT3/InVitro_OAT3 # relative expression factor OAT3: expression in the human kidneys /expression in the cells 
-REF_OAT4 = InVivo_OAT4/InVitro_OAT4 # relative expression factor OAT4: expression in the human kidneys /expression in the cells  
+REF_OAT1 = InVivo_OAT1/InVitro_OAT1 # relative expression factor OAT1: expression in the human kidneys /expression in the cells
+REF_OAT3 = InVivo_OAT3/InVitro_OAT3 # relative expression factor OAT3: expression in the human kidneys /expression in the cells
+REF_OAT4 = InVivo_OAT4/InVitro_OAT4 # relative expression factor OAT4: expression in the human kidneys /expression in the cells
 
-# CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015 
+# CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015
 # Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
-# Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023 
+# Km = 47*MW # ug/L; 47 uM*MW = ug/L ref: Louisse et al. 2023
 
 
-# Hepatic clearance 
+# Hepatic clearance
 # These are the values from Trine's model
 CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 CLfaecesc = 0.000052 # L/d/kg ; 0.052 +/- 0.05 mL/d/kg clearance in faeces taken from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
 
 # Male
-Final_variables_M_df <- PhysioVariables_M_df %>% 
+Final_variables_M_df <- PhysioVariables_M_df %>%
+
+  # Independent variables
   mutate(
+    AbsPFOA = AbsPFOA, # fraction absorbed, from Trine
+    kAbl = kAbl, # affinity constant basolateral this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells; this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
+    kAap = kAap, # affinity constant apical this is about OAT4 which has affinity to re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
     fup = fup, # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
     PL = PL,  # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
     PF = PF, # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
@@ -114,28 +119,33 @@ Final_variables_M_df <- PhysioVariables_M_df %>%
     PSk = PSk,  # Plasma/skin partition coefficient; Rat tissue data (Kudo et al. 2007)
     PR = PR,  # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007)
     PG = PG  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007)
-  ) %>% 
-  
+  ) %>%
+
   # Dermal absorption
   mutate(CLdermalabs_M = ((Papp*SA_hands_M)/1000)*24) %>% # (L/d); cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
-  
+
   # Kidney clearance
   mutate(CL_PltPT_M = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTC_kidneyTissue_M, #L/d plasma to proximal tubule clearance
-         CL_FiltPT_M = (CL_OAT4*REF_OAT4) * PTC_kidneyTissue_M #L/d filtrate to proximal tubule clearance 
+         CL_FiltPT_M = (CL_OAT4*REF_OAT4) * PTC_kidneyTissue_M #L/d filtrate to proximal tubule clearance
          # Trine's values
-         # mutate(CLurine_M = CLurinec*BDW_M^(-0.25) from Husoy; L/d clearance urine 
-  ) %>% 
-  
+         # mutate(CLurine_M = CLurinec*BDW_M^(-0.25) from Husoy; L/d clearance urine
+  ) %>%
+
   # Biliary clearance
   mutate(CLbiliary_M = CLbiliaryc*(BDW_M^0.1)) %>% #from Husoy; L/d biliary clearance rate
-  
+
   # Fecal clearance
   mutate(CLfecal_M = CLfaecesc*(BDW_M^0.001)) #from Husoy; L/d faeces clearance rate
 write.csv(Final_variables_M_df, "Final_variables_M.csv", row.names = FALSE)
 
 # Female
-Final_variables_F_df <- PhysioVariables_F_df %>% 
+Final_variables_F_df <- PhysioVariables_F_df %>%
+  
+  # Independent variables
   mutate(
+    AbsPFOA = AbsPFOA, # fraction absorbed, from Trine
+    kAbl = kAbl, # affinity constant basolateral this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells; this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
+    kAap = kAap, # affinity constant apical this is about OAT4 which has affinity to re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
     fup = fup, # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
     PL = PL,  # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
     PF = PF, # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
@@ -143,17 +153,17 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
     PSk = PSk,  # Plasma/skin partition coefficient; Rat tissue data (Kudo et al. 2007)
     PR = PR,  # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007)
     PG = PG  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007)
-  ) %>% 
+  ) %>%
   
   # Dermal absorption
   mutate(CLdermalabs_F = ((Papp*SA_hands_F)/1000)*24) %>% # (L/d); cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
   
   # Kidney clearance
   mutate(CL_PltPT_F = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTC_kidneyTissue_F, #L/d plasma to proximal tubule clearance
-         CL_FiltPT_F = (CL_OAT4*REF_OAT4) * PTC_kidneyTissue_F #L/d filtrate to proximal tubule clearance 
+         CL_FiltPT_F = (CL_OAT4*REF_OAT4) * PTC_kidneyTissue_F #L/d filtrate to proximal tubule clearance
          # Trine's values
-         # mutate(CLurine_F = CLurinec*BDW_F^(-0.25) from Husoy; L/d clearance urine 
-  ) %>% 
+         # mutate(CLurine_F = CLurinec*BDW_F^(-0.25) from Husoy; L/d clearance urine
+  ) %>%
   
   # Biliary clearance
   mutate(CLbiliary_F = CLbiliaryc*(BDW_F^0.1)) %>% #from Husoy; L/d biliary clearance rate
@@ -163,12 +173,13 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
 write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 
 
+
 # # PFAS MODEL SPECIFIC PHYSIOLOGICAL DATA ####
 # # Call .csv files instead of re-running the life-stage code below everytime
-# MaleVariables_df = read_csv("MaleVariables.csv") %>% as.data.frame()
-# FemaleVariables_df = read_csv("FemaleVariables.csv") %>% as.data.frame()
+# MaleVariables_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-12/MaleVariables.csv") %>% as.data.frame()
+# FemaleVariables_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-12/FemaleVariables.csv") %>% as.data.frame()
 # 
-# # Model compartments: Skin (Plasma and Tissue), Kidney (Plasma, Tissue, Filtrate), Gut, Liver, Plasma, Adipose
+# # Model compartments: Skin (Barrier and Skin -to become Plasma and Tissue-), Kidney (Plasma, Tissue, Filtrate), Gut, Liver, Plasma, Adipose
 # 
 # # Male
 # PhysioVariables_M_df = MaleVariables_df %>%
@@ -203,16 +214,19 @@ write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 #          PTC_kidneyTissue_M = PTCPGK*KW_cortex_M #actual number of cells in the kidney
 #          ) %>%
 # 
-#   # Skin compartment is permeability limited => divided in Plasma and Tissue compartments
-#   mutate(V_skinPlasma_M = V_skin_M*0.08, # Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
-#          V_skinTissue_M = V_skin_M*0.92,
-# 
-#          # Needed for scaling Papp
+#   # Skin compartment  
+#   mutate(# Needed for scaling Papp
 #          # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_M parameter in the future..
-#          SA_skin_M = 9.1*((BDW_M*1000)^0.666), # Total surface area of the skin; taken from Trine's model
-#          SA_hands_M = 0.05*SA_skin_M, # Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
-#          ) %>%
-# 
+#          SA_skin_M = 9.1*((BDW_M*1000)^0.666), # Used to be called SkbTarea_M; Total surface area of the skin; taken from Trine's model
+#          SA_hands_M = 0.05*SA_skin_M, # Used to be called fSkbarea_M; 0.05 used to be called skin_fraction; Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+#          Skb_thickness_M = 83.1/1000, # Used to be called Skbthickness_M (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1 
+#          V_skinBarrier_M = (SA_hands_M*Skb_thickness_M)/1000, # (L); Skin barrier volume; as previously coded by Trine
+#          
+#          # Permeability limited skin compartment => divided in Plasma and Tissue compartments; for future use
+#          V_skinPlasma_M = V_skin_M*0.08, # Not used yet; to be used when updating skin. Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
+#          V_skinTissue_M = V_skin_M*0.92 # Not used yet; to be used when updating skin.
+#                   ) %>% 
+#   
 #   select(TIME, age,
 #          BDW_M, TotalVolume_M, Hct_M, CardOut_M, TotalBloodFlow_M,
 #          QUr_M, GFR_M, PTC_kidneyTissue_M, SA_hands_M,
@@ -222,7 +236,7 @@ write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 # 
 # # Female
 # PhysioVariables_F_df = FemaleVariables_df %>%
-# 
+#   
 #   # Rest compartment: lumps all organs that are not specified in the model
 #   mutate(V_rest_F = TotalVolume_F - rowSums(
 #     select(., starts_with("V_")) %>%
@@ -232,13 +246,13 @@ write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 #     select(., starts_with("Q_")) %>%
 #       select(contains(c("skin", "kidney", "gut", "liver", "adipose")))
 #   )) %>%
-# 
+#   
 #   # Comment Chrysa 12-11-2024: Adding hepatic artery blood flow
 #   mutate(Q_hepatic_F = rowSums( # hepatic artery = liver blood flow + portal blood flow
 #     select(., starts_with("Q_")) %>%
 #       select(contains(c("liver", "gut"))) # Q spleen, stomach, gut and pancreas is the portal artery blood flow to the liver; ignoring spleen, stomach and pancreas as they are not explicit compartments of the model
 #   )) %>%
-# 
+#   
 #   # Kidney compartment is permeability limited => divided in Plasma, Tissue, Filtrate and Urine compartments
 #   # Comment Chrysa 12-11-2024: I think the blood volume be corrected with Hct also to call it plasma right?!
 #   mutate(V_kidneyPlasma_F = V_kidney_F*0.36, # Volume fraction of blood in the kidneys 0.36+-0.01 [Brown 1997 table 30]
@@ -252,23 +266,25 @@ write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 #          PTCPGK = 99.4 / 1000, # proximal tubule cells/kg kidney cortex initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c0050
 #          PTC_kidneyTissue_F = PTCPGK*KW_cortex_F #actual number of cells in the kidney
 #   ) %>%
-# 
-#   # Skin compartment is permeability limited => divided in Plasma and Tissue compartments
-#   mutate(V_skinPlasma_F = V_skin_F*0.08, # Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
-#          V_skinTissue_F = V_skin_F*0.92,
-# 
-#          # Needed for scaling Papp
-#          # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_F parameter in the future..
-#          SA_skin_F = 9.1*((BDW_F*1000)^0.666), # Total surface area of the skin; taken from Trine's model
-#          SA_hands_F = 0.05*SA_skin_F, # Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
-#   ) %>%
-# 
+#   
+#   # Skin compartment  
+#   mutate(# Needed for scaling Papp
+#     # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_F parameter in the future..
+#     SA_skin_F = 9.1*((BDW_F*1000)^0.666), # Used to be called SkbTarea_F; Total surface area of the skin; taken from Trine's model
+#     SA_hands_F = 0.05*SA_skin_F, # Used to be called fSkbarea_F; 0.05 used to be called skin_fraction; Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+#     Skb_thickness_F = 83.1/1000, # Used to be called Skbthickness_F (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1 
+#     V_skinBarrier_F = (SA_hands_F*Skb_thickness_F)/1000, # (L); Skin barrier volume; as previously coded by Trine
+#     
+#     # Permeability limited skin compartment => divided in Plasma and Tissue compartments; for future use
+#     V_skinPlasma_F = V_skin_F*0.08, # Not used yet; to be used when updating skin. Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
+#     V_skinTissue_F = V_skin_F*0.92 # Not used yet; to be used when updating skin.
+#   ) %>% 
+#   
 #   select(TIME, age,
 #          BDW_F, TotalVolume_F, Hct_F, CardOut_F, TotalBloodFlow_F,
 #          QUr_F, GFR_F, PTC_kidneyTissue_F, SA_hands_F,
 #          contains(c("skin", "kidney", "filtrate", "gut", "liver", "hepatic", "plasma", "adipose", "rest")))
 # write.csv(PhysioVariables_F_df, "PhysioVariablesFemale.csv", row.names = FALSE)
-
 
 
 # # LIFETIME EQUATIONS ####
