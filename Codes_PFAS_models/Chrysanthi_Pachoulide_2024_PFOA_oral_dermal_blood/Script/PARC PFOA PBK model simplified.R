@@ -39,12 +39,12 @@ Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen Univers
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 4*365 # 50*365        # days
-sim_stop <- 5*365 # 80*365            # days
+exposure_stop <- 50*365         # days
+sim_stop <- 50*365 # 80*365     # days
 
 TSTART <- 0
-TSTOP <- sim_stop                  # years in days
-DT <- 1                            # day
+TSTOP <- sim_stop               # years in days
+DT <- 1/24                      # days in hours
 TIME <- seq(TSTART,TSTOP,by=DT)
 
 
@@ -75,13 +75,6 @@ AbsPFOA <- Final_variables_M_df %>%
 
 Oraldose <- Oralconc*BDW # ug/day
 Dermaldose <- AbsPFOA*Dermconc*BDW # ug/day
-
-# ### Dosing for chronic exposure ####
-# Oraldose.time <- as.data.frame(list(TIME = TIME)) %>% 
-#   mutate(Oraldose = if_else(TIME <= exposure_stop, Oraldose.day, 0))
-# 
-# Dermaldose.time <- as.data.frame(list(TIME = TIME)) %>% 
-#   mutate(Dermaldose = if_else(TIME <= exposure_stop, Oraldose.day, 0))
 
  
 # PBK MODEL PARAMETERS ####
@@ -204,7 +197,11 @@ parms <- c(
   CL_PltPT = Age_parms$CL_PltPT_M,          
   CL_FiltPT = Age_parms$CL_FiltPT_M,         
   CLbiliary = Age_parms$CLbiliary_M, 
-  CLfecal = Age_parms$CLfecal_M
+  CLfecal = Age_parms$CLfecal_M, 
+  kfil = Age_parms$GFR_M, # parameter from Trine; in the original code: kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  Tm = 5842.308*24*BDW^0.75, # ug/d from ug/h/kg^0.75 parameter from Trine; transporter maximum
+  Kt = 0.055, # ug/L; changed from Trine who had it as 55ug # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
+  CLurine = 0.00000183*24*BDW^(-0.25)
   )
 
 
@@ -274,13 +271,13 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CR <- AR/VR  # Concentration in rest the body (ug/L)
     
     CSk <- ASk/VSk  # Concentration in skin (ug/L)
-    CSkb <- ASkb/VSkb # Concentration in skin barrier (ug/L) 
+    # CSkb <- ASkb/VSkb # Concentration in skin barrier (ug/L) 
     # CSkP <- ASkP/VSkP # Concentration in skin plasma (ug/L) # For future use when updating skin again
     # CSkT <- ASkT/VSkT # Concentration in skin tissue (ug/L) # For future use when updating skin again
     
-    # CK <- AK/VK  # Concentration in kidney (ug/L)
-    CKP <- AKP/VKP # Concentration in kidney blood
-    CKT <- AKT/VKT # Concentration in kidney tissue
+    CK <- AK/VK  # Concentration in kidney (ug/L)
+    # CKP <- AKP/VKP # Concentration in kidney blood
+    # CKT <- AKT/VKT # Concentration in kidney tissue
     CFil <- AFil/VFil # Concentration in filtrate compartment
     # CUr <- AUr/VUr # Concentration in urine (ug/L) # Not used
     
@@ -291,8 +288,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # CVSkP <- CSkP/PSk # Concentration leaving skin plasma (ug/L) # For future use when updating skin again
     CVR <- CR/PR  # Concentration leaving rest of the body (ug/L)
     
-    # CVK <- CK/PK # Concentration leaving the kidney (ug/L)
-    CVKP <- CKP/PK # Concentration leaving kidney blood (ug/L)
+    CVK <- CK/PK # Concentration leaving the kidney (ug/L)
+    # CVKP <- CKP/PK # Concentration leaving kidney blood (ug/L)
     
     
     
@@ -314,6 +311,19 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # Rate of PFOA amount change in the liver (ug/h)
     
     ### OLD Kidney compartment ----
+    # Kidney compartment
+    dAK <- QK*(CP -CVK) + Tm*CFil/(Kt+CFil) - kfil*CK #from Trine's model ;Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
+    
+    # Filtrate compartment
+    dAFil <- kfil*(CK-CFil) - Tm*CFil/(Kt+CFil)
+    
+    # Storage compartment for urine
+    dAdelay <- kfil*CFil - CLurine*Adelay # ug/h
+    
+    # Urine
+    dAurine <- CLurine*Adelay # ug/h
+    
+    ### Updated Kidney compartment STEP 1 ----
     # ### Kidney: this is basically the kidney blood compartment
     # ### I think we're missing active secretion
     # dAK <- QK*(CP-CVK) + (Vmax*CFil)/(Km+CFil) - GFR*CK*fup
@@ -332,61 +342,66 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # ### Excretion urinary: cumulative PFOA concentration in the urine
     # dAEx_urine <- kUr*AUr #(ug/h)
     
-    ### Updated Kidney compartment ----
-    # Kidney Blood
-    dAKP <- QK*(CP-CVKP) - GFR*fup*CKP - CL_PltPT*fup*(CKP - (CKT*kAbl)) #  
+    # ### Updated Kidney compartment STRP 2 ----
+    # # Kidney Blood
+    # dAKP <- QK*(CP-CVKP) - GFR*fup*CKP - CL_PltPT*fup*(CKP - (CKT*kAbl)) #  
+    # 
+    # # Filtrate
+    # dAFil <- GFR*fup*CKP - CL_FiltPT*fup*(CFil- (CKT*kAap)) - QUr*CFil #
+    # 
+    # # Urine
+    # dAUr <- QUr*CFil
+    # 
+    # # Kidney Tissue
+    # dAKT <- CL_PltPT*fup*(CKP - (CKT*kAbl)) + CL_FiltPT*fup*(CFil- (CKT*kAap))
+    # 
+    ### OLD Skin compartment ----
+    dASk <- QSk*(CP-CVSk) + Dermaldose # Rate of PFOA amount change in skin
     
-    # Filtrate
-    dAFil <- GFR*fup*CKP - CL_FiltPT*fup*(CFil- (CKT*kAap)) - QUr*CFil #
-    
-    # Urine
-    dAUr <- QUr*CFil
-    
-    # Kidney Tissue
-    dAKT <- CL_PltPT*fup*(CKP - (CKT*kAbl)) + CL_FiltPT*fup*(CFil- (CKT*kAap))
-    
-    # ### OLD Sking compartment ----
-    # dSk <- QSk*(CP-CVSk) + Dermaldose # Rate of PFOA amount change in skin
-    
-     
-    ### Updated Skin compartment ----
-    # Skin barrier
-    dASkb <- Dermaldose - CLdermalabs*CSkb #(ug/h)
-    # Skin tissue
-    dASk <- CLdermalabs*CSkb + QSk*(CP - CVSk)
-    
+    # ### Updated Skin compartment ----
+    # # Skin barrier
+    # dASkb <- Dermaldose - CLdermalabs*CSkb #(ug/h)
+    # # Skin tissue
+    # dASk <- CLdermalabs*CSkb + QSk*(CP - CVSk)
+    # 
     ## Plasma compartment ----
     dAP <- - (QSk + QG + QH + QA + QK + QR)*CP +
-      QSk*CVSk + (QH+QG)*CVL + QA*CVA + QK*CVKP + QR*CVR #(ug/h)
+      QSk*CVSk + (QH+QG)*CVL + QA*CVA + QK*CVK + QR*CVR #(ug/h) #QK*CVKP
     
     
     ## Mass Balance ----
-    Atot <- AP + ASkb + ASk + AG + AL + AA + AKP + AKT + AFil + AUr + AR + AEx_feces # + AEx_urine
+    Atot <- AP + ASk + AG + AL + AA + AK + AFil + Adelay + Aurine + AR + AEx_feces # + AEx_urine + AKP + AKT + AFil + AUr + ASkb
     dInput <- Oraldose + Dermaldose
     MB = Input - Atot
+    
+    
     
     ## End ----
     
     list(c(dAP, 
-           dASkb, 
+           # dASkb, 
            dASk, 
            dAG, 
            dAL, 
            dAA, 
-           dAKP, 
-           dAKT, 
-           dAFil, 
-           dAUr, 
+           dAK,
+           dAFil,
+           dAdelay,
+           dAurine,
+           # dAKP, 
+           # dAKT, 
+           # dAFil, 
+           # dAUr, 
            dAR, 
            dAEx_feces, 
            dInput), #dAEx_urine
          c(CP = CP, 
-           CSkb = CSkb, CSk = CSk,
+           CSk = CSk, #CSkb = CSkb
            CG = CG, CVG = CVG, 
            CL = CL, CVL = CVL, 
            CA = CA, CVA = CVA,
-           CKP = CKP, CKT = CKT, 
-           CFil = CFil, CVKP = CVKP, 
+           CK = CK, #CKP = CKP, CKT = CKT, 
+           CFil = CFil, CVK = CVK, #CVKP = CVKP, 
            CR = CR, CVR = CVR,
            Atot = Atot,MB = MB)
          )
@@ -396,15 +411,19 @@ PBPKmodPFOA_M <- function(t, state, parameters){
 ## Initials ####
 
 A_init <- c(AP = 0, 
-            ASkb = 0, 
+            # ASkb = 0, 
             ASk = 0, 
             AG = 0, 
             AL = 0, 
             AA = 0, 
-            AKP = 0,
-            AKT = 0,
-            AFil = 0, 
-            AUr = 0, 
+            AK = 0,
+            AFil = 0,
+            Adelay = 0,
+            Aurine = 0,
+            # AKP = 0,
+            # AKT = 0,
+            # AFil = 0, 
+            # AUr = 0, 
             AR = 0, 
             AEx_feces = 0, 
             #AEx_urine = 0,
