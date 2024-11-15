@@ -16,7 +16,8 @@ setwd(HOME)
 
 # Set output storage directory
  
-OUTPUT <- file.path("Output/Data", Sys.Date())
+workingtime <- gsub(":", "-", Sys.time())
+OUTPUT <- file.path("Output", Sys.Date(), workingtime)
 dir.create(OUTPUT, recursive = TRUE)
 setwd(OUTPUT)
 
@@ -101,7 +102,8 @@ PTCPGK <- 9.94* 10^7 * 10^3 # proximal tubule cells/kg kidney cortexl initial PT
 REF_OAT1 <- 4.3/26.6 # relative expression factor: expression in the human kidneys /expression in the cells (4.3 ± 0.3 pmol/mg membrane protein in the human kidney cortex and 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells  https://doi.org/10.1124/dmd.121.000367); alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 REF_OAT3 <- 2.7/7.3 # relative expression factor: expression in the human kidneys /expression in the cells (2.7 ± 0.1 pmol/mg membrane protein in the human kidney cortex and 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT3 cells  https://doi.org/10.1124/dmd.121.000367);  alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 REF_OAT4 <- 0.52/16 # relative expression factor: expression in the human kidneys /expression in the cells  (0.52 ± 0.23 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; OAT4 expression in HEK293-OAT4 cells not found therefore mean of OAT1 and OAT3 used) for alternative input https://doi.org/10.1002/cpt.2396) 
-
+Papp_kidney <- 1.46 * 10^-6 #cm/s https://doi.org/10.1016/j.chemosphere.2024.142390
+PT_Sarea <- 0.0176*2 #cm^2; multiplying by 2 as we have 2 kidneys DOI 10.1007/978-1-4614-3785-7, (14 mm long × 40 µm thick) => 1.76 mm^2
 
 # Hepatic clearance parameters
 CLbiliaryc = 0.00262 # L/d/kg ; 2.62 +/- 3.6 mL/d/kg from Fujii et al 2015 DOI: 10.1539/joh.14-0136-OA
@@ -590,8 +592,10 @@ Variables_df <- Variables_df %>%
   # mutate(Vmax_F = Vmaxc * MPT_F * SFOAT4) %>% #ug/d
   mutate(KW_cortex = 0.7*Vkidney_M) %>% # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
   mutate(CL_PltPT = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTCPGK * KW_cortex) %>% #L/d plasma to proximal tubule clearance
-  mutate(CL_FiltPT = (CL_OAT4*REF_OAT4) * PTCPGK * KW_cortex) #L/d filtrate to proximal tubule clearance 
-  
+  mutate(CL_FiltPT = (CL_OAT4*REF_OAT4) * PTCPGK * KW_cortex) %>%  #L/d filtrate to proximal tubule clearance 
+  mutate(CL_passive <- ((Papp_kidney*PT_Sarea)/1000*60*24)) # (L/D) ; 
+
+
 # view(Variables_df)
 
 ##### Gender-specific data frames ----  
@@ -1107,6 +1111,7 @@ varGFR_F <- approxfun(Variables_df$TIME, Variables_df$GFR_F)  #L/d ; as it's 18%
 varKW_cortex_F <- approxfun(Variables_df$TIME, Variables_df$KW_cortex)  # this is male for now; need to change KW_cortex to Vkidney_F for Female !!! g kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242 
 varCL_PltPT_F <- approxfun(Variables_df$TIME, Variables_df$CL_PltPT)  # to discuss
 varCL_FiltPT_F <- approxfun(Variables_df$TIME, Variables_df$CL_FiltPT) #proximal tubule to filtrate
+varCL_passive <- approxfun(Variables_df$TIME, Variables_df$CL_passive) #proximal tubule to filtrate
 
 
 # ---------------------------------------------------------------------------- #
@@ -1136,6 +1141,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     #kUr <- varkUr_M(t)
     CL_PltPT <- varCL_PltPT_M(t)
     CL_FiltPT <- varCL_FiltPT_M(t)
+    CL_passive <- varCL_passive(t)
     
     # Flow rates 
     QCP <- varCardOut_M(t) #cardiac output plasma
@@ -1156,9 +1162,9 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     VG <- varVgut_M(t) #gut
     VL <- varVliver_M(t) #liver
     VF <- varVadipose_M(t) #adipose (used to be called VF)
-    #VK <- varVkidney_M(t) #kidney
-    VKT <- varVkidneyTissue_M(t) 
-    VKB <- varVkidneyBlood_M(t)
+    VK <- varVkidney_M(t) #kidney
+    # VKT <- varVkidneyTissue_M(t) 
+    # VKB <- varVkidneyBlood_M(t)
     VFil <- varVFil_M(t) #filtrate
     VSk <- varVskin_M(t) #skin
     VSkb <- varVSkb_M(t) #skin
@@ -1175,25 +1181,25 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CL <- AL/VL  # concentration of PFOA in liver (ug/L)
     CF <- AF/VF  # concentration of PFOA in adipose (ug/L)
     CFil <- AFil/VFil # concentration of PFOA in filtrate compartment
-    #CK <- AK/VK  # concentration of PFOA in kidney (ug/L)
+    CK <- AK/VK  # concentration of PFOA in kidney (ug/L)
     # NEW
     CUr <- AUr/VUr # concentration of PFOA in urine (ug/L)
     CSk <- ASk/VSk  # concentration of PFOA in skin (ug/L)
     CSkb <- ASkb/VSkb # concentration of PFOA in skin barrier (ug/L)
     CR <- AR/VR  # concentration of PFOA in rest of the body (ug/L)
-    CKB <- AKB/VKB # concentration in kidney blood
-    CKT <- AKT/VKT # concentration in kidney tissue
+    # CKB <- AKB/VKB # concentration in kidney blood
+    # CKT <- AKT/VKT # concentration in kidney tissue
     
     # Venous concentrations (ug/L); these are the concentrations leaving the organs
     CVG <- CG/PG # concentration of PFOA leaving gut (ug/L)
     CVL <- CL/PL  # concentration of PFOA leaving liver (ug/L)
     CVF <- CF/PF # concentration of PFOA leaving adipose (ug/L)
-    # CVK <- CK/PK  # concentration of PFOA leaving the kidney (ug/L)
+    CVK <- CK/PK  # concentration of PFOA leaving the kidney (ug/L)
     CVSk <- CSk/PSk  # Concentration of PFOA leaving the skin (ug/L)
     # NEW
     CVR <- CR/PR  # concentration of PFOA leaving the rest of the body (ug/L)
-    CVKB <- CKB/PK # concentration of PFOA leaving kidney blood (ug/L)
-    
+    # CVKB <- CKB/PK # concentration of PFOA leaving kidney blood (ug/L)
+    # 
     
     
     ### Differential equations ----
@@ -1237,17 +1243,20 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     #### Updated Kidney compartment ----
     # Kidney Blood
-    dAKB <- QK*(CP-CVKB) - GFR*fup*CKB - CL_PltPT*fup*(CKB- (CKT*kAbl)) #  
+    # dAKB <- QK*(CP-CVKB) - GFR*fup*CKB #- CL_PltPT*fup* (CKB - (CKT*kAbl)) #- CL_passive*fup*(CKB - CKT) #  
+    
+    dAK <- QK*(CP-CVK) - GFR*fup*CK + CL_FiltPT*fup*CFil #- (CVKB*kAap)) #- CL_PltPT*fup* (CKB - (CKT*kAbl)) #- CL_passive*fup*(CKB - CKT) #  
+    
     
     # Filtrate
-    dAFil <- GFR*fup*CKB - CL_FiltPT*fup*(CFil- (CKT*kAap)) - QUr*CFil #
+    dAFil <- GFR*fup*CK - CL_FiltPT*fup*CFil - QUr*CFil  #- (CKT*kAap)) - QUr*CFil #
     
     # Urine
     dAUr <- QUr*CFil
     
-    # Kidney Tissue
-    dAKT <- CL_PltPT*fup*(CKB- (CKT*kAbl)) + CL_FiltPT*fup*(CFil- (CKT*kAap))
-    
+    # # Kidney Tissue
+    # dAKT <-  CL_FiltPT*fup*(CFil- (CKT*kAap)) #- (CKT*kAbl)), + CL_passive*fup*(CKB - CKT) CL_PltPT*fup*CKB
+    # 
     # Skin compartment
     # Skin barrier
     dASkb <- Dermaldose - CLdermalabs*CSkb #(ug/h)
@@ -1256,20 +1265,20 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     # Plasma compartment
     dAP <- - (QSk + QG + QH + QF + QK + QR)*CP +
-      QSk*CVSk + (QH+QG)*CVL + QF*CVF + QK*CVKB + QR*CVR #(ug/h)
+      QSk*CVSk + (QH+QG)*CVL + QF*CVF + QK*CVK + QR*CVR #(ug/h)
     
-    Atot <- AP + ASkb + ASk + AG + AL + AF + AKB + AKT + AFil + AUr + AR + AEx_feces # + AEx_urine
+    Atot <- AP + ASkb + ASk + AG + AL + AF + AK  + AFil + AUr + AR + AEx_feces # + AEx_urine + AKT
     dInput <- Oraldose + Dermaldose
     MB = Input - Atot
     
-    list(c(dAP, dASkb, dASk, dAG, dAL, dAF, dAKB, dAKT, dAFil, dAUr, dAR, dAEx_feces, dInput), #dAEx_urine
+    list(c(dAP, dASkb, dASk, dAG, dAL, dAF, dAK, dAFil, dAUr, dAR, dAEx_feces, dInput), #dAEx_urine dAKT
          c(CP=CP, 
            CSkb=CSkb, CSk=CSk,
            CG=CG, CVG=CVG, 
            CL=CL, CVL=CVL, 
            CF=CF, CVF=CVF,
-           CKB=CKB, CKT=CKT, 
-           CFil=CFil, CVKB=CVKB, 
+           CK=CK, #CKT=CKT, 
+           CFil=CFil, #CVKB=CVKB,
            CR=CR, CVR=CVR,
            Atot=Atot,MB=MB))
     
@@ -1285,8 +1294,8 @@ A_init <- c(AP=0,
             AG=0, 
             AL=0, 
             AF=0, 
-            AKB=0,
-            AKT=0,
+            AK=0,
+            # AKT=0,
             AFil=0, 
             AUr=0, 
             AR=0, 
