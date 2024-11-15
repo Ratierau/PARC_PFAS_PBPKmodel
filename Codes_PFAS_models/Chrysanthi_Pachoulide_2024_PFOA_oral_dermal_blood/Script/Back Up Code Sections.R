@@ -543,3 +543,141 @@ ggsave("OrganConcentrations.png", dpi = 300)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+# PBK code as by TRINE ####
+
+# Special params
+parms <- c(
+  kfil = 0.1*Age_parms$GFR_M,#0.2*Age_parms$Q_kidney_M, #0.035, #Age_parms$GFR_M, # parameter from Trine; in the original code: kfil = 0.2*QK  # Clearance from the kidney to the filtrate compartment (L/h); 20% of bloodstream to QK is cleared for 
+  Tm = 5842.308*24*BDW^0.75, # ug/d from ug/h/kg^0.75 parameter from Trine; transporter maximum
+  Kt = 55, # ug/L; changed from Trine who had it as 55ug # Resorption affinity, changed from 0.055 in the original Loccisano 2011 model (ug)
+  CLurine = 0.00000183*24*BDW^(-0.25)
+)
+
+PBPKmodPFOA_M <- function(t, state, parameters){
+  with(as.list(c(state, parameters)), {
+    
+    # ## Dose ----
+    Oraldose <- if_else(t <= exposure_stop, Oralconc * BDW, 0)
+    Dermaldose <- if_else(t <= exposure_stop, AbsPFOA * Dermconc * BDW, 0)
+    
+    
+    ## Concentrations ----
+    
+    # Organ concentrations (ug/L); these are TOTAL concentrations
+    CP <- AP/VP  # Concentration in plasma (ug/L)
+    CG <- AG/VG  # Concentration in gut (ug/L)
+    CL <- AL/VL  # Concentration in liver (ug/L)
+    CA <- AA/VA  # Concentration in adipose (ug/L)
+    CR <- AR/VR  # Concentration in rest the body (ug/L)
+    
+    CSk <- ASk/VSk  # Concentration in skin (ug/L)
+    # CSkb <- ASkb/VSkb # Concentration in skin barrier (ug/L) 
+    # CSkP <- ASkP/VSkP # Concentration in skin plasma (ug/L) # For future use when updating skin again
+    # CSkT <- ASkT/VSkT # Concentration in skin tissue (ug/L) # For future use when updating skin again
+    
+    CK <- AK/VK  # Concentration in kidney (ug/L)
+    # CKP <- AKP/VKP # Concentration in kidney blood
+    # CKT <- AKT/VKT # Concentration in kidney tissue
+    CFil <- AFil/VFil # Concentration in filtrate compartment
+    # CUr <- AUr/VUr # Concentration in urine (ug/L) # Not used
+    
+    CVG <- CG/PG # Concentration leaving gut (ug/L)
+    CVL <- CL/PL  # Concentration leaving liver (ug/L)
+    CVA <- CA/PA # Concentration leaving adipose (ug/L)
+    CVSk <- CSk/PSk  # Concentration leaving skin (ug/L) 
+    # CVSkP <- CSkP/PSk # Concentration leaving skin plasma (ug/L) # For future use when updating skin again
+    CVR <- CR/PR  # Concentration leaving rest of the body (ug/L)
+    
+    CVK <- CK/PK # Concentration leaving the kidney (ug/L)
+    # CVKP <- CKP/PK # Concentration leaving kidney blood (ug/L)
+    
+    
+    
+    ## Differential equations ----
+    # adipose compartment
+    dAA <- QA*(CP-CVA) # (ug/h)
+    
+    # Rest compartment
+    dAR <- QR*(CP-CVR) # (ug/h)
+    
+    # Gut compartment: plasma to gut then to liver. Biliary clearance to gut, based on free concentration in the liver; faecal clearance based on total gut concentration; not only the free fraction as partitioning is not needed
+    dAG <- Oraldose + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfecal*CG #(ug/h)
+    
+    # Excretion fecal: cumulative
+    dAEx_feces <- CLfecal*CG #ug/h, used to be CVG but I think this is wrong as it's not the tissue plasma partition that defines fecal excretion
+    
+    # Liver compartment
+    dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup #input from the hepatic artery
+    # Rate of PFOA amount change in the liver (ug/h)
+    
+    ### OLD Kidney compartment ----
+    # Kidney compartment
+    dAK <- QK*(CP -CVK) + Tm*CFil/(Kt+CFil) - kfil*CK #from Trine's model ;Qfil*CK*Free was introduced to reflect clearance to filtrate compartment
+    
+    # Filtrate compartment
+    dAFil <- kfil*(CK-CFil) - Tm*CFil/(Kt+CFil)
+    
+    # Storage compartment for urine
+    dAdelay <- kfil*CFil - CLurine*Adelay # ug/h
+    
+    # Urine
+    dAurine <- CLurine*Adelay # ug/h
+    
+    ### OLD Skin compartment ----
+    dASk <- QSk*(CP-CVSk) + Dermaldose # Rate of PFOA amount change in skin
+    
+    ## Plasma compartment ----
+    dAP <- - (QSk + QG + QL + QA + QK + QR)*CP +
+      QSk*CVSk + (QL+QG)*CVL + QA*CVA + QK*CVK + QR*CVR #(ug/h) #QK*CVKP
+    
+    
+    ## Mass Balance ----
+    Atot <- AP + ASk + AG + AL + AA + AK + AFil + Adelay + Aurine + AR + AEx_feces # + AEx_urine + AKP + AKT + AFil + AUr + ASkb
+    dInput <- Oraldose + Dermaldose
+    MB = Input - Atot
+    
+    
+    
+    ## End ----
+    
+    list(c(dAP, 
+           # dASkb, 
+           dASk, 
+           dAG, 
+           dAL, 
+           dAA, 
+           dAK,
+           dAFil,
+           dAdelay,
+           dAurine,
+           # dAKP, 
+           # dAKT, 
+           # dAFil, 
+           # dAUr, 
+           dAR, 
+           dAEx_feces, 
+           dInput), #dAEx_urine
+         c(CP = CP, 
+           CSk = CSk, #CSkb = CSkb
+           CG = CG, CVG = CVG, 
+           CL = CL, CVL = CVL, 
+           CA = CA, CVA = CVA,
+           CK = CK, #CKP = CKP, CKT = CKT, 
+           CFil = CFil, CVK = CVK, #CVKP = CVKP, 
+           CR = CR, CVR = CVR,
+           Atot = Atot,MB = MB)
+    )
+  })
+}
