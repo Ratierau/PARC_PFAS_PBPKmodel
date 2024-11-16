@@ -28,6 +28,7 @@ library(deSolve)
 library(writexl)
 library(ggpubr)
 library(tidyverse)
+library(PKNCA)
 
 # INPUT ####
 # ------------------------------------------------------ #
@@ -139,7 +140,7 @@ parms <- c(
   GFR = Age_parms$GFR_M, # Used to be called CFil
   CLdermalabs = Age_parms$CLdermalabs_M,       
   CL_PltPT = Age_parms$CL_PltPT_M,          
-  CL_FiltPT = Age_parms$CL_FiltPT_M, #CL_FiltPT_Prot_M
+  CL_FiltPT = Age_parms$CL_FiltPT_Prot_M, #CL_FiltPT_M
   CLbiliary = Age_parms$CLbiliary_M, 
   CLfecal = Age_parms$CLfecal_M 
   )
@@ -320,70 +321,75 @@ Plot_PFOA_All
 ggsave("OrganConcentrations.png", dpi = 300)
 
 
+# EVALUATION Vs InVivo ####
+# ---------------------------------------------------------------------------- #
 
+theme_CP <- function() {
+  theme_bw()+
+    theme(
+      text = element_text(size = 7, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
+      axis.title = element_text(size = 7),
+      axis.text = element_text(size = 7),
+      axis.line = element_line(linewidth = 0.05),
+      plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
+      panel.border = element_blank(), 
+      panel.background = element_blank(),
+      panel.grid = element_line(linewidth = 0.1), 
+      strip.background = element_blank(),
+      legend.position = "right",
+      legend.box.margin = margin(0, 0, 0, 0, "cm"),
+      legend.key.width = unit(0.2, "cm"),  # Make legend key width span the whole plot
+      legend.key.height = unit(0.2, "cm"),  # Adjust legend key height
+    )
+}
 
-# # Plot MB
-# Plot_PFOA_MB <- ggplot()+
-#   geom_path(data = output.df, aes(x = Years, y = MB))+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   ylab("MB")
-# Plot_PFOA_MB
+# Half life
 
+conc <- output.df$CP     
+time <- output.df$Years       
+Tmax <- time[which.max(conc)] 
+tlast <- max(time[conc > 0])
 
-# Plot MB
-# Plot_PFOA_InputOutput <- ggplot()+
-#   # geom_path(data = output.df, aes(x = Years, y = Input, color = "blue"))+
-#   geom_path(data = output.df, aes(x = Years, y = Atot, color = "green"))+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   ylab("InputOutput")
-# Plot_PFOA_InputOutput
+# Calculate half-life
+half_life <- pk.calc.half.life(
+  conc,
+  time,
+  Tmax,
+  tlast
+)
 
-## Plotting per simulation output.df ####
-# Plot_PFOA_doses <- ggplot()+
-#   geom_line(data = Variables_df, aes(x = output.df, y = Oraldose_M),col="red")+
-#   geom_line(data = Variables_df, aes(x = output.df, y = Dermaldose_M),col="blue")+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   #scale_colour_hue()+
-#   ylab("Dose (ug)")
-# 
-# Plot_PFOA_doses
+# Experimental 
+ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv") 
 
-# ## Plotting per age ####
-# # Plot_PFOA_doses <- ggplot()+
-# #   geom_line(data = Variables_df, aes(x = age, y = Oraldose_M),col="red")+
-# #   geom_line(data = Variables_df, aes(x = age, y = Dermaldose_M),col="blue")+
-# #   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-# #   #scale_colour_hue()+
-# #   ylab("Dose (ug)")
-# # 
-# # Plot_PFOA_doses
-# 
-# 
-# # PFOA in plasma of one individual
-# Plot_PFOA_Plasma <- ggplot()+
-#   geom_path(data = output.df, aes(x = age, y = CP))+
-#   theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   ylab("Plasma (ng/ml)")
-# 
-# Plot_PFOA_Plasma
-# ggsave("PlasmaConcentration.1.png", dpi = 300)
-# 
-# 
-# # PFOA in Kidney of one individual
-# Plot_PFOA_Kidney <- ggplot()+
-#   geom_path(data = output.df, aes(x = age, y = CKP, color="Kidney blood"))+
-#   geom_path(data = output.df, aes(x = age, y = CKT, color="Kidney tissue"))+
-#   geom_path(data = output.df, aes(x = age, y = CFil, color="Filtrate"))+
-#   theme(axis.text.x = element_text(size = 7),
-#         axis.text.y = element_text(size = 7), 
-#         axis.title = element_text(size = 8)) +
-#   ylab("Kidney Compartments (ng/ml)") +
-#   scale_color_manual(values = c("Kidney blood" = "lightblue", 
-#                                 "Kidney tissue" = "blue", 
-#                                 "Filtrate" = "darkblue"))
-# 
-# Plot_PFOA_Kidney
-# ggsave("KidneyConcentration.2.png", dpi = 300)
+Exp_HalfLifes <- ExpData %>% 
+  filter(species == "human",
+         chemical == "pfoa", 
+         parameter== "HalfLife") %>% 
+  select(value_average) %>% 
+  rename(HalfLife = value_average)
+Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife) 
 
+Predicted.df <- data.frame(
+  HalfLife = half_life$half.life, 
+  Origin = "Predicted", 
+  value = 1)
+Experimental.df <- data.frame(
+  HalfLife = Exp_HalfLifes$HalfLife, 
+  Origin = "Experimental", 
+  value = 1) 
 
+HalfLifes <- rbind(Predicted.df, Experimental.df) 
 
+Plot_HalfLifes <- HalfLifes %>% 
+  ggplot()+
+  geom_violin(data = Experimental.df, aes(value, HalfLife),
+              color = "transparent",
+              fill = "grey")+
+  geom_point(data = Predicted.df, aes(value, HalfLife), 
+             color = "slateblue3", size = 4) +
+  theme_CP() +
+  theme(axis.text.x=element_blank(), #remove x axis labels
+      axis.ticks.x=element_blank(), #remove x axis ticks
+      axis.title.x = element_blank()
+      ) 
+Plot_HalfLifes

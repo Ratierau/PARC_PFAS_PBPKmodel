@@ -127,7 +127,7 @@ Final_variables_M_df <- PhysioVariables_M_df %>%
   # Kidney clearance
   mutate(CL_PltPT_M = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTC_kidneyTissue_M, #L/d plasma to proximal tubule clearance
          CL_FiltPT_M = (CL_OAT4*REF_OAT4) * PTC_kidneyTissue_M, #L/d filtrate to proximal tubule clearance
-         CL_FiltPT_Prot_M = CL_OAT4 * 0.17 * 0.7 * V_kidney_M #testing scaling for protein; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though 70% of the kidney is cortex
+         CL_FiltPT_Prot_M = CL_OAT4 * 0.17 * 0.7 * V_kidney_M #testing scaling for protein; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though 70% of the kidney is cortex; double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
          # Trine's values
          # CLurine_M = CLurinec*BDW_M^(-0.25) #from Husoy; L/d clearance urine
   ) %>%
