@@ -22,13 +22,13 @@ setwd(OUTPUT)
 
 # Load packages
 
-library(lubridate)
 library(ggplot2)
 library(deSolve)
-library(writexl)
-library(ggpubr)
 library(tidyverse)
 library(PKNCA)
+library(showtext)
+font_add(family = "Garamond", regular = "GARA.TTF")
+showtext_auto()
 
 # INPUT ####
 # ------------------------------------------------------ #
@@ -327,14 +327,14 @@ ggsave("OrganConcentrations.png", dpi = 300)
 theme_CP <- function() {
   theme_bw()+
     theme(
-      text = element_text(size = 7, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
-      axis.title = element_text(size = 7),
-      axis.text = element_text(size = 7),
-      axis.line = element_line(linewidth = 0.05),
+      text = element_text(size = 10, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 10),
+      axis.line = element_blank(),
       plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
       panel.border = element_blank(), 
-      panel.background = element_blank(),
-      panel.grid = element_line(linewidth = 0.1), 
+      panel.background = element_rect((fill = "grey90")),
+      panel.grid = element_line(linewidth = 0.5), 
       strip.background = element_blank(),
       legend.position = "right",
       legend.box.margin = margin(0, 0, 0, 0, "cm"),

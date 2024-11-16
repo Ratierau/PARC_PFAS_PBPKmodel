@@ -86,8 +86,8 @@ InVivo_OAT1 = 4.3 # 4.3 ± 0.3 pmol OAT1 /mg membrane protein in the human kidne
 InVitro_OAT1 = 26.6 # 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells https://doi.org/10.1124/dmd.121.000367;
 InVivo_OAT3 = 2.7 # 2.7 ± 0.1 pmol OAT3 /mg membrane protein in the human kidney cortex https://doi.org/10.1124/dmd.121.000367; alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
 InVitro_OAT3 = 7.3 # 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT1 cells https://doi.org/10.1124/dmd.121.000367; alternative: 3.50 ± 1.55 pmol/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
-InVivo_OAT4 = 0.52 # 0.52 ± 0.23 pmol OAT4 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; alternative:  5.33 ± 1.88 pmol/mg protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066
-InVitro_OAT4 = (InVitro_OAT1 + InVitro_OAT3)/2 # OAT4 expression in HEK293-OAT4 cells not found
+InVivo_OAT4 = 0.52 # 0.52 ± 0.23 pmol OAT4 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; 
+InVitro_OAT4 = 7 #3*(InVitro_OAT1 + InVitro_OAT3)/2 # OAT4 expression in HEK293-OAT4 cells not found
 
 
 REF_OAT1 = InVivo_OAT1/InVitro_OAT1 # relative expression factor OAT1: expression in the human kidneys /expression in the cells
@@ -127,7 +127,7 @@ Final_variables_M_df <- PhysioVariables_M_df %>%
   # Kidney clearance
   mutate(CL_PltPT_M = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTC_kidneyTissue_M, #L/d plasma to proximal tubule clearance
          CL_FiltPT_M = (CL_OAT4*REF_OAT4) * PTC_kidneyTissue_M, #L/d filtrate to proximal tubule clearance
-         CL_FiltPT_Prot_M = CL_OAT4 * 0.17 * 0.7 * V_kidney_M #testing scaling for protein; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though 70% of the kidney is cortex; double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
+         CL_FiltPT_Prot_M = CL_OAT4 * InVivo_OAT4 * 0.17 * 0.7 * V_kidney_M #testing scaling for protein; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though 70% of the kidney is cortex; double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
          # Trine's values
          # CLurine_M = CLurinec*BDW_M^(-0.25) #from Husoy; L/d clearance urine
   ) %>%
@@ -162,7 +162,7 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
   # Kidney clearance
   mutate(CL_PltPT_F = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTC_kidneyTissue_F, #L/d plasma to proximal tubule clearance
          CL_FiltPT_F = ((CL_OAT4*REF_OAT4) * PTC_kidneyTissue_F), #L/d filtrate to proximal tubule clearance
-         CL_FiltPT_Prot_F = CL_OAT4 * 0.17 * V_kidney_F #testing scaling for protein; 0.17 # fraction of kidney that is protein; #17% of kidney is protein, assuming that all the kidney protein is found in the cortex; this is an overestimation though 70% of the kidney is cortex
+         CL_FiltPT_Prot_F = CL_OAT4 * 0.17 * 0.7 * V_kidney_F #testing scaling for protein; 0.17 # fraction of kidney that is protein; #17% of kidney is protein, assuming that all the kidney protein is found in the cortex; this is an overestimation though 70% of the kidney is cortex
          # Trine's values
          # CLurine_F = CLurinec*BDW_F^(-0.25) # from Husoy; L/d clearance urine
   ) %>%
