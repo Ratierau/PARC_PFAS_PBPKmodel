@@ -26,15 +26,36 @@ library(ggplot2)
 library(deSolve)
 library(tidyverse)
 library(PKNCA)
+
+# For plotting
 library(showtext)
 font_add(family = "Garamond", regular = "GARA.TTF")
 showtext_auto()
+theme_CP <- function() {
+  theme_bw()+
+    theme(
+      text = element_text(size = 22, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
+      axis.title = element_text(size = 20),
+      axis.text = element_text(size = 20),
+      axis.line = element_blank(),
+      plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
+      panel.border = element_blank(), 
+      panel.background = element_rect((fill = "grey94")),
+      panel.grid = element_line(linewidth = 0.2,5, colour = "grey100"), 
+      strip.background = element_blank(),
+      legend.position = "right",
+      legend.box.margin = margin(0, 0, 0, 0, "cm"),
+      legend.key.width = unit(0.2, "cm"),  # Make legend key width span the whole plot
+      legend.key.height = unit(0.2, "cm"),  # Adjust legend key height
+    )
+}
+
 
 # INPUT ####
 # ------------------------------------------------------ #
 
 # Input variables
-Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-15/Final_variables_M.csv") %>% as.data.frame()
+Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-17/Final_variables_M.csv") %>% as.data.frame()
 
 
 # EXPOSURE SCENARIO ####
@@ -100,15 +121,14 @@ Age_parms <- Final_variables_M_df %>%
     CLdermalabs_M,
     CL_PltPT_M,
     CL_FiltPT_M,
-    CL_FiltPT_Prot_M,
     CLbiliary_M,
     CLfecal_M
   ) 
 
 parms <- c(
   kAbl = Indep_parms$kAbl, # affinity constant basolateral; this is about OAT1 and OAT3 which have affinity for the uptake (plasma to cells)
-  kAap = Indep_parms$kAap,  # affinity constant apical; this is about OAT4 which has affinity for the re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
-  fup = Indep_parms$fup,   # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
+  kAap = Indep_parms$kAap, # affinity constant apical; this is about OAT4 which has affinity for the re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
+  fup = Indep_parms$fup,   # or 0.001 Unbound fraction in plasma Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
   PL = Indep_parms$PL,     # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
   PA = Indep_parms$PF,     # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
   PK = Indep_parms$PK,     # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007)
@@ -139,8 +159,8 @@ parms <- c(
   QUr = Age_parms$QUr_M, 
   GFR = Age_parms$GFR_M, # Used to be called CFil
   CLdermalabs = Age_parms$CLdermalabs_M,       
-  CL_PltPT = Age_parms$CL_PltPT_M,          
-  CL_FiltPT = Age_parms$CL_FiltPT_Prot_M, #CL_FiltPT_M
+  CL_PltPT = Age_parms$CL_PltPT_M/0,          
+  CL_FiltPT = Age_parms$CL_FiltPT_M/0.03, 
   CLbiliary = Age_parms$CLbiliary_M, 
   CLfecal = Age_parms$CLfecal_M 
   )
@@ -197,10 +217,10 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
 
     # Kidney compartment
-    dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*CFil
+    dAK <- QK*(CP -CVK) - CL_PltPT*fup*CK + CL_FiltPT*CFil
     
     # Filtrate compartment
-    dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*CFil 
+    dAFil <- CL_PltPT*fup*CK - QUr*CFil - CL_FiltPT*CFil 
     
     # Urine compartment
     dAUr <- QUr*CFil
@@ -279,7 +299,8 @@ output.df <- Final_variables_M_df %>%
 # PFOA in plasma of one individual
 Plot_PFOA_Plasma <- ggplot()+
   geom_path(data = output.df, aes(x = Years, y = CP))+
-  theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
+  theme_CP()+
+  # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
   ylab("Plasma (ng/ml)")
 
 Plot_PFOA_Plasma
@@ -291,9 +312,10 @@ Plot_PFOA_Kidney <- ggplot()+
   geom_path(data = output.df, aes(x = Years, y = CK, color="Kidney"))+
   # geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
   geom_path(data = output.df, aes(x = Years, y = CFil, color="Filtrate"))+
-  theme(axis.text.x = element_text(size = 7),
-        axis.text.y = element_text(size = 7),
-        axis.title = element_text(size = 8)) +
+  theme_CP()+
+  # theme(axis.text.x = element_text(size = 7),
+  #       axis.text.y = element_text(size = 7),
+  #       axis.title = element_text(size = 8)) +
   ylab("Kidney Compartments (ng/ml)") +
   scale_color_manual(values = c("Kidney" = "lightblue",
                                 # "Kidney tissue" = "blue",
@@ -312,9 +334,11 @@ Plot_PFOA_All <- output.df %>%
   ggplot()+
   geom_path(aes(x = Years, y = Concentration, color = Organ)) +
   facet_wrap(~ Organ)+
-  theme(axis.text.x = element_text(size = 7),
-        axis.text.y = element_text(size = 7), 
-        axis.title = element_text(size = 8)) +
+  theme_CP()+
+  theme(legend.position = "none")+
+  # theme(axis.text.x = element_text(size = 7),
+  #       axis.text.y = element_text(size = 7), 
+  #       axis.title = element_text(size = 8)) +
   ylab("Organ Concentration (ng/ml)")
 
 Plot_PFOA_All
@@ -324,24 +348,6 @@ ggsave("OrganConcentrations.png", dpi = 300)
 # EVALUATION Vs InVivo ####
 # ---------------------------------------------------------------------------- #
 
-theme_CP <- function() {
-  theme_bw()+
-    theme(
-      text = element_text(size = 10, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
-      axis.title = element_text(size = 10),
-      axis.text = element_text(size = 10),
-      axis.line = element_blank(),
-      plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
-      panel.border = element_blank(), 
-      panel.background = element_rect((fill = "grey90")),
-      panel.grid = element_line(linewidth = 0.5), 
-      strip.background = element_blank(),
-      legend.position = "right",
-      legend.box.margin = margin(0, 0, 0, 0, "cm"),
-      legend.key.width = unit(0.2, "cm"),  # Make legend key width span the whole plot
-      legend.key.height = unit(0.2, "cm"),  # Adjust legend key height
-    )
-}
 
 # Half life
 
@@ -386,10 +392,12 @@ Plot_HalfLifes <- HalfLifes %>%
               color = "transparent",
               fill = "grey")+
   geom_point(data = Predicted.df, aes(value, HalfLife), 
-             color = "slateblue3", size = 4) +
+             color = "slateblue3", size = 5, shape = 18) +
+  ylab("Half life (years)") +
   theme_CP() +
   theme(axis.text.x=element_blank(), #remove x axis labels
       axis.ticks.x=element_blank(), #remove x axis ticks
       axis.title.x = element_blank()
       ) 
 Plot_HalfLifes
+ggsave("ExpVsSimHalfLife.png", dpi = 300)
