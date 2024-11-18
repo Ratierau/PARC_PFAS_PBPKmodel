@@ -61,7 +61,8 @@ PG = 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007
 # Dermal absorption
 
 # Comment Chrysa 21-10-2024: AbsPFOA is used in the Dermaldose input so we're already correcting before using the Papp?! not sure I agree with this
-#fBAc = # Fraction bio accessible; fraction of the compound released from the matrix (cosmetic formulation dust etc and is available to be absorbed from the epidermis
+fBAc_dust = 69.6/100 # 69.6±5 # Fraction bio accessible from dust; Ragnarsdottir et al.: https://doi.org/10.1016/j.envres.2023.117093; fraction bioaccessible = fraction of the compound released from the matrix (cosmetic formulation dust etc and is available to be absorbed from the epidermis
+fBAc_cosm = 97.8/100 # 97.8±19.0 !! this is an estimated value, based on [PFOA]_cosmetics and the LOQ # Fraction bio accessible from cosmetics; Namazkar et al.: DOI: 10.1039/d3em00461a 
 AbsPFOA = 0.016 # from Trine; 0.00048 # Changed to the absorption measured by Abraham and Monien 2022 of 1.6% of applied dose from sunscreen.
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
@@ -148,6 +149,8 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
   # Independent variables
   mutate(
     AbsPFOA = AbsPFOA, # fraction absorbed, from Trine
+    fBAc_dust = fBAc_dust, # fraction bioaccessible from dust
+    fBAc_cosm = fBAc_cosm, # fraction bioaccessible from cosmetics
     kAbl = kAbl, # affinity constant basolateral this is about OAT1 and OAT3 which have affinity to uptake (movement from plasma to cells; this is fitted value for now; kAbl = 0.01 is driving the equilibrium towards uptake into the proximal tubule cells
     kAap = kAap, # affinity constant apical this is about OAT4 which has affinity to re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
     fup = fup, # Unbound fraction in plasmal Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
