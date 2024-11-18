@@ -55,7 +55,7 @@ theme_CP <- function() {
 # ------------------------------------------------------ #
 
 # Input variables
-Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-17/Final_variables_M.csv") %>% as.data.frame()
+Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_M.csv") %>% as.data.frame()
 
 
 # EXPOSURE SCENARIO ####
@@ -128,7 +128,7 @@ Age_parms <- Final_variables_M_df %>%
 parms <- c(
   kAbl = Indep_parms$kAbl, # affinity constant basolateral; this is about OAT1 and OAT3 which have affinity for the uptake (plasma to cells)
   kAap = Indep_parms$kAap, # affinity constant apical; this is about OAT4 which has affinity for the re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
-  fup = Indep_parms$fup,   # or 0.001 Unbound fraction in plasma Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
+  fup = Indep_parms$fup,   # Unbound fraction in plasma Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
   PL = Indep_parms$PL,     # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
   PA = Indep_parms$PF,     # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
   PK = Indep_parms$PK,     # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007)
@@ -159,8 +159,8 @@ parms <- c(
   QUr = Age_parms$QUr_M, 
   GFR = Age_parms$GFR_M, # Used to be called CFil
   CLdermalabs = Age_parms$CLdermalabs_M,       
-  CL_PltPT = Age_parms$CL_PltPT_M/0,          
-  CL_FiltPT = Age_parms$CL_FiltPT_M/0.03, 
+  CL_PltPT = Age_parms$CL_PltPT_M,          
+  CL_FiltPT = Age_parms$CL_FiltPT_M, 
   CLbiliary = Age_parms$CLbiliary_M, 
   CLfecal = Age_parms$CLfecal_M 
   )
@@ -187,7 +187,9 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     CSk <- ASk/VSk  # Concentration in skin (ug/L)
     
-    CK <- AK/VK  # Concentration in kidney (ug/L)
+    # CK <- AK/VK  # Concentration in kidney (ug/L)
+    CKP <- AKP/VKP # Concentration in kidney plasma (ug/L) 
+    CKT <- AKT/VKT # Concentration in kidney tissue (ug/l) 
     CFil <- AFil/VFil # Concentration in filtrate compartment
     
     CVG <- CG/PG # Concentration leaving gut (ug/L)
@@ -196,7 +198,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     CVSk <- CSk/PSk  # Concentration leaving skin (ug/L) 
     CVR <- CR/PR  # Concentration leaving rest of the body (ug/L)
     
-    CVK <- CK/PK # Concentration leaving the kidney (ug/L)
+    # CVK <- CK/PK # Concentration leaving the kidney (ug/L)
+    CVKP <- CKP/PK # Concentration leaving kidney tissue (ug/l)
     
     
     ## Differential equations ----
@@ -217,10 +220,13 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
 
     # Kidney compartment
-    dAK <- QK*(CP -CVK) - CL_PltPT*fup*CK + CL_FiltPT*CFil
-    
+    # dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*CFil
+    dAKP <- QK*(CP - CVKP) - CL_PltPT*fup*CKP + CL_FiltPT*fup*CKT - CL_PltPT*fup*CKP
+    dAKT <- CL_PltPT*fup*CKP + CL_FiltPT*CFil - CL_FiltPT*fup*CKT
     # Filtrate compartment
-    dAFil <- CL_PltPT*fup*CK - QUr*CFil - CL_FiltPT*CFil 
+    # dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*CFil 
+    dAFil <- CL_PltPT*fup*CKP - QUr*CFil - CL_FiltPT*CFil 
+    
     
     # Urine compartment
     dAUr <- QUr*CFil
@@ -230,11 +236,11 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     # Plasma compartment
     dAP <- - (QSk + QG + QL + QA + QK + QR)*CP +
-      QSk*CVSk + (QL+QG)*CVL + QA*CVA + QK*CVK + QR*CVR 
+      QSk*CVSk + (QL+QG)*CVL + QA*CVA + QK*CVKP + QR*CVR 
     
     
     # Mass Balance
-    Atot <- AP + ASk + AG + AL + AA + AK + AFil + AR + AEx_feces + AUr
+    Atot <- AP + ASk + AG + AL + AA + AKP + AKT + AFil + AR + AEx_feces + AUr
     dInput <- Oraldose + Dermaldose
     MB = Input - Atot
     
@@ -245,7 +251,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            dAG, 
            dAL, 
            dAA, 
-           dAK,
+           dAKT,
+           dAKP,
            dAFil,
            dAUr, 
            dAR, 
@@ -256,8 +263,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            CG = CG, CVG = CVG, 
            CL = CL, CVL = CVL, 
            CA = CA, CVA = CVA,
-           CK = CK, 
-           CFil = CFil, CVK = CVK, 
+           CKP = CKP, CKT = CKT, 
+           CFil = CFil, CVKP = CVKP, 
            CR = CR, CVR = CVR,
            Atot = Atot,MB = MB)
          )
@@ -272,7 +279,8 @@ A_init <- c(AP = 0,
             AG = 0, 
             AL = 0, 
             AA = 0, 
-            AK = 0,
+            AKP = 0,
+            AKT = 0,
             AFil = 0,
             AUr = 0, 
             AR = 0, 
@@ -309,16 +317,16 @@ ggsave("PlasmaConcentration.png", dpi = 300)
 
 # PFOA in Kidney of one individual
 Plot_PFOA_Kidney <- ggplot()+
-  geom_path(data = output.df, aes(x = Years, y = CK, color="Kidney"))+
-  # geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
+  geom_path(data = output.df, aes(x = Years, y = CKP, color="Kidney plasma"))+
+  geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
   geom_path(data = output.df, aes(x = Years, y = CFil, color="Filtrate"))+
   theme_CP()+
   # theme(axis.text.x = element_text(size = 7),
   #       axis.text.y = element_text(size = 7),
   #       axis.title = element_text(size = 8)) +
   ylab("Kidney Compartments (ng/ml)") +
-  scale_color_manual(values = c("Kidney" = "lightblue",
-                                # "Kidney tissue" = "blue",
+  scale_color_manual(values = c("Kidney plasma" = "lightblue",
+                                "Kidney tissue" = "blue",
                                 "Filtrate" = "darkblue"))
 
 Plot_PFOA_Kidney
@@ -327,7 +335,7 @@ ggsave("KidneyConcentrations.png", dpi = 300)
 
 # PFOA in all organs of one individual
 Plot_PFOA_All <- output.df %>% 
-  # mutate(CK = CKP + CKT) %>% 
+  mutate(CK = CKP + CKT) %>% 
   select(Years, CK, CSk, CL, CG, CA, CR, CP) %>% 
   rename(Kidney = CK, Skin = CSk, Liver = CL, Gut = CG, Adipose = CA, Rest = CR, Plasma = CP) %>% 
   pivot_longer(names_to = "Organ", values_to = "Concentration", Kidney:Plasma) %>% 

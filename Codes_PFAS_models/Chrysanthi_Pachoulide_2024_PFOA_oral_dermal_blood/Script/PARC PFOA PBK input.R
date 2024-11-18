@@ -89,12 +89,12 @@ InVitro_OAT1 = 26.6 # 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in H
 InVivo_OAT3 = 3.5 # 3.5 ± 1.6 OAT3/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; alternative : 2.7 ± 0.1 pmol OAT3 /mg membrane protein in the human kidney cortex https://doi.org/10.1124/dmd.121.000367;
 InVitro_OAT3 = 7.3 # 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT1 cells https://doi.org/10.1124/dmd.121.000367; 
 InVivo_OAT4 = 0.52 # 0.52 ± 0.23 pmol OAT4 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; 
-InVitro_OAT4 = (InVitro_OAT1 + InVitro_OAT3)/2 # OAT4 expression in HEK293-OAT4 cells not found so assuming average of OAT1 and OAT3 expression
+# InVitro_OAT4 = (InVitro_OAT1 + InVitro_OAT3)/2 # OAT4 expression in HEK293-OAT4 cells not found so assuming average of OAT1 and OAT3 expression
 
 
 REF_OAT1 = InVivo_OAT1/InVitro_OAT1 # relative expression factor OAT1: expression in the human kidneys /expression in the cells
 REF_OAT3 = InVivo_OAT3/InVitro_OAT3 # relative expression factor OAT3: expression in the human kidneys /expression in the cells
-REF_OAT4 = InVivo_OAT4/InVitro_OAT4 # relative expression factor OAT4: expression in the human kidneys /expression in the cells
+REF_OAT4 = 1 # assuming 1 as Invitro expression not found InVivo_OAT4/InVitro_OAT4 # relative expression factor OAT4: expression in the human kidneys /expression in the cells
 
 # CLurinec = 0.000044  # L/d/kg; 0.044 mL/d/kg taken from Fujii et al 2015
 # Vmaxc = 4.5*MW/1000*60*24 # ug/d/mg protein; 45 nmol/min/mg protein *MW/1000*60*24 = ug/d/mg protein ref: Louisse et al. 2023 https://doi.org/10.1007/s00204-022-03428-6
