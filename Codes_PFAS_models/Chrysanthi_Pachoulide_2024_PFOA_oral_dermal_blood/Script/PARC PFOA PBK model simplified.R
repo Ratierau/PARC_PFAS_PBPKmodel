@@ -64,7 +64,7 @@ Final_variables_M_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen Univer
 # ------------------------------------------------------ #
 
 exposure_stop <- 1 #50*365         # days
-sim_stop <- 10 #80*365 # 80*365   # days
+sim_stop <- 3 #80*365 # 80*365   # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
@@ -434,60 +434,60 @@ ggsave("OrganConcentrations.png", dpi = 300)
 # EVALUATION Vs InVivo ####
 # ---------------------------------------------------------------------------- #
 
-# ## Half life ####
-# 
-# conc <- output.PFOA.df$CP     
-# time <- output.PFOA.df$Years       
-# Tmax <- time[which.max(conc)] 
-# tlast <- max(time[conc > 0])
-# 
-# # Calculate half-life
-# half_life <- pk.calc.half.life(
-#   conc,
-#   time,
-#   Tmax,
-#   tlast
-# )
-# 
-# # Experimental 
-# ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv") 
-# 
-# Exp_HalfLifes <- ExpData %>% 
-#   filter(species == "human",
-#          chemical == "pfoa", 
-#          parameter== "HalfLife") %>% 
-#   select(value_average) %>% 
-#   rename(HalfLife = value_average)
-# Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife) 
-# 
-# Predicted.df <- data.frame(
-#   HalfLife = half_life$half.life, 
-#   Origin = "Predicted", 
-#   value = 1)
-# Experimental.df <- data.frame(
-#   HalfLife = Exp_HalfLifes$HalfLife, 
-#   Origin = "Experimental", 
-#   value = 1) 
-# 
-# HalfLifes <- rbind(Predicted.df, Experimental.df) 
-# 
-# Plot_HalfLifes <- HalfLifes %>% 
-#   ggplot()+
-#   geom_violin(data = Experimental.df, aes(value, HalfLife),
-#               color = "transparent",
-#               fill = "grey")+
-#   geom_point(data = Predicted.df, aes(value, HalfLife), 
-#              color = "slateblue3", size = 5, shape = 18) +
-#   ylab("Half life (years)") +
-#   theme_CP() +
-#   theme(axis.text.x=element_blank(), #remove x axis labels
-#       axis.ticks.x=element_blank(), #remove x axis ticks
-#       axis.title.x = element_blank()
-#       ) 
-# Plot_HalfLifes
-# ggsave("ExpVsSimHalfLife.png", dpi = 300)
-# 
-# 
+## Half life ####
+
+conc <- output.PFOA.df$CP
+time <- output.PFOA.df$Days #Years
+Tmax <- time[which.max(conc)]
+tlast <- max(time[conc > 0])
+
+# Calculate half-life
+half_life <- pk.calc.half.life(
+  conc,
+  time,
+  Tmax,
+  tlast
+)
+
+# Experimental
+ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv")
+
+Exp_HalfLifes <- ExpData %>%
+  filter(species == "human",
+         chemical == "pfoa",
+         parameter== "HalfLife") %>%
+  select(value_average) %>%
+  rename(HalfLife = value_average)
+Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife)
+
+Predicted.df <- data.frame(
+  HalfLife = half_life$half.life,
+  Origin = "Predicted",
+  value = 1)
+Experimental.df <- data.frame(
+  HalfLife = Exp_HalfLifes$HalfLife,
+  Origin = "Experimental",
+  value = 1)
+
+HalfLifes <- rbind(Predicted.df, Experimental.df)
+
+Plot_HalfLifes <- HalfLifes %>%
+  ggplot()+
+  geom_violin(data = Experimental.df, aes(value, HalfLife),
+              color = "transparent",
+              fill = "grey")+
+  geom_point(data = Predicted.df, aes(value, HalfLife),
+             color = "slateblue3", size = 5, shape = 18) +
+  ylab("Half life (years)") +
+  theme_CP() +
+  theme(axis.text.x=element_blank(), #remove x axis labels
+      axis.ticks.x=element_blank(), #remove x axis ticks
+      axis.title.x = element_blank()
+      )
+Plot_HalfLifes
+ggsave("ExpVsSimHalfLife.png", dpi = 300)
+
+
 ## Plasma concentrations ####
 ExpPlasma <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.csv")
 
