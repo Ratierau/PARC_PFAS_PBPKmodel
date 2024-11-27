@@ -55,38 +55,34 @@ theme_CP <- function() {
 # ------------------------------------------------------ #
 
 # Input variables
-# Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_M.csv") %>% as.data.frame()
-Final_variables_M_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_MVolunteer.csv")
-
+Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-27/Final_variables_M.csv") %>% as.data.frame()
 
 
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 1 #50*365         # days
-sim_stop <- 3 #80*365 # 80*365   # days
+exposure_stop <- 50*365         # days
+sim_stop <- 80*365 # 80*365     # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
-DT <- 1                         # days
+DT <- 0.1                         # days
 TIME <- seq(TSTART,TSTOP,by=DT)
 
 
-Oralconc <- 0.000187 # ug/kg/day [EFSA 2020; page 143] 3.96ug
+Oralconc <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
 
 ## Dosing for NOT lifestage simulation ####
 # Choose age accordingly
-BDW <- Final_variables_M_df %>% pull(BDW_M) 
-# BDW <- Final_variables_M_df %>%
-#   filter(age == 20) %>% pull(BDW_M) 
+BDW <- Final_variables_M_df %>%
+  filter(age == 20) %>% pull(BDW_M) 
 
-AbsPFOA <- Final_variables_M_df %>% pull(AbsPFOA) 
-# AbsPFOA <- Final_variables_M_df %>%
-#   filter(age == 20) %>% pull(AbsPFOA) 
+AbsPFOA <- Final_variables_M_df %>%
+  filter(age == 20) %>% pull(AbsPFOA) 
 
-Oraldose <- 3.96 # ug https://doi.org/10.1016/j.envint.2024.109047 # Oralconc*BDW # ug/day
-Dermaldose <- 0 # AbsPFOA*Dermconc*BDW # ug/day #AbsPFOA
+Oraldose <- Oralconc*BDW # ug/day
+Dermaldose <- AbsPFOA*Dermconc*BDW # ug/day
 
  
 # PBK MODEL PARAMETERS ####
@@ -97,12 +93,12 @@ Dermaldose <- 0 # AbsPFOA*Dermconc*BDW # ug/day #AbsPFOA
 Indep_parms <- Final_variables_M_df %>% select(kAbl, kAap, fup, PL, PF, PK, PSk, PR, PG) %>% distinct()
 
 Age_parms <- Final_variables_M_df %>%
-  # filter(age == 20) %>% # Select age accordingly
+  filter(age == 20) %>% # Select age accordingly
   select(
     V_skin_M,
-    # V_skinBarrier_M,
-    V_skinPlasma_M,
-    V_skinTissue_M,
+    V_skinBarrier_M,
+    # V_skinPlasma_M,
+    # V_skinTissue_M,
     V_kidney_M,
     V_kidneyPlasma_M,
     V_kidneyTissue_M,
@@ -140,9 +136,9 @@ parms <- c(
   PR = Indep_parms$PR,     # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007)
   PG = Indep_parms$PG,     # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007)
   VSk = Age_parms$V_skin_M,          
-  # VSkb = Age_parms$V_skinBarrier_M,
-  # VSkP = Age_parms$V_skinPlasma_M, # For future use when updating skin again
-  # VSkT = Age_parms$V_skinTissue_M, # For future use when updating skin again
+  VSkb = Age_parms$V_skinBarrier_M,
+  # VSkP = Age_parms$V_skinPlasma_M, For future use when updating skin again
+  # VSkT = Age_parms$V_skinTissue_M, For future use when updating skin again
   VK = Age_parms$V_kidney_M,
   VKP = Age_parms$V_kidneyPlasma_M,
   VKT = Age_parms$V_kidneyPlasma_M,
@@ -161,7 +157,7 @@ parms <- c(
   QR = Age_parms$Q_rest_M,
   # QP = Age_parms$Q_lungs_M, # Needs to be incorporated when inhalation exposure is included
   QUr = Age_parms$QUr_M, 
-  GFR = 113.7*24*60/1000, #L/d 113.7 ml/min https://doi.org/10.1016/j.envint.2024.109047 # Age_parms$GFR_M, # Used to be called CFil
+  GFR = Age_parms$GFR_M, # Used to be called CFil
   CLdermalabs = Age_parms$CLdermalabs_M,       
   CL_PltPT = Age_parms$CL_PltPT_M,          
   CL_FiltPT = Age_parms$CL_FiltPT_M, 
@@ -177,9 +173,9 @@ PBPKmodPFOA_M <- function(t, state, parameters){
   with(as.list(c(state, parameters)), {
     
     ## Dose ----
-    # Oraldose <- if_else(t <= exposure_stop, Oralconc * BDW, 0)
-    # Dermaldose <- if_else(t <= exposure_stop, AbsPFOA * Dermconc * BDW, 0)
-    # 
+    Oraldose <- if_else(t <= exposure_stop, Oralconc * BDW, 0)
+    Dermaldose <- if_else(t <= exposure_stop, AbsPFOA * Dermconc * BDW, 0)
+    
     ## Concentrations ----
     
     # Organ concentrations (ug/L); these are TOTAL concentrations
@@ -215,20 +211,20 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAR <- QR*(CP-CVR) # (ug/h)
     
     # Gut compartment: 
-    dAG <- + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfecal*CG #Oraldose
+    dAG <- Oraldose + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfecal*CG #
     
     # Excretion fecal: cumulative
     dAEx_feces <- CLfecal*CG 
     
     # Liver compartment
     dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
-    
+
     # Kidney compartment
-    dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*CFil
+    dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*fup*CFil
     # dAKP <- QK*(CP - CVKP) - CL_PltPT*fup*CKP + CL_FiltPT*fup*CKT - CL_PltPT*fup*CKP
     # dAKT <- CL_PltPT*fup*CKP + CL_FiltPT*CFil - CL_FiltPT*fup*CKT
     # Filtrate compartment
-    dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*CFil 
+    dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*fup*CFil 
     # dAFil <- CL_PltPT*fup*CKP - QUr*CFil - CL_FiltPT*CFil 
     
     
@@ -236,7 +232,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAUr <- QUr*CFil
     
     # Skin compartment
-    dASk <- QSk*(CP-CVSk) #+ Dermaldose 
+    dASk <- QSk*(CP-CVSk) + Dermaldose 
     
     # Plasma compartment
     dAP <- - (QSk + QG + QL + QA + QK + QR)*CP +
@@ -245,9 +241,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     # Mass Balance
     Atot <- AP + ASk + AG + AL + AA + AK + AFil + AR + AEx_feces + AUr #AKP + AKT
-    # dInput <- Oraldose + Dermaldose
-    # MB = Input - Atot
-    MB = Oraldose - Atot
+    dInput <- Oraldose + Dermaldose
+    MB = Input - Atot
     
     # End
     
@@ -262,9 +257,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            dAFil,
            dAUr, 
            dAR, 
-           dAEx_feces #, 
-           # dInput
-           ), 
+           dAEx_feces, 
+           dInput), 
          c(CP = CP, 
            CSk = CSk, 
            CG = CG, CVG = CVG, 
@@ -286,7 +280,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
 A_init <- c(AP = 0, 
             # ASkb = 0, 
             ASk = 0, 
-            AG = Oraldose, 
+            AG = 0, 
             AL = 0, 
             AA = 0, 
             AK = 0,
@@ -295,9 +289,8 @@ A_init <- c(AP = 0,
             AFil = 0,
             AUr = 0, 
             AR = 0, 
-            AEx_feces = 0 #, 
-            #Input = 0
-            )
+            AEx_feces = 0, 
+            Input = 0)
 
 
 ## Solving the model ####
@@ -306,80 +299,19 @@ output_PFOA <- lsoda(y = A_init,
                      func = PBPKmodPFOA_M, 
                      parms = parms)
 output.PFOA.df <- as.data.frame(output_PFOA) 
-# output.df <- Final_variables_M_df %>%
-#   rename(time = TIME) %>%
-#   left_join(output.PFOA.df) %>% 
-#   mutate(time = time/365) %>% 
-#   rename(Years = time) #%>% 
-#   filter(Years <= 80) #according to sim_stop
+output.df <- Final_variables_M_df %>%
+  rename(time = TIME) %>%
+  left_join(output.PFOA.df) %>% 
+  mutate(time = time/365) %>% 
+  rename(Years = time) %>% 
+  filter(Years <= 80) #according to sim_stop
 
-# # RESULTS ####
-# # ---------------------------------------------------------------------------- #
-# 
-# # PFOA in plasma of one individual
-# Plot_PFOA_Plasma <- ggplot()+
-#   geom_path(data = output.df, aes(x = Years, y = CP))+
-#   theme_CP()+
-#   # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-#   ylab("Plasma (ng/ml)")
-# 
-# Plot_PFOA_Plasma
-# ggsave("PlasmaConcentration.png", dpi = 300)
-# 
-# 
-# # PFOA in Kidney of one individual
-# Plot_PFOA_Kidney <- ggplot()+
-#   geom_path(data = output.df, aes(x = Years, y = CK, color="Kidney"))+
-#   # geom_path(data = output.df, aes(x = Years, y = CKP, color="Kidney plasma"))+
-#   # geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
-#   geom_path(data = output.df, aes(x = Years, y = CFil, color="Filtrate"))+
-#   theme_CP()+
-#   # theme(axis.text.x = element_text(size = 7),
-#   #       axis.text.y = element_text(size = 7),
-#   #       axis.title = element_text(size = 8)) +
-#   ylab("Kidney Compartments (ng/ml)") +
-#   scale_color_manual(values = c("Kidney" = "lightblue",
-#                                 # "Kidney plasma" = "lightblue",
-#                                 # "Kidney tissue" = "blue",
-#                                 "Filtrate" = "darkblue"))
-# 
-# Plot_PFOA_Kidney
-# ggsave("KidneyConcentrations.png", dpi = 300)
-# 
-# 
-# # PFOA in all organs of one individual
-# Plot_PFOA_All <- output.df %>% 
-#   # mutate(CK = CKP + CKT) %>% 
-#   select(Years, CK, CSk, CL, CG, CA, CR, CP) %>% 
-#   rename(Kidney = CK, Skin = CSk, Liver = CL, Gut = CG, Adipose = CA, Rest = CR, Plasma = CP) %>% 
-#   pivot_longer(names_to = "Organ", values_to = "Concentration", Kidney:Plasma) %>% 
-#   ggplot()+
-#   geom_path(aes(x = Years, y = Concentration, color = Organ)) +
-#   facet_wrap(~ Organ)+
-#   theme_CP()+
-#   theme(legend.position = "none")+
-#   # theme(axis.text.x = element_text(size = 7),
-#   #       axis.text.y = element_text(size = 7), 
-#   #       axis.title = element_text(size = 8)) +
-#   ylab("Organ Concentration (ng/ml)")
-# 
-# Plot_PFOA_All
-# ggsave("OrganConcentrations.png", dpi = 300)
-# 
-# 
-
-
-# RESULTS FOR STUDY OF 1 INDIVIDUAL####
+# RESULTS ####
 # ---------------------------------------------------------------------------- #
-
-output.PFOA.df <- output.PFOA.df %>% 
-  # mutate(time = time/365) %>% 
-  rename(Days = time)
-
 
 # PFOA in plasma of one individual
 Plot_PFOA_Plasma <- ggplot()+
-  geom_path(data = output.PFOA.df, aes(x = Days, y = CP))+
+  geom_path(data = output.df, aes(x = Years, y = CP))+
   theme_CP()+
   # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
   ylab("Plasma (ng/ml)")
@@ -390,10 +322,10 @@ ggsave("PlasmaConcentration.png", dpi = 300)
 
 # PFOA in Kidney of one individual
 Plot_PFOA_Kidney <- ggplot()+
-  geom_path(data = output.PFOA.df, aes(x = Days, y = CK, color="Kidney"))+
-  # geom_path(data = output.PFOA.df, aes(x = Days, y = CKP, color="Kidney plasma"))+
-  # geom_path(data = output.PFOA.df, aes(x = Days, y = CKT, color="Kidney tissue"))+
-  geom_path(data = output.PFOA.df, aes(x = Days, y = CFil, color="Filtrate"))+
+  geom_path(data = output.df, aes(x = Years, y = CK, color="Kidney"))+
+  # geom_path(data = output.df, aes(x = Years, y = CKP, color="Kidney plasma"))+
+  # geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
+  geom_path(data = output.df, aes(x = Years, y = CFil, color="Filtrate"))+
   theme_CP()+
   # theme(axis.text.x = element_text(size = 7),
   #       axis.text.y = element_text(size = 7),
@@ -409,13 +341,13 @@ ggsave("KidneyConcentrations.png", dpi = 300)
 
 
 # PFOA in all organs of one individual
-Plot_PFOA_All <- output.PFOA.df %>% 
+Plot_PFOA_All <- output.df %>% 
   # mutate(CK = CKP + CKT) %>% 
-  select(Days, CK, CSk, CL, CG, CA, CR, CP) %>% 
+  select(Years, CK, CSk, CL, CG, CA, CR, CP) %>% 
   rename(Kidney = CK, Skin = CSk, Liver = CL, Gut = CG, Adipose = CA, Rest = CR, Plasma = CP) %>% 
   pivot_longer(names_to = "Organ", values_to = "Concentration", Kidney:Plasma) %>% 
   ggplot()+
-  geom_path(aes(x = Days, y = Concentration, color = Organ)) +
+  geom_path(aes(x = Years, y = Concentration, color = Organ)) +
   facet_wrap(~ Organ)+
   theme_CP()+
   theme(legend.position = "none")+
@@ -428,17 +360,15 @@ Plot_PFOA_All
 ggsave("OrganConcentrations.png", dpi = 300)
 
 
-
-
-
 # EVALUATION Vs InVivo ####
 # ---------------------------------------------------------------------------- #
 
-## Half life ####
 
-conc <- output.PFOA.df$CP
-time <- output.PFOA.df$Days #Years
-Tmax <- time[which.max(conc)]
+# Half life
+
+conc <- output.df$CP     
+time <- output.df$Years       
+Tmax <- time[which.max(conc)] 
 tlast <- max(time[conc > 0])
 
 # Calculate half-life
@@ -449,63 +379,40 @@ half_life <- pk.calc.half.life(
   tlast
 )
 
-# Experimental
-ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv")
+# Experimental 
+ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv") 
 
-Exp_HalfLifes <- ExpData %>%
+Exp_HalfLifes <- ExpData %>% 
   filter(species == "human",
-         chemical == "pfoa",
-         parameter== "HalfLife") %>%
-  select(value_average) %>%
+         chemical == "pfoa", 
+         parameter== "HalfLife") %>% 
+  select(value_average) %>% 
   rename(HalfLife = value_average)
-Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife)
+Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife) 
 
 Predicted.df <- data.frame(
-  HalfLife = half_life$half.life,
-  Origin = "Predicted",
+  HalfLife = half_life$half.life, 
+  Origin = "Predicted", 
   value = 1)
 Experimental.df <- data.frame(
-  HalfLife = Exp_HalfLifes$HalfLife,
-  Origin = "Experimental",
-  value = 1)
+  HalfLife = Exp_HalfLifes$HalfLife, 
+  Origin = "Experimental", 
+  value = 1) 
 
-HalfLifes <- rbind(Predicted.df, Experimental.df)
+HalfLifes <- rbind(Predicted.df, Experimental.df) 
 
-Plot_HalfLifes <- HalfLifes %>%
+Plot_HalfLifes <- HalfLifes %>% 
   ggplot()+
   geom_violin(data = Experimental.df, aes(value, HalfLife),
               color = "transparent",
               fill = "grey")+
-  geom_point(data = Predicted.df, aes(value, HalfLife),
+  geom_point(data = Predicted.df, aes(value, HalfLife), 
              color = "slateblue3", size = 5, shape = 18) +
   ylab("Half life (years)") +
   theme_CP() +
   theme(axis.text.x=element_blank(), #remove x axis labels
       axis.ticks.x=element_blank(), #remove x axis ticks
       axis.title.x = element_blank()
-      )
+      ) 
 Plot_HalfLifes
 ggsave("ExpVsSimHalfLife.png", dpi = 300)
-
-
-## Plasma concentrations ####
-ExpPlasma <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.csv")
-
-ExpPlasma <- ExpPlasma %>% 
-  # mutate(Years = Time_days/365) %>% 
-  # select(!Time_days) %>% 
-  rename(Days = Time_days) %>% 
-  rename(CP = Plasma_concentration_ngPerml) %>% 
-  filter(Days <=TSTOP)
-
-
-Plot_Plasma <- ggplot()+
-  geom_path(data = output.PFOA.df, aes(x = Days, y = CP), color = "aquamarine")+
-  geom_point(data = ExpPlasma, aes(x = Days, y = CP), color = "black")+
-  theme_CP()+
-  # scale_color_manual(values = c("Simulated" = "aquamarine",
-  #                               "Experimental" = "black")) +
-  # # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-  ylab("Plasma (ng/ml)")
-Plot_Plasma
-ggsave("PlasmaExpVsPredicted.png", dpi = 300)
