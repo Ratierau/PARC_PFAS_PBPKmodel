@@ -1,0 +1,15 @@
+Tissue,f_SL,f_ML,f_ALB,f_SP,f_W,f_FABP
+Adipose,0.798,0.0478,0.0009,0.05,0.153,0
+Brain,0.045,0.0553,0,0.08,0.771,0
+Gut,0.047,0.0126,0.0007,0.13,0.79,0
+Heart,0.089,0.0079,0.0009,0.17,0.742,0
+Kidney,0.036,0.0166,0.0014,0.1667,0.778,0.0033
+Liver,0.037,0.0115,0.0012,0.1769,0.737,0.0031
+Lung,0.003,0.0056,0.0027,0.18,0.796,0
+Muscle,0.013,0.0092,0.0009,0.17,0.773,0
+Skin,0.036,0.0502,0.0018,0.29,0.667,0
+Spleen,0.014,0.0103,0.0013,0.19,0.783,0
+Blood,0.003,0.0039,0.0176,0.1624,0.807,0
+Plasma,0.003,0.005,0.0294,0.0221,0.928,0
+Gonads,0,0.0107,0.0008,0.12,0.81,0
+Comment,storage lipids are total fat - total phospholipids (neutral + acidic),membrane lipids is neutral phospholipids,albimin in interstitial space,,,

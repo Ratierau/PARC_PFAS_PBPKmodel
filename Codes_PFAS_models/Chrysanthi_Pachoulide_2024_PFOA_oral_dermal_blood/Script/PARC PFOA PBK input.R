@@ -57,8 +57,7 @@ theme_CP <- function() {
 # ------------------------------------------------------ #
 # To directly call .csv files instead of re-running the life-stage code below everytime
 PhysioVariables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-14/PhysioVariablesMale.csv") %>% as.data.frame()
-PhysioVariables_F_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-14/PhysioVariablesFemale.csv") %>% as.data.frame()
-
+# PhysioVariables_F_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-14/PhysioVariablesFemale.csv") %>% as.data.frame()
 
 # PFOA
 MW = 414.07
@@ -72,19 +71,28 @@ fup = 0.061/100 # Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415; O
 
 # These are the values from Trine's model
 # Note Chrysa 24-20-2024: plasma/tissue partition coefficients to be changed using the Allendorf paper:  https://doi.org/10.1002/etc.4954
-PL = 2.2  # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007
 PF = 0.04  # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007
+PG = 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007 %>%
 PK = 1.05  # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007
+PL = 2.2  # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007
 PSk = 0.1  # Plasma/skin partition coefficient; Rat tissue data (Kudo et al. 2007
 PR = 0.12  # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007
-PG = 0.05  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007 %>%
 
+# Calculated partition coefficients
+Kp.df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-12-04/2024-12-04 11-08-35.40663/PFOAPBK.PartCoefs.csv") %>% as.data.frame()
+
+KpAd = Kp.df$KpAd
+KpGu = Kp.df$KpGu
+KpKi = Kp.df$KpKi
+KpLi = Kp.df$KpLi
+KpSk = Kp.df$KpSk
+KpRe = Kp.df$KpRe
 
 # Dermal absorption
 
 # Comment Chrysa 21-10-2024: AbsPFOA is used in the Dermaldose input so we're already correcting before using the Papp?! not sure I agree with this
 fBAc_dust = 69.6/100 # 69.6±5 # Fraction bio accessible from dust; Ragnarsdottir et al.: https://doi.org/10.1016/j.envres.2023.117093; fraction bioaccessible = fraction of the compound released from the matrix (cosmetic formulation dust etc and is available to be absorbed from the epidermis
-fBAc_cosm = 97.8/100 # 97.8±19.0 !! this is an estimated value, based on [PFOA]_cosmetics and the LOQ # Fraction bio accessible from cosmetics; Namazkar et al.: DOI: 10.1039/d3em00461a 
+fBAc_cosm = 97.8/100 # 97.8±19.0 !! this is an estimated value, based on [PFOA]_cosmetics and the LOQ # Fraction bio accessible from cosmetics; Namazkar et al.: DOI: 10.1039/d3em00461a
 AbsPFOA = 0.016 # from Trine; 0.00048 # Changed to the absorption measured by Abraham and Monien 2022 of 1.6% of applied dose from sunscreen.
 Papp = 3.82 * 10^-3 # cm/h ref: https://doi.org/10.1016/j.envint.2024.108772
 
@@ -107,11 +115,11 @@ CL_OAT4 = 96/ 10^-6 *60*24 * 10^-6 # L/d/kg protein; initial ul/min/mg protein
 
 PTCPGK = 9.94* 10^7 * 10^3 # proximal tubule cells/kg kidney cortex; initial 99.4 million PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c00504
 
-InVivo_OAT1 = 5.3 # 5.3 ± 1.9 OAT1 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; alternative : 4.3 ± 0.3 pmol OAT1 /mg membrane protein in the human kidney cortex https://doi.org/10.1124/dmd.121.000367; 
+InVivo_OAT1 = 5.3 # 5.3 ± 1.9 OAT1 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; alternative : 4.3 ± 0.3 pmol OAT1 /mg membrane protein in the human kidney cortex https://doi.org/10.1124/dmd.121.000367;
 InVitro_OAT1 = 26.6 # 26.6 ± 3.4 pmol/mg membrane protein: OAT1 expression in HEK293-OAT1 cells https://doi.org/10.1124/dmd.121.000367;
 InVivo_OAT3 = 3.5 # 3.5 ± 1.6 OAT3/mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; alternative : 2.7 ± 0.1 pmol OAT3 /mg membrane protein in the human kidney cortex https://doi.org/10.1124/dmd.121.000367;
-InVitro_OAT3 = 7.3 # 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT1 cells https://doi.org/10.1124/dmd.121.000367; 
-InVivo_OAT4 = 0.52 # 0.52 ± 0.23 pmol OAT4 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066; 
+InVitro_OAT3 = 7.3 # 7.3 ± 0.5 pmol/mg membrane protein: OAT3 expression in HEK293-OAT1 cells https://doi.org/10.1124/dmd.121.000367;
+InVivo_OAT4 = 0.52 # 0.52 ± 0.23 pmol OAT4 /mg membrane protein in the human kidney cortex http://dx.doi.org/10.1124/dmd.116.072066;
 # InVitro_OAT4 = (InVitro_OAT1 + InVitro_OAT3)/2 # OAT4 expression in HEK293-OAT4 cells not found so assuming average of OAT1 and OAT3 expression
 
 
@@ -167,7 +175,7 @@ write.csv(Final_variables_M_df, "Final_variables_M.csv", row.names = FALSE)
 
 # Female
 Final_variables_F_df <- PhysioVariables_F_df %>%
-  
+
   # Independent variables
   mutate(
     AbsPFOA = AbsPFOA, # fraction absorbed, from Trine
@@ -183,10 +191,10 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
     PR = PR,  # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007)
     PG = PG  # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007)
   ) %>%
-  
+
   # Dermal absorption
   mutate(CLdermalabs_F = ((Papp*SA_hands_F)/1000)*24) %>% # (L/d); cm/h*cm^2 = mL/h /1000 = L/h * 24 = L/d
-  
+
   # Kidney clearance
   mutate(# CL_PltPT_F = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * PTC_kidneyTissue_F, # L/d plasma to proximal tubule clearance
     CL_PltPT_F = ((CL_OAT1*REF_OAT1) + (CL_OAT3*REF_OAT3)) * 0.17 * 0.7 * V_kidney_F,# L/d scaling for protein content instead of cell content; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though; double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
@@ -195,10 +203,10 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
     # Trine's values
     # CLurine_F = CLurinec*BDW_F^(-0.25) #from Husoy; L/d clearance urine
   ) %>%
-  
+
   # Biliary clearance
   mutate(CLbiliary_F = CLbiliaryc*(BDW_F^0.1)) %>% #from Husoy; L/d biliary clearance rate
-  
+
   # Fecal clearance
   mutate(CLfecal_F = CLfaecesc*(BDW_F^0.001)) #from Husoy; L/d faeces clearance rate
 
@@ -206,117 +214,117 @@ write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 
 
 
-# # PFAS MODEL SPECIFIC PHYSIOLOGICAL DATA ####
-# # Call .csv files instead of re-running the life-stage code below everytime
-# MaleVariables_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-12/MaleVariables.csv") %>% as.data.frame()
-# FemaleVariables_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-12/FemaleVariables.csv") %>% as.data.frame()
-# 
-# # Model compartments: Skin (Barrier and Skin -to become Plasma and Tissue-), Kidney (Plasma, Tissue, Filtrate), Gut, Liver, Plasma, Adipose
-# 
-# # Male
-# PhysioVariables_M_df = MaleVariables_df %>%
-# 
-#   # Rest compartment: lumps all organs that are not specified in the model
-#   mutate(V_rest_M = TotalVolume_M - rowSums(
-#     select(., starts_with("V_")) %>%
-#       select(contains(c("skin", "kidney", "gut", "liver", "plasma", "adipose")))
-#     )) %>%
-#   mutate(Q_rest_M = TotalBloodFlow_M - rowSums(
-#     select(., starts_with("Q_")) %>%
-#       select(contains(c("skin", "kidney", "gut", "liver", "adipose")))
-#   )) %>%
-# 
-#   # Comment Chrysa 12-11-2024: Adding hepatic artery blood flow
-#   mutate(Q_hepatic_M = rowSums( # hepatic artery = liver blood flow + portal blood flow
-#     select(., starts_with("Q_")) %>%
-#       select(contains(c("liver", "gut"))) # Q spleen, stomach, gut and pancreas is the portal artery blood flow to the liver; ignoring spleen, stomach and pancreas as they are not explicit compartments of the model
-#   )) %>%
-# 
-#   # Kidney compartment is permeability limited => divided in Plasma, Tissue, Filtrate and Urine compartments
-#   # Comment Chrysa 12-11-2024: I think the blood volume be corrected with Hct also to call it plasma right?!
-#   mutate(V_kidneyPlasma_M = V_kidney_M*0.36, # Volume fraction of blood in the kidneys 0.36+-0.01 [Brown 1997 table 30]
-#          V_kidneyTissue_M = V_kidney_M*0.64,
-#          V_filtrate_M = V_kidney_M*0.05, # Kidney filtrate compartment, corresponds to the volume of the collecting system in [ICRP 89 page 149] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-#          QUr_M = 0.022*BDW_M, # L/d, Urine flow rate to the bladder 22 mL/kg BW/d [ICRP 89 page 161]
-#          GFR_M = 0.18*Q_kidney_M, # L/d, Glomerular filtration rate 18% of total renal plasma flow [ICRP 89 page 159] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-#          # Needed for scaling clearances
-#          # Comment Chrysa 12-11-2024: these scaling factors assume that the cellularity of the kidneys is constant through the lifestages
-#          KW_cortex_M = 0.7*V_kidney_M, # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242
-#          PTCPGK = 99.4 / 1000, # proximal tubule cells/kg kidney cortex initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c0050
-#          PTC_kidneyTissue_M = PTCPGK*KW_cortex_M #actual number of cells in the kidney
-#          ) %>%
-# 
-#   # Skin compartment  
-#   mutate(# Needed for scaling Papp
-#          # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_M parameter in the future..
-#          SA_skin_M = 9.1*((BDW_M*1000)^0.666), # Used to be called SkbTarea_M; Total surface area of the skin; taken from Trine's model
-#          SA_hands_M = 0.05*SA_skin_M, # Used to be called fSkbarea_M; 0.05 used to be called skin_fraction; Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
-#          Skb_thickness_M = 83.1/1000, # Used to be called Skbthickness_M (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1 
-#          V_skinBarrier_M = (SA_hands_M*Skb_thickness_M)/1000, # (L); Skin barrier volume; as previously coded by Trine
-#          
-#          # Permeability limited skin compartment => divided in Plasma and Tissue compartments; for future use
-#          V_skinPlasma_M = V_skin_M*0.08, # Not used yet; to be used when updating skin. Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
-#          V_skinTissue_M = V_skin_M*0.92 # Not used yet; to be used when updating skin.
-#                   ) %>% 
-#   
-#   select(TIME, age,
-#          BDW_M, TotalVolume_M, Hct_M, CardOut_M, TotalBloodFlow_M,
-#          QUr_M, GFR_M, PTC_kidneyTissue_M, SA_hands_M,
-#          contains(c("skin", "kidney", "filtrate", "gut", "liver", "hepatic", "plasma", "adipose", "rest")))
-# write.csv(PhysioVariables_M_df, "PhysioVariablesMale.csv", row.names = FALSE)
-# 
-# 
-# # Female
-# PhysioVariables_F_df = FemaleVariables_df %>%
-#   
-#   # Rest compartment: lumps all organs that are not specified in the model
-#   mutate(V_rest_F = TotalVolume_F - rowSums(
-#     select(., starts_with("V_")) %>%
-#       select(contains(c("skin", "kidney", "gut", "liver", "plasma", "adipose")))
-#   )) %>%
-#   mutate(Q_rest_F = TotalBloodFlow_F - rowSums(
-#     select(., starts_with("Q_")) %>%
-#       select(contains(c("skin", "kidney", "gut", "liver", "adipose")))
-#   )) %>%
-#   
-#   # Comment Chrysa 12-11-2024: Adding hepatic artery blood flow
-#   mutate(Q_hepatic_F = rowSums( # hepatic artery = liver blood flow + portal blood flow
-#     select(., starts_with("Q_")) %>%
-#       select(contains(c("liver", "gut"))) # Q spleen, stomach, gut and pancreas is the portal artery blood flow to the liver; ignoring spleen, stomach and pancreas as they are not explicit compartments of the model
-#   )) %>%
-#   
-#   # Kidney compartment is permeability limited => divided in Plasma, Tissue, Filtrate and Urine compartments
-#   # Comment Chrysa 12-11-2024: I think the blood volume be corrected with Hct also to call it plasma right?!
-#   mutate(V_kidneyPlasma_F = V_kidney_F*0.36, # Volume fraction of blood in the kidneys 0.36+-0.01 [Brown 1997 table 30]
-#          V_kidneyTissue_F = V_kidney_F*0.64,
-#          V_filtrate_F = V_kidney_F*0.05, # Kidney filtrate compartment, corresponds to the volume of the collecting system in [ICRP 89 page 149] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-#          QUr_F = 0.022*BDW_F, # L/d, Urine flow rate to the bladder 22 mL/kg BW/d [ICRP 89 page 161]
-#          GFR_F = 0.18*Q_kidney_F, # L/d, Glomerular filtration rate 18% of total renal plasma flow [ICRP 89 page 159] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-#          # Needed for scaling clearances
-#          # Comment Chrysa 12-11-2024: these scaling factors assume that the cellularity of the kidneys is constant through the lifestages
-#          KW_cortex_F = 0.7*V_kidney_F, # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242
-#          PTCPGK = 99.4 / 1000, # proximal tubule cells/kg kidney cortex initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c0050
-#          PTC_kidneyTissue_F = PTCPGK*KW_cortex_F #actual number of cells in the kidney
-#   ) %>%
-#   
-#   # Skin compartment  
-#   mutate(# Needed for scaling Papp
-#     # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_F parameter in the future..
-#     SA_skin_F = 9.1*((BDW_F*1000)^0.666), # Used to be called SkbTarea_F; Total surface area of the skin; taken from Trine's model
-#     SA_hands_F = 0.05*SA_skin_F, # Used to be called fSkbarea_F; 0.05 used to be called skin_fraction; Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
-#     Skb_thickness_F = 83.1/1000, # Used to be called Skbthickness_F (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1 
-#     V_skinBarrier_F = (SA_hands_F*Skb_thickness_F)/1000, # (L); Skin barrier volume; as previously coded by Trine
-#     
-#     # Permeability limited skin compartment => divided in Plasma and Tissue compartments; for future use
-#     V_skinPlasma_F = V_skin_F*0.08, # Not used yet; to be used when updating skin. Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
-#     V_skinTissue_F = V_skin_F*0.92 # Not used yet; to be used when updating skin.
-#   ) %>% 
-#   
-#   select(TIME, age,
-#          BDW_F, TotalVolume_F, Hct_F, CardOut_F, TotalBloodFlow_F,
-#          QUr_F, GFR_F, PTC_kidneyTissue_F, SA_hands_F,
-#          contains(c("skin", "kidney", "filtrate", "gut", "liver", "hepatic", "plasma", "adipose", "rest")))
-# write.csv(PhysioVariables_F_df, "PhysioVariablesFemale.csv", row.names = FALSE)
+# PFAS MODEL SPECIFIC PHYSIOLOGICAL DATA ####
+# Call .csv files instead of re-running the life-stage code below everytime
+MaleVariables_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-12/MaleVariables.csv") %>% as.data.frame()
+FemaleVariables_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-12/FemaleVariables.csv") %>% as.data.frame()
+
+# Model compartments: Skin (Barrier and Skin -to become Plasma and Tissue-), Kidney (Plasma, Tissue, Filtrate), Gut, Liver, Plasma, Adipose
+
+# Male
+PhysioVariables_M_df = MaleVariables_df %>%
+  
+  # Rest compartment: lumps all organs that are not specified in the model
+  mutate(V_rest_M = TotalVolume_M - rowSums(
+    select(., starts_with("V_")) %>%
+      select(contains(c("skin", "kidney", "gut", "liver", "plasma", "adipose")))
+    )) %>%
+  mutate(Q_rest_M = TotalBloodFlow_M - rowSums(
+    select(., starts_with("Q_")) %>%
+      select(contains(c("skin", "kidney", "gut", "liver", "adipose")))
+  )) %>%
+
+  # Comment Chrysa 12-11-2024: Adding hepatic artery blood flow
+  mutate(Q_hepatic_M = rowSums( # hepatic artery = liver blood flow + portal blood flow
+    select(., starts_with("Q_")) %>%
+      select(contains(c("liver", "gut"))) # Q spleen, stomach, gut and pancreas is the portal artery blood flow to the liver; ignoring spleen, stomach and pancreas as they are not explicit compartments of the model
+  )) %>%
+
+  # Kidney compartment is permeability limited => divided in Plasma, Tissue, Filtrate and Urine compartments
+  # Comment Chrysa 12-11-2024: I think the blood volume be corrected with Hct also to call it plasma right?!
+  mutate(V_kidneyPlasma_M = V_kidney_M*0.36, # Volume fraction of blood in the kidneys 0.36+-0.01 [Brown 1997 table 30]
+         V_kidneyTissue_M = V_kidney_M*0.64,
+         V_filtrate_M = V_kidney_M*0.05, # Kidney filtrate compartment, corresponds to the volume of the collecting system in [ICRP 89 page 149] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+         QUr_M = 0.022*BDW_M, # L/d, Urine flow rate to the bladder 22 mL/kg BW/d [ICRP 89 page 161]
+         GFR_M = 0.18*Q_kidney_M, # L/d, Glomerular filtration rate 18% of total renal plasma flow [ICRP 89 page 159] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+         # Needed for scaling clearances
+         # Comment Chrysa 12-11-2024: these scaling factors assume that the cellularity of the kidneys is constant through the lifestages
+         KW_cortex_M = 0.7*V_kidney_M, # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242
+         PTCPGK = 99.4 / 1000, # proximal tubule cells/kg kidney cortex initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c0050
+         PTC_kidneyTissue_M = PTCPGK*KW_cortex_M #actual number of cells in the kidney
+         ) %>%
+
+  # Skin compartment
+  mutate(# Needed for scaling Papp
+         # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_M parameter in the future..
+         SA_skin_M = 9.1*((BDW_M*1000)^0.666), # Used to be called SkbTarea_M; Total surface area of the skin; taken from Trine's model
+         SA_hands_M = 0.05*SA_skin_M, # Used to be called fSkbarea_M; 0.05 used to be called skin_fraction; Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+         Skb_thickness_M = 83.1/1000, # Used to be called Skbthickness_M (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
+         V_skinBarrier_M = (SA_hands_M*Skb_thickness_M)/1000, # (L); Skin barrier volume; as previously coded by Trine
+
+         # Permeability limited skin compartment => divided in Plasma and Tissue compartments; for future use
+         V_skinPlasma_M = V_skin_M*0.08, # Not used yet; to be used when updating skin. Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
+         V_skinTissue_M = V_skin_M*0.92 # Not used yet; to be used when updating skin.
+                  ) %>%
+
+  select(TIME, age,
+         BDW_M, TotalVolume_M, Hct_M, CardOut_M, TotalBloodFlow_M,
+         QUr_M, GFR_M, PTC_kidneyTissue_M, SA_hands_M,
+         contains(c("skin", "kidney", "filtrate", "gut", "liver", "hepatic", "plasma", "adipose", "rest")))
+write.csv(PhysioVariables_M_df, "PhysioVariablesMale.csv", row.names = FALSE)
+
+
+# Female
+PhysioVariables_F_df = FemaleVariables_df %>%
+
+  # Rest compartment: lumps all organs that are not specified in the model
+  mutate(V_rest_F = TotalVolume_F - rowSums(
+    select(., starts_with("V_")) %>%
+      select(contains(c("skin", "kidney", "gut", "liver", "plasma", "adipose")))
+  )) %>%
+  mutate(Q_rest_F = TotalBloodFlow_F - rowSums(
+    select(., starts_with("Q_")) %>%
+      select(contains(c("skin", "kidney", "gut", "liver", "adipose")))
+  )) %>%
+
+  # Comment Chrysa 12-11-2024: Adding hepatic artery blood flow
+  mutate(Q_hepatic_F = rowSums( # hepatic artery = liver blood flow + portal blood flow
+    select(., starts_with("Q_")) %>%
+      select(contains(c("liver", "gut"))) # Q spleen, stomach, gut and pancreas is the portal artery blood flow to the liver; ignoring spleen, stomach and pancreas as they are not explicit compartments of the model
+  )) %>%
+
+  # Kidney compartment is permeability limited => divided in Plasma, Tissue, Filtrate and Urine compartments
+  # Comment Chrysa 12-11-2024: I think the blood volume be corrected with Hct also to call it plasma right?!
+  mutate(V_kidneyPlasma_F = V_kidney_F*0.36, # Volume fraction of blood in the kidneys 0.36+-0.01 [Brown 1997 table 30]
+         V_kidneyTissue_F = V_kidney_F*0.64,
+         V_filtrate_F = V_kidney_F*0.05, # Kidney filtrate compartment, corresponds to the volume of the collecting system in [ICRP 89 page 149] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+         QUr_F = 0.022*BDW_F, # L/d, Urine flow rate to the bladder 22 mL/kg BW/d [ICRP 89 page 161]
+         GFR_F = 0.18*Q_kidney_F, # L/d, Glomerular filtration rate 18% of total renal plasma flow [ICRP 89 page 159] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
+         # Needed for scaling clearances
+         # Comment Chrysa 12-11-2024: these scaling factors assume that the cellularity of the kidneys is constant through the lifestages
+         KW_cortex_F = 0.7*V_kidney_F, # Kg kidney cortexes, only scaling to kidney cortex volume as proximal tubule cells are in the cortex; 70% of the total kidney volume according to ICRP89; PT are in the cortex https://doi.org/10.1021/acs.molpharmaceut.4c00504; alternatively we could have 68% of kidney weight https://doi.org/10.1124/dmd.117.075242
+         PTCPGK = 99.4 / 1000, # proximal tubule cells/kg kidney cortex initial PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c0050
+         PTC_kidneyTissue_F = PTCPGK*KW_cortex_F #actual number of cells in the kidney
+  ) %>%
+
+  # Skin compartment
+  mutate(# Needed for scaling Papp
+    # Comment Chrysa 12-11-2024: According to ICRP 89 page 64 skin surface area depends on both height and BDW. Consider changing SA_skin_F parameter in the future..
+    SA_skin_F = 9.1*((BDW_F*1000)^0.666), # Used to be called SkbTarea_F; Total surface area of the skin; taken from Trine's model
+    SA_hands_F = 0.05*SA_skin_F, # Used to be called fSkbarea_F; 0.05 used to be called skin_fraction; Surface area of the hands; hands are 5% https://www.epa.gov/sites/default/files/2015-09/documents/efh-chapter07.pdf
+    Skb_thickness_F = 83.1/1000, # Used to be called Skbthickness_F (cm) ref: DOI: 10.1080/00015550310015419; in Husoy this was 0.1
+    V_skinBarrier_F = (SA_hands_F*Skb_thickness_F)/1000, # (L); Skin barrier volume; as previously coded by Trine
+
+    # Permeability limited skin compartment => divided in Plasma and Tissue compartments; for future use
+    V_skinPlasma_F = V_skin_F*0.08, # Not used yet; to be used when updating skin. Volume fraction of blood in skin 0.08 [Brown 1997 table 30]
+    V_skinTissue_F = V_skin_F*0.92 # Not used yet; to be used when updating skin.
+  ) %>%
+
+  select(TIME, age,
+         BDW_F, TotalVolume_F, Hct_F, CardOut_F, TotalBloodFlow_F,
+         QUr_F, GFR_F, PTC_kidneyTissue_F, SA_hands_F,
+         contains(c("skin", "kidney", "filtrate", "gut", "liver", "hepatic", "plasma", "adipose", "rest")))
+write.csv(PhysioVariables_F_df, "PhysioVariablesFemale.csv", row.names = FALSE)
 
 
 # # LIFETIME EQUATIONS ####
