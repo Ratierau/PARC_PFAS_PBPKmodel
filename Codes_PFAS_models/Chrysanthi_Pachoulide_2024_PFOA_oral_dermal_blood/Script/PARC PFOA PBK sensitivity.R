@@ -45,12 +45,12 @@ Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen Univers
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 50*365         # days
-sim_stop <- 80*365 # 80*365     # days
+exposure_stop <- 1 #50*365         # days
+sim_stop <- 2 #80*365 # 80*365     # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
-DT <- 1                         # days
+DT <- 0.1                         # days
 TIME <- seq(TSTART,TSTOP,by=DT)
 
 

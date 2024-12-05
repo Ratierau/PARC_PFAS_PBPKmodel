@@ -26,7 +26,7 @@ setwd(OUTPUT)
 library(ggplot2)
 library(deSolve)
 library(tidyverse)
-library(PKNCA)
+library(FME)
 
 # For plotting
 library(showtext)
@@ -35,9 +35,9 @@ showtext_auto()
 theme_CP <- function() {
   theme_bw()+
     theme(
-      text = element_text(size = 22, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
-      axis.title = element_text(size = 20),
-      axis.text = element_text(size = 20),
+      text = element_text(size = 32, lineheight = unit(0.5, "lines")), # lineheight is adjusting the space between lines
+      axis.title = element_text(size = 30),
+      axis.text = element_text(size = 30),
       axis.line = element_blank(),
       plot.margin = margin(0.2, 0.2, 0.2, 0.2, "cm"),
       panel.border = element_blank(), 
@@ -62,8 +62,8 @@ Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen Univers
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-exposure_stop <- 50*365         # days
-sim_stop <- 80*365 # 80*365     # days
+exposure_stop <- 1 #50*365         # days
+sim_stop <- 5 #80*365 # 80*365     # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
@@ -295,22 +295,7 @@ A_init <- c(AP = 0,
             Input = 0)
 
 
-## Solving the model ####
-output_PFOA <- lsoda(y = A_init, 
-                     times = TIME, 
-                     func = PBPKmodPFOA_M, 
-                     parms = parms)
-output.PFOA.df <- as.data.frame(output_PFOA) 
-output.df <- Final_variables_M_df %>%
-  rename(time = TIME) %>%
-  left_join(output.PFOA.df) %>% 
-  mutate(time = time/365) %>% 
-  rename(Years = time) %>% 
-  filter(Years <= 80) #according to sim_stop
-
-
-
-## LOCAL SENSITIVITY ANALYSIS ####
+# LOCAL SENSITIVITY ANALYSIS ####
 
 pars <- parms %>%  as.list()
 
@@ -328,16 +313,10 @@ SENSI_SOLVE <- function(pars) {
 
 SENSI_OUT <- SENSI_SOLVE(pars) #saving the results of the model used for Sensitivity Analysis
 
-#All parameters
-SENSI_all <- sensFun(
-  func = SENSI_SOLVE,
-  parms = pars, 
-  tiny = 0.1)
+## Sensitivity on all the variables ####
+
+SENSI_all <- sensFun(func = SENSI_SOLVE, parms = pars, tiny = 0.1)
 head(SENSI_all)
-
-## Analysing the sensitivity on all the variables ####
-## ------------------------------------------------------
-
 summary(SENSI_all)
 
 # value : the nominal value of the parameter
@@ -360,49 +339,27 @@ DF_summary_SENSI_all <- DF_summary_SENSI_all %>%  select(Mean) %>%
 DF_summary_SENSI_all %>% 
   ggplot(aes(x = Mean, y = Parameter)) +
   geom_bar(stat = "identity") +
-  coord_flip() + # Flip coordinates for better readability if there are many parameters
+  coord_flip() + 
   labs(x = "Mean Sensitivity coefficient", y = "Parameter") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis text 45 degrees
-  )
-ggsave(here(TodaysOuput, "SENSI_all.png"), dpi = 300)
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("SENSI_all.png")
 
 
 ## Analysing the sensitivity on only one compartment ####
 
-SENSI_CBl <- SENSI_all %>% filter(var == "CBl")
-summary(SENSI_CBl)
+SENSI_CP <- SENSI_all %>% filter(var == "CP")
+summary(SENSI_CP)
 
-DF_summary_SENSI_CBl <- summary(SENSI_CBl) %>% as.data.frame() 
-DF_summary_SENSI_CBl <- DF_summary_SENSI_CBl %>% 
+DF_summary_SENSI_CP <- summary(SENSI_CP) %>% as.data.frame() 
+DF_summary_SENSI_CP <- DF_summary_SENSI_CP %>% 
   select(Mean) %>%
-  mutate(Parameter = rownames(DF_summary_SENSI_CBl))
+  mutate(Parameter = rownames(DF_summary_SENSI_CP))
 
-DF_summary_SENSI_CBl %>% 
+DF_summary_SENSI_CP %>% 
   ggplot(aes(x = Mean, y = Parameter)) +
   geom_bar(stat = "identity") +
-  coord_flip() + # Flip coordinates for better readability if there are many parameters
+  coord_flip() + 
   labs(x = "Mean Sensitivity coefficient", y = "Parameter") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis text 45 degrees
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)  
   ) 
-ggsave(here(TodaysOuput, "SENSI_CBl.png"), dpi = 300)
-
-
-
-## Analysing the sensitivity on only the Blood concentration of Zearalenone glucuronide ####
-## ------------------------------------------------------
-
-SENSI_CBl.glu <- SENSI_all %>% filter(var == "CBl.glu")
-summary(SENSI_CBl.glu)
-
-DF_summary_SENSI_CBl.glu <- summary(SENSI_CBl.glu) %>% as.data.frame() %>% 
-  select(Mean) %>%
-  mutate(Parameter = rownames(DF_summary_SENSI_CBl.glu))
-
-DF_summary_SENSI_CBl.glu %>% 
-  ggplot(aes(x = Mean, y = Parameter)) +
-  geom_bar(stat = "identity") +
-  coord_flip() + # Flip coordinates for better readability if there are many parameters
-  labs(x = "Mean Sensitivity coefficient", y = "Parameter") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis text 45 degrees
-  )
-ggsave(here(TodaysOuput, "SENSI_CBl.gluc.png"), dpi = 300)
+ggsave("SENSI_CP.png")
