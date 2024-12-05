@@ -1,8 +1,9 @@
 # --------------------------------------------------------------------------- #
 # PBK MODEL FOR PFOA, TO BE USED TOGETHER WITH THE LATEST HBM DATA
-# Model File
-# CP, 10-11-2024
+# Local Sensitivity Analysis
+# CP, 05-12-2024
 # --------------------------------------------------------------------------- #
+
 
 rm(list=ls()) # to clear out the global environment
 
@@ -84,7 +85,7 @@ AbsPFOA <- Final_variables_M_df %>%
 Oraldose <- Oralconc*BDW # ug/day
 Dermaldose <- AbsPFOA*Dermconc*BDW # ug/day
 
- 
+
 # PBK MODEL PARAMETERS ####
 # ---------------------------------------------------------------------------- #
 
@@ -219,7 +220,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     # Liver compartment
     dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
-
+    
     # Kidney compartment
     dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*fup*CFil
     # dAKP <- QK*(CP - CVKP) - CL_PltPT*fup*CKP + CL_FiltPT*fup*CKT - CL_PltPT*fup*CKP
@@ -272,7 +273,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            # CVKP = CVKP, 
            CR = CR, CVR = CVR,
            Atot = Atot,MB = MB)
-         )
+    )
   })
 }
 
@@ -307,113 +308,101 @@ output.df <- Final_variables_M_df %>%
   rename(Years = time) %>% 
   filter(Years <= 80) #according to sim_stop
 
-# RESULTS ####
-# ---------------------------------------------------------------------------- #
-
-# PFOA in plasma of one individual
-Plot_PFOA_Plasma <- ggplot()+
-  geom_path(data = output.df, aes(x = Years, y = CP))+
-  theme_CP()+
-  # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
-  ylab("Plasma (ng/ml)")
-
-Plot_PFOA_Plasma
-ggsave("PlasmaConcentration.png", dpi = 300)
 
 
-# PFOA in Kidney of one individual
-Plot_PFOA_Kidney <- ggplot()+
-  geom_path(data = output.df, aes(x = Years, y = CK, color="Kidney"))+
-  # geom_path(data = output.df, aes(x = Years, y = CKP, color="Kidney plasma"))+
-  # geom_path(data = output.df, aes(x = Years, y = CKT, color="Kidney tissue"))+
-  geom_path(data = output.df, aes(x = Years, y = CFil, color="Filtrate"))+
-  theme_CP()+
-  # theme(axis.text.x = element_text(size = 7),
-  #       axis.text.y = element_text(size = 7),
-  #       axis.title = element_text(size = 8)) +
-  ylab("Kidney Compartments (ng/ml)") +
-  scale_color_manual(values = c("Kidney" = "lightblue",
-                                # "Kidney plasma" = "lightblue",
-                                # "Kidney tissue" = "blue",
-                                "Filtrate" = "darkblue"))
+## LOCAL SENSITIVITY ANALYSIS ####
 
-Plot_PFOA_Kidney
-ggsave("KidneyConcentrations.png", dpi = 300)
+pars <- parms %>%  as.list()
+
+SENSI_SOLVE <- function(pars) {
+  
+  PBPKmodPFOA_M
+  
+  state   <- A_init
+  tout    <- TIME
+  
+  out <- ode(y = state, parms = pars, times = TIME, func = PBPKmodPFOA_M)
+  
+  return(as.data.frame(out))
+}
+
+SENSI_OUT <- SENSI_SOLVE(pars) #saving the results of the model used for Sensitivity Analysis
+
+#All parameters
+SENSI_all <- sensFun(
+  func = SENSI_SOLVE,
+  parms = pars, 
+  tiny = 0.1)
+head(SENSI_all)
+
+## Analysing the sensitivity on all the variables ####
+## ------------------------------------------------------
+
+summary(SENSI_all)
+
+# value : the nominal value of the parameter
+# scale : the scale of the parameter
+# L1 : the L1 norm of each parameter's sensitivity function
+# ---> it's the average of the absolute values of the sensitivities; represents the sensitivity of the x parameter in the y timepoint
+# L2 : the L2 norm of each parameter's sensitivity function
+# ---> it's the square root of the average of the squares of the sensitivities; represents the sensitivity of the x parameter at the y timepoint
+# Mean : the mean value of the sensitivity function
+# Min : the minimum value of the sensitivity function
+# Max : the maximum value of the sensitivity function
+# N : the number of points used in the sensitivity analysis
+
+# L1 and L2 norms provide a measure of the overall sensitivity of the model output to changes in each parameter
+
+DF_summary_SENSI_all <- summary(SENSI_all) %>% as.data.frame() 
+DF_summary_SENSI_all <- DF_summary_SENSI_all %>%  select(Mean) %>%
+  mutate(Parameter = rownames(DF_summary_SENSI_all))
+
+DF_summary_SENSI_all %>% 
+  ggplot(aes(x = Mean, y = Parameter)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + # Flip coordinates for better readability if there are many parameters
+  labs(x = "Mean Sensitivity coefficient", y = "Parameter") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis text 45 degrees
+  )
+ggsave(here(TodaysOuput, "SENSI_all.png"), dpi = 300)
 
 
-# PFOA in all organs of one individual
-Plot_PFOA_All <- output.df %>% 
-  # mutate(CK = CKP + CKT) %>% 
-  select(Years, CK, CSk, CL, CG, CA, CR, CP) %>% 
-  rename(Kidney = CK, Skin = CSk, Liver = CL, Gut = CG, Adipose = CA, Rest = CR, Plasma = CP) %>% 
-  pivot_longer(names_to = "Organ", values_to = "Concentration", Kidney:Plasma) %>% 
-  ggplot()+
-  geom_path(aes(x = Years, y = Concentration, color = Organ)) +
-  facet_wrap(~ Organ)+
-  theme_CP()+
-  theme(legend.position = "none")+
-  # theme(axis.text.x = element_text(size = 7),
-  #       axis.text.y = element_text(size = 7), 
-  #       axis.title = element_text(size = 8)) +
-  ylab("Organ Concentration (ng/ml)")
+## Analysing the sensitivity on only one compartment ####
 
-Plot_PFOA_All
-ggsave("OrganConcentrations.png", dpi = 300)
+SENSI_CBl <- SENSI_all %>% filter(var == "CBl")
+summary(SENSI_CBl)
 
+DF_summary_SENSI_CBl <- summary(SENSI_CBl) %>% as.data.frame() 
+DF_summary_SENSI_CBl <- DF_summary_SENSI_CBl %>% 
+  select(Mean) %>%
+  mutate(Parameter = rownames(DF_summary_SENSI_CBl))
 
-# EVALUATION Vs InVivo ####
-# ---------------------------------------------------------------------------- #
+DF_summary_SENSI_CBl %>% 
+  ggplot(aes(x = Mean, y = Parameter)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + # Flip coordinates for better readability if there are many parameters
+  labs(x = "Mean Sensitivity coefficient", y = "Parameter") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis text 45 degrees
+  ) 
+ggsave(here(TodaysOuput, "SENSI_CBl.png"), dpi = 300)
 
 
-# Half life
 
-conc <- output.df$CP     
-time <- output.df$Years       
-Tmax <- time[which.max(conc)] 
-tlast <- max(time[conc > 0])
+## Analysing the sensitivity on only the Blood concentration of Zearalenone glucuronide ####
+## ------------------------------------------------------
 
-# Calculate half-life
-half_life <- pk.calc.half.life(
-  conc,
-  time,
-  Tmax,
-  tlast
-)
+SENSI_CBl.glu <- SENSI_all %>% filter(var == "CBl.glu")
+summary(SENSI_CBl.glu)
 
-# Experimental 
-ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv") 
+DF_summary_SENSI_CBl.glu <- summary(SENSI_CBl.glu) %>% as.data.frame() %>% 
+  select(Mean) %>%
+  mutate(Parameter = rownames(DF_summary_SENSI_CBl.glu))
 
-Exp_HalfLifes <- ExpData %>% 
-  filter(species == "human",
-         chemical == "pfoa", 
-         parameter== "HalfLife") %>% 
-  select(value_average) %>% 
-  rename(HalfLife = value_average)
-Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife) 
-
-Predicted.df <- data.frame(
-  HalfLife = half_life$half.life, 
-  Origin = "Predicted", 
-  value = 1)
-Experimental.df <- data.frame(
-  HalfLife = Exp_HalfLifes$HalfLife, 
-  Origin = "Experimental", 
-  value = 1) 
-
-HalfLifes <- rbind(Predicted.df, Experimental.df) 
-
-Plot_HalfLifes <- HalfLifes %>% 
-  ggplot()+
-  geom_violin(data = Experimental.df, aes(value, HalfLife),
-              color = "transparent",
-              fill = "grey")+
-  geom_point(data = Predicted.df, aes(value, HalfLife), 
-             color = "slateblue3", size = 5, shape = 18) +
-  ylab("Half life (years)") +
-  theme_CP() +
-  theme(axis.text.x=element_blank(), #remove x axis labels
-      axis.ticks.x=element_blank(), #remove x axis ticks
-      axis.title.x = element_blank()
-      ) 
-Plot_HalfLifes
-ggsave("ExpVsSimHalfLife.png", dpi = 300)
+DF_summary_SENSI_CBl.glu %>% 
+  ggplot(aes(x = Mean, y = Parameter)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + # Flip coordinates for better readability if there are many parameters
+  labs(x = "Mean Sensitivity coefficient", y = "Parameter") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis text 45 degrees
+  )
+ggsave(here(TodaysOuput, "SENSI_CBl.gluc.png"), dpi = 300)
