@@ -213,6 +213,28 @@ Final_variables_F_df <- PhysioVariables_F_df %>%
 write.csv(Final_variables_F_df, "Final_variables_F.csv", row.names = FALSE)
 
 
+# #Plot differences in partition coefficients
+# 
+# KpCompare.df <- data.frame(
+#   Tissue = c("Adipose", "Gut", "Kidney", "Liver", "Skin", "Rest"),
+#   Method = c("InVivoRat", "InVivoRat", "InVivoRat", "InVivoRat", "InVivoRat", "InVivoRat", "Calculated", "Calculated", "Calculated", "Calculated", "Calculated", "Calculated"),
+#   Coefficient = c(PF, PG, PK, PL, PSk, PR, KpAd, KpGu, KpKi, KpLi, KpSk, KpRe)
+# )
+# 
+# KpCompare.plot <- KpCompare.df %>% 
+#   ggplot(aes(x = Tissue, y = Coefficient, fill = Method)) +
+#   geom_bar(stat = "identity", position = "dodge") +
+#   labs(
+#     x = "",
+#     y = "Partition Coefficient") +
+#   theme_minimal() +
+#   theme(
+#     axis.text.x = element_text(angle = 45, hjust = 1)
+#   ) +
+#   scale_fill_brewer(palette = "Accent")
+# KpCompare.plot
+
+
 
 # PFAS MODEL SPECIFIC PHYSIOLOGICAL DATA ####
 # Call .csv files instead of re-running the life-stage code below everytime

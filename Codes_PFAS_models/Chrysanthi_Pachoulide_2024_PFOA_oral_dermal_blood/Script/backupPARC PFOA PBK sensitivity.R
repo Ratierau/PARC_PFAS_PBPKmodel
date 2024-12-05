@@ -412,11 +412,7 @@ x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, rep = 10)
 dim(x$a) # the array of c(model evaluation, replication, parameters)
 
 ## Conduct simulation ##
-out <- solve_fun(x, 
-                 time=TIME, 
-                 func = PBPKmodPFOA_M, 
-                 initState = A_init, 
-                 outnames = outputs)
+out <- solve_fun(x, time=TIME, func = PBPKmodPFOA_M, initState = A_init, outnames = outputs)
 
 saveRDS(object=out, file="out_scaled.rds")
 #out <- readRDS("out_scaled.rds")
