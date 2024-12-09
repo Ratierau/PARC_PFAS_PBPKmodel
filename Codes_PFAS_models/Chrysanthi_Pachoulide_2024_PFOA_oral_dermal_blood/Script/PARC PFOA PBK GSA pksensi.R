@@ -39,35 +39,35 @@ library(PKNCA)
 # ------------------------------------------------------ #
 
 # Input variables
-Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-27/Final_variables_M.csv") %>% as.data.frame()
+Final_variables_M_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_MVolunteer.csv")
 
 
 # EXPOSURE SCENARIO ####
 # ------------------------------------------------------ #
 
-# exposure_stop <- 50  #50*365         # days
-# sim_stop <- 365 #0.5* 365  #80*365 # 80*365     # days
+exposure_stop <- 1 #50*365         # days
+sim_stop <- 150.01 #80*365 # 80*365   # days
 
 ## Commment Chrysa 05-12-2024: I'm changing these for the sensitivity analysis. Does this affect the SA result?
 TSTART <- 0.01
-TSTOP <- 24.01         # years in days
+TSTOP <- sim_stop               # 24.01 years in days
 DT <- 1                         # days
 TIME <- seq(TSTART,TSTOP,by=DT)
 
 
-Oralconc <- 0.000187 # ug/kg/day [EFSA 2020; page 143]
-Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
-
 ## Dosing for NOT lifestage simulation ####
 # Choose age accordingly
-BDW <- Final_variables_M_df %>%
-        filter(age == 20) %>% pull(BDW_M) 
+BDW <- Final_variables_M_df %>% pull(BDW_M) 
+# BDW <- Final_variables_M_df %>%
+#   filter(age == 20) %>% pull(BDW_M) 
 
-AbsPFOA <- Final_variables_M_df %>%
-        filter(age == 20) %>% pull(AbsPFOA) 
+AbsPFOA <- Final_variables_M_df %>% pull(AbsPFOA) 
+# AbsPFOA <- Final_variables_M_df %>%
+#   filter(age == 20) %>% pull(AbsPFOA) 
 
-Oraldose <- Oralconc*BDW # ug/day
-Dermaldose <- AbsPFOA*Dermconc*BDW # ug/day
+Oraldose <- 3.96 # ug https://doi.org/10.1016/j.envint.2024.109047 # Oralconc*BDW # ug/day
+# Dermaldose <- 0 # AbsPFOA*Dermconc*BDW # ug/day #AbsPFOA
+
 
 
 # PBK MODEL PARAMETERS ####
@@ -78,7 +78,7 @@ Dermaldose <- AbsPFOA*Dermconc*BDW # ug/day
 Indep_parms <- Final_variables_M_df %>% select(kAbl, kAap, fup, PL, PF, PK, PSk, PR, PG) %>% distinct()
 
 Age_parms <- Final_variables_M_df %>%
-        filter(age == 20) %>% # Select age accordingly
+        # filter(age == 20) %>% # Select age accordingly
         select(
                 V_skin_M,
                 V_kidney_M,
@@ -125,7 +125,7 @@ parms <- c(
         QA = Age_parms$Q_adipose_M,
         QR = Age_parms$Q_rest_M,
         QUr = Age_parms$QUr_M,
-        GFR = Age_parms$GFR_M, # Used to be called CFil
+        GFR = 113.7*24*60/1000, #Age_parms$GFR_M, # Used to be called CFil
         CL_FiltPT = Age_parms$CL_FiltPT_M,
         CLbiliary = Age_parms$CLbiliary_M,
         CLfecal = Age_parms$CLfecal_M
@@ -152,16 +152,16 @@ PBPKmodPFOA_M <- function(t, state, parameters){
                 CR <- AR/VR  # Concentration in rest the body (ug/L)
                 
                 CSk <- ASk/VSk  # Concentration in skin (ug/L)
-
+                
                 CK <- AK/VK  # Concentration in kidney (ug/L)
                 CFil <- AFil/VFil # Concentration in filtrate compartment
-
+                
                 CVG <- CG/PG # Concentration leaving gut (ug/L)
                 CVL <- CL/PL  # Concentration leaving liver (ug/L)
                 CVA <- CA/PA # Concentration leaving adipose (ug/L)
                 CVSk <- CSk/PSk  # Concentration leaving skin (ug/L) 
                 CVR <- CR/PR  # Concentration leaving rest of the body (ug/L)
-
+                
                 CVK <- CK/PK # Concentration leaving the kidney (ug/L)
 
                 
@@ -172,74 +172,75 @@ PBPKmodPFOA_M <- function(t, state, parameters){
                 
                 # Rest compartment
                 dAR <- QR*(CP-CVR) # (ug/h)
-
-                # Gut compartment:
-                dAG <- Oraldose + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfecal*CG #
-
+                
+                # Gut compartment: 
+                dAG <- + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfecal*CG #Oraldose
+                
                 # Excretion fecal: cumulative
-                dAEx_feces <- CLfecal*CG
-
+                dAEx_feces <- CLfecal*CG 
+                
                 # Liver compartment
-                dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup
-
+                dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
+                
                 # Kidney compartment
-                dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*fup*CFil
+                dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*CFil
+
                 # Filtrate compartment
-                dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*fup*CFil
+                dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*CFil 
 
-
+                
                 # Urine compartment
                 dAUr <- QUr*CFil
                 
                 # Skin compartment
-                dASk <- QSk*(CP-CVSk) + Dermaldose 
+                dASk <- QSk*(CP-CVSk) #+ Dermaldose 
                 
                 # Plasma compartment
                 dAP <- - (QSk + QG + QL + QA + QK + QR)*CP +
                         QSk*CVSk + (QL+QG)*CVL + QA*CVA + QK*CVK + QR*CVR 
                 
                 
-                # # Mass Balance
+                # Mass Balance
                 # Atot <- AP + ASk + AG + AL + AA + AK + AFil + AR + AEx_feces + AUr #AKP + AKT
-                # dInput <- Oraldose + Dermaldose
-                # MB = Input - Atot
-                
+                # # dInput <- Oraldose + Dermaldose
+                # # MB = Input - Atot
+                # MB = Oraldose - Atot
+                # 
                 # End
                 
                 list(c(dAP, 
                        dASk, 
-                       dAG,
-                       dAL,
+                       dAG, 
+                       dAL, 
                        dAA,
                        dAK,
                        dAFil,
-                       dAUr,
-                       dAR,
-                       dAEx_feces #,
+                       dAUr, 
+                       dAR, 
+                       dAEx_feces #, 
                        # dInput
-                       ), 
-                     c(CP = CP, 
-                       CSk = CSk, 
-                       CG = CG, CVG = CVG,
-                       CL = CL, CVL = CVL,
-                       CA = CA, CVA = CVA,
-                       CK = CK,
-                       CFil = CFil,
-                       CVK = CVK,
-                       CR = CR, CVR = CVR #,
-                       # Atot = Atot,MB = MB
-                       )
-                     
+                ), 
+                c(CP = CP, 
+                  CSk = CSk, 
+                  CG = CG, CVG = CVG, 
+                  CL = CL, CVL = CVL, 
+                  CA = CA, CVA = CVA,
+                  CK = CK,
+                  CFil = CFil, 
+                  CVK = CVK,
+                  CR = CR, CVR = CVR
+                  )
                 )
         })
 }
+
 
 outputs = c("CP") # Variable in test uncertainty/sensitivity
 
 ## Initials ####
 
 A_init <- c(AP = 0, 
-            ASk = Dermaldose, 
+            ASk = 0, # Dermaldose, 
             AG = Oraldose,
             AL = 0,
             AA = 0,
@@ -367,7 +368,7 @@ params <- c(
 length(params) == length(q)
 
 # Create the sequences for each parameter by eFAST
-x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, replicate = 1)
+x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, replicate = 7)
 
 dim(x$a) # the array of c(model evaluation, replication, parameters)
 
@@ -382,12 +383,12 @@ out <- solve_fun(x,
 saveRDS(object=out, file="out_scaled.rds")
 out <- readRDS("out_scaled.rds")
 
-## Output of the Uncertainty analysis ##
+# Output of the Uncertainty analysis ##
 pdf("out_scaled.pdf")
 pksim(out) # PK plot of the outputs based on the given parameter (Uncertainty analysis)
 dev.off()
 
-## Output from the sensitivity analysis ##
+# Output from the sensitivity analysis ##
 pdf("out_scaled.pdf")
 plot(out) # plot Time-dependent sensitivity (with 95 % CI)
 
