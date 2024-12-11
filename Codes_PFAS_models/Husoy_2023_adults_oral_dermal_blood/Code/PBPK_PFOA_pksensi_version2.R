@@ -7,12 +7,14 @@
 # Date 17.03.20
 #####################################################################################################
 
-HOME <- "F:/Forskningsprosjekter/PDB 1996 - EUROMIX - European t_/Forskningsfiler/TRHU/R/PBPK_PFOA_PFOS"
+# HOME <- "F:/Forskningsprosjekter/PDB 1996 - EUROMIX - European t_/Forskningsfiler/TRHU/R/PBPK_PFOA_PFOS"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Husoy_2023_adults_oral_dermal_blood"
 
 setwd(HOME)
 
 
-newday <- file.path('F:/Forskningsprosjekter/PDB 1996 - EUROMIX - European t_/Forskningsfiler/TRHU/R/PBPK_PFOA_PFOS/Results', Sys.Date())
+# newday <- file.path('F:/Forskningsprosjekter/PDB 1996 - EUROMIX - European t_/Forskningsfiler/TRHU/R/PBPK_PFOA_PFOS/Results', Sys.Date())
+newday <- file.path('C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Husoy_2023_adults_oral_dermal_blood/Results', Sys.Date())
 dir.create(newday)
 
 
@@ -435,7 +437,7 @@ q.arg <- list(list(min = para["Htc"]*LL, max= para["Htc"]*UL),
 set.seed(1234)
 params <- c("Htc", "Tmc", "Kt", "Free", "BW", "kurinec", "kbiliaryc", "kfaecesc", "kfil", "PL", "PF", "PK", "PSk", "PR", "PG", "VL", "VF", "VK", "Vfil", "VG", "VPlas", "VSk", "AbsPFOA")
 length(params)==length(q)
-x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, rep = 10)
+x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, rep = 2)
 
 dim(x$a) # the array of c(model evaluation, replication, parameters)
 

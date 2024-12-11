@@ -26,7 +26,6 @@ library(ggplot2)
 library(deSolve)
 library(tidyverse)
 library(PKNCA)
-library(pracma)
 
 # For plotting
 library(showtext)
@@ -65,7 +64,7 @@ Final_variables_M_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen Univer
 # ------------------------------------------------------ #
 
 exposure_stop <- 1 #50*365         # days
-sim_stop <- 80*365 # 80*365   # days
+sim_stop <- 150 #80*365 # 80*365   # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
@@ -76,186 +75,99 @@ TIME <- seq(TSTART,TSTOP,by=DT)
 Oralconc <- 0.000187 # ug/kg/day [EFSA 2020; page 143] 3.96ug
 Dermconc <- 0.000542 # ug/kg/day; mean of #as.numeric(SumExpPFOA_LB_val[i,14])
 
+## Dosing for NOT lifestage simulation ####
+# Choose age accordingly
+BDW <- Final_variables_M_df %>% pull(BDW_M) 
+# BDW <- Final_variables_M_df %>%
+#   filter(age == 20) %>% pull(BDW_M) 
+
+AbsPFOA <- Final_variables_M_df %>% pull(AbsPFOA) 
+# AbsPFOA <- Final_variables_M_df %>%
+#   filter(age == 20) %>% pull(AbsPFOA) 
 
 Oraldose <- 3.96 # ug https://doi.org/10.1016/j.envint.2024.109047 # Oralconc*BDW # ug/day
+Dermaldose <- 0 # AbsPFOA*Dermconc*BDW # ug/day #AbsPFOA
 
-
+ 
 # PBK MODEL PARAMETERS ####
 # ---------------------------------------------------------------------------- #
 
-### Constants ####
-#### Physiological  ####
-Physio_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PhysioVariables.csv")
+## For NOT lifestage simulations ####
 
-# 50 years old adult, male
-Physio_params <- Physio_params %>% 
-  filter(age == 50) %>% 
-  select(ends_with('_M')) %>% 
-  mutate(BloodFlowSum = rowSums(select(., starts_with("Q_")))) %>% # 0.9935; total blood flow as the sum of the fractional blood flows of all organs on which we have data
-  mutate(VolumesSum = rowSums(select(., starts_with("V_")))) # 0.96; total volume as the sum of the fractional organ volumes of all organs on which we have data
+Indep_parms <- Final_variables_M_df %>% select(kAbl, kAap, fup, PL, PF, PK, PSk, PR, PG) %>% distinct()
 
-BW <- Physio_params$BDW_M 
-QC <- Physio_params$CardOut_M # This is corrected for hematocrit already so it's plasma
+Age_parms <- Final_variables_M_df %>%
+  # filter(age == 20) %>% # Select age accordingly
+  select(
+    V_skin_M,
+    # V_skinBarrier_M,
+    V_skinPlasma_M,
+    V_skinTissue_M,
+    V_kidney_M,
+    V_kidneyPlasma_M,
+    V_kidneyTissue_M,
+    V_filtrate_M,
+    V_gut_M,
+    V_liver_M,
+    V_adipose_M,
+    V_rest_M,
+    V_plasma_M,
+    Q_skin_M,
+    Q_kidney_M,
+    Q_gut_M,
+    Q_liver_M,
+    Q_hepatic_M,
+    Q_adipose_M,
+    Q_rest_M,
+    # Q_lungs_M, # Needs to be incorporated when inhalation exposure is included
+    QUr_M,
+    GFR_M,
+    CLdermalabs_M,
+    CL_PltPT_M,
+    CL_FiltPT_M,
+    CLbiliary_M,
+    CLfecal_M
+  ) 
 
-
-# Fractional organ volumes
-VAc <- Physio_params$V_adiposeFraction_M   
-MassAc <- Physio_params$AdiposeMass_M      #adipose mass
-VGc <- Physio_params$V_gutFraction_M
-VKc <- Physio_params$V_kidneyFraction_M
-VLc <- Physio_params$V_liverFraction_M
-VPc <- Physio_params$V_plasmaFraction_M
-Hct <- Physio_params$Hct_M
-VSkc <- Physio_params$V_skinFraction_M
-VTotc <- Physio_params$VolumesSum 
-
-# Fractional organ blood flows
-QAc <- Physio_params$Q_adiposeFraction_M/Physio_params$BloodFlowSum
-QGc <- Physio_params$Q_gutFraction_M/Physio_params$BloodFlowSum 
-QKc <- Physio_params$Q_kidneyFraction_M/Physio_params$BloodFlowSum 
-QLc <- Physio_params$Q_liverFraction_M/Physio_params$BloodFlowSum 
-QSkc <- Physio_params$Q_skinFraction_M/Physio_params$BloodFlowSum 
-
-
-#### Chemical Specific ####
-PFOA_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PFOAParams.csv")
-
-MW <- PFOA_params$MW 
-
-fup <- PFOA_params$fup 
-
-# Partition coefficients
-# Calculate Plasma/Rest of the body partition coefficient
-# KpRe = partition coefficient of each of the lumped organs * fractional volume of the respective organ / sum of the fractional volume of all these organs
-KpRe <- (PFOA_params$KpBr*Physio_params$V_brainFraction_M +
-           PFOA_params$KpHe*Physio_params$V_heartFraction_M + 
-           PFOA_params$KpLu*Physio_params$V_lungFraction_M +
-           PFOA_params$KpMu*Physio_params$V_muscleFraction_M +
-           PFOA_params$KpSp*Physio_params$V_spleenFraction_M +
-           PFOA_params$KpGo*Physio_params$V_reproFraction_M +
-           PFOA_params$KpBo*Physio_params$V_boneFraction_M) / (
-             Physio_params$V_brainFraction_M +
-               Physio_params$V_heartFraction_M +
-               Physio_params$V_lungFraction_M +
-               Physio_params$V_muscleFraction_M +
-               Physio_params$V_spleenFraction_M +
-               Physio_params$V_reproFraction_M +
-               Physio_params$V_boneFraction_M)  
-PFOA_params$KpRe <- KpRe
-
-# Choose between calculated or initial ones (rat)
-# In PFOA_params, PF, PG, PK, PL, PSK and PR are the initial PCs from Kudo 2007 (rat). These were recalculated to total tissue (/fup) to enable differentiating the fup for the sensitivity analysis
-PAc <- PFOA_params$PF #KpAd #PF # Adipose
-PGc <- PFOA_params$PG #KpGu #PG # Gut
-PKc <- PFOA_params$PK #KpKi #PK # Kidney
-PLc <- PFOA_params$PL #KpLi #PL # Liver
-PSkc <- PFOA_params$PSk #KpSk #PSk # Skin
-PRc <- PFOA_params$PR #KpRe #PR #Rest
-
-
-# Renal Clearance
-CL_OAT4 <- PFOA_params$CL_OAT4 # L/d/kg protein; in vitro PFOA clearance in HEK239 cells overexpressing OAT4, Louisse et al. 2024
-REF_OAT4 <- PFOA_params$REF_OAT4 # 1; as we don't have data on the in vitro expression of OAT4
-
-# Biliary and Fecal Clearances
-CLbiliaryc <- PFOA_params$CLbiliaryc #L/d/kg Fujii et al 2015 
-CLfecalc <- PFOA_params$CLfaecesc # L/d/kg Fujii et al 2015 
-
-### Final Parameters ####
-
-#### Physiological  ####
-
-# Body volumes (L)
-VA <- VAc * BW/0.9 + MassAc/0.9
-VG <- VGc * BW
-VK <- VKc * BW
-VL <- VLc * BW
-VP <- VPc * (1-Hct) * BW
-VSk <- VSkc * BW
-VR <- (VTotc*BW) - (VA + VG + VK + VL + VP + VSk)
-
-VFil <- VK * 0.05 # Kidney filtrate compartment, corresponds to the volume of the collecting system in [ICRP 89 page 149] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-
-# Body flows (L/d)
-QA <- QAc * QC
-QG <- QGc * QC
-QK <- QKc * QC
-QL <- QLc * QC
-QSk <- QSkc * QC
-QR <- QC - (QA + QG + QK + QL + QSk)
-
-QUr = 0.022 * BW # L/d, Urine flow rate to the bladder 22 mL/kg BW/d [ICRP 89 page 161]
-GFR = 0.18 * QK # L/d, Glomerular filtration rate 18% of total renal plasma flow [ICRP 89 page 159] http://www.icrp.org/publication.asp?id=ICRP%20Publication%2089
-
-#### Compound specific ####
-
-# Partition coefficients
-PA <- PAc * fup # Adipose
-PG <- PGc * fup # Gut
-PK <- PKc * fup # Kidney
-PL <- PLc * fup # Liver
-PSk <- PSkc * fup # Skin
-PR <- PRc * fup #Rest
-
-# Renal clearance
-CL_FiltPT <- CL_OAT4 * REF_OAT4 * 0.17 * 0.7 * VK # L/d scaling for protein content instead of cell content; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though; double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
-
-CLbiliary <- CLbiliaryc * BW #L/d  
-CLfecal <- CLfecalc * BW # L/d 
-
-
-parms <- unlist(c(data.frame(BW, #1
-                             QC, #2
-                             VA, #3
-                             VG, #4
-                             VK, #5
-                             VL, #6
-                             VP, #7
-                             VSk, #8
-                             VR, #9
-                             VFil, #10
-                             QA, #11
-                             QG, #12 
-                             QK, #13
-                             QL, #14
-                             QSk, #15
-                             QR, #16
-                             QUr, #17
-                             GFR, #18
-                             PA, #19
-                             PG, #20
-                             PK, #21
-                             PL, #22
-                             PSk, #23
-                             PR, #24
-                             CL_FiltPT, #25
-                             CLbiliary, #26
-                             CLfecal, #27
-                             fup, #28
-                             VAc, #29
-                             VGc, #30
-                             VKc, #31
-                             VLc, #32
-                             VPc, #33
-                             VSkc, #34
-                             QAc, #35
-                             QGc, #36
-                             QKc, #37
-                             QLc, #38
-                             QSkc, #39
-                             PAc, #40
-                             PGc, #41
-                             PKc, #42
-                             PLc, #43
-                             PSkc, #44
-                             PRc, #45
-                             CL_OAT4, #46 
-                             REF_OAT4, #47
-                             CLbiliaryc, #48
-                             CLfecalc #49
-)))
-
-parms
+parms <- c(
+  kAbl = Indep_parms$kAbl, # affinity constant basolateral; this is about OAT1 and OAT3 which have affinity for the uptake (plasma to cells)
+  kAap = Indep_parms$kAap, # affinity constant apical; this is about OAT4 which has affinity for the re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
+  fup = Indep_parms$fup,   # Unbound fraction in plasma Fischer et al. 2024 https://doi.org/10.1021/acs.est.3c07415;
+  PL = Indep_parms$PL,     # Plasma/liver partition coefficient; Rat tissue data (Kudo et al. 2007)
+  PA = Indep_parms$PF,     # Plasma/fat partition coefficient; Rat tissue data (Kudo et al. 2007)
+  PK = Indep_parms$PK,     # Plasma/kidney partition coefficient; Rat tissue data (Kudo et al. 2007)
+  PSk = Indep_parms$PSk,   # Plasma/skin partition coefficient; Rat tissue data (Kudo et al. 2007)
+  PR = Indep_parms$PR,     # Plasma/rest of the body partition coefficient; Rat tissue data (Kudo et al. 2007)
+  PG = Indep_parms$PG,     # Plasma/gut partition coefficient; Rat tissue data (Kudo et al. 2007)
+  VSk = Age_parms$V_skin_M,          
+  # VSkb = Age_parms$V_skinBarrier_M,
+  # VSkP = Age_parms$V_skinPlasma_M, # For future use when updating skin again
+  # VSkT = Age_parms$V_skinTissue_M, # For future use when updating skin again
+  VK = Age_parms$V_kidney_M,
+  VKP = Age_parms$V_kidneyPlasma_M,
+  VKT = Age_parms$V_kidneyPlasma_M,
+  VFil = Age_parms$V_filtrate_M,
+  VG = Age_parms$V_gut_M,
+  VL = Age_parms$V_liver_M,
+  VA = Age_parms$V_adipose_M,        
+  VR = Age_parms$V_rest_M,  
+  VP = Age_parms$V_plasma_M, 
+  QSk = Age_parms$Q_skin_M, 
+  QK = Age_parms$Q_kidney_M, 
+  QG = Age_parms$Q_gut_M, 
+  QL = Age_parms$Q_liver_M, # Liver artery
+  QH = Age_parms$Q_hepatic_M, # Includes Portal (gut) and Liver arteries 
+  QA = Age_parms$Q_adipose_M, 
+  QR = Age_parms$Q_rest_M,
+  # QP = Age_parms$Q_lungs_M, # Needs to be incorporated when inhalation exposure is included
+  QUr = Age_parms$QUr_M, 
+  GFR = 113.7*24*60/1000, #L/d 113.7 ml/min https://doi.org/10.1016/j.envint.2024.109047 # Age_parms$GFR_M, # Used to be called CFil
+  CLdermalabs = Age_parms$CLdermalabs_M,       
+  CL_PltPT = Age_parms$CL_PltPT_M,          
+  CL_FiltPT = Age_parms$CL_FiltPT_M, 
+  CLbiliary = Age_parms$CLbiliary_M, 
+  CLfecal = Age_parms$CLfecal_M 
+  )
 
 
 # PBK MODEL ####
@@ -272,7 +184,6 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     
     # Organ concentrations (ug/L); these are TOTAL concentrations
     CP <- AP/VP  # Concentration in plasma (ug/L)
-    
     CG <- AG/VG  # Concentration in gut (ug/L)
     CL <- AL/VL  # Concentration in liver (ug/L)
     CA <- AA/VA  # Concentration in adipose (ug/L)
@@ -313,11 +224,11 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
     
     # Kidney compartment
-    dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*fup*CFil
+    dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*CFil
     # dAKP <- QK*(CP - CVKP) - CL_PltPT*fup*CKP + CL_FiltPT*fup*CKT - CL_PltPT*fup*CKP
     # dAKT <- CL_PltPT*fup*CKP + CL_FiltPT*CFil - CL_FiltPT*fup*CKT
     # Filtrate compartment
-    dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*fup*CFil 
+    dAFil <- GFR*fup*CK - QUr*CFil - CL_FiltPT*CFil 
     # dAFil <- CL_PltPT*fup*CKP - QUr*CFil - CL_FiltPT*CFil 
     
     
@@ -351,7 +262,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
            dAFil,
            dAUr, 
            dAR, 
-           dAEx_feces #,
+           dAEx_feces #, 
            # dInput
            ), 
          c(CP = CP, 
@@ -384,7 +295,7 @@ A_init <- c(AP = 0,
             AFil = 0,
             AUr = 0, 
             AR = 0, 
-            AEx_feces = 0 #,
+            AEx_feces = 0 #, 
             #Input = 0
             )
 
@@ -520,26 +431,23 @@ ggsave("OrganConcentrations.png", dpi = 300)
 
 
 
-# Calculate AUC and Half life ####
+# EVALUATION Vs InVivo ####
 # ---------------------------------------------------------------------------- #
 
-AUC <- trapz(output_PFOA[ , "time"], output_PFOA[ , "CP"]) #ug*day/L
-  
-# Calculate predicted half-life
-time <- output_PFOA[ , "time"] #in days
-conc <- output_PFOA[ , "CP"] #(ug/L) or (ng/ml) 
-Cmax <- max(conc)
+## Half life ####
+
+conc <- output.PFOA.df$CP
+time <- output.PFOA.df$Days #Years
 Tmax <- time[which.max(conc)]
 tlast <- max(time[conc > 0])
- 
-half_life <- pk.calc.half.life(
-    conc,
-    time,
-    Tmax,
-    tlast
-  )
 
-HalfLife <- half_life$half.life/365 #halflife in years
+# Calculate half-life
+half_life <- pk.calc.half.life(
+  conc,
+  time,
+  Tmax,
+  tlast
+)
 
 # Experimental
 ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv")
@@ -553,7 +461,7 @@ Exp_HalfLifes <- ExpData %>%
 Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife)
 
 Predicted.df <- data.frame(
-  HalfLife = HalfLife,
+  HalfLife = half_life$half.life,
   Origin = "Predicted",
   value = 1)
 Experimental.df <- data.frame(

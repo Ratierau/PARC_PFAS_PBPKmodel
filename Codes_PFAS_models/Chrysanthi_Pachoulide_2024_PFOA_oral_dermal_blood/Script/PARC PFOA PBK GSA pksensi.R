@@ -185,7 +185,28 @@ parms <- unlist(c(data.frame(BW, #1
                              CL_FiltPT, #25
                              CLbiliary, #26
                              CLfecal, #27
-                             fup #28
+                             fup, #28
+                             VAc, #29
+                             VGc, #30
+                             VKc, #31
+                             VLc, #32
+                             VPc, #33
+                             VSkc, #34
+                             QAc, #35
+                             QGc, #36
+                             QKc, #37
+                             QLc, #38
+                             QSkc, #39
+                             PAc, #40
+                             PGc, #41
+                             PKc, #42
+                             PLc, #43
+                             PSkc, #44
+                             PRc, #45
+                             CL_OAT4, #46 
+                             REF_OAT4, #47
+                             CLbiliaryc, #48
+                             CLfecalc #49
                              )))
 
 parms
@@ -195,7 +216,7 @@ parms
 # ------------------------------------------------------ #
 
 exposure_stop <- 1 #50*365         # days
-sim_stop <- 150.01 #80*365 # 80*365   # days
+sim_stop <- 80*365 + 0.01 #150.01  # days
 
 ## Commment Chrysa 05-12-2024: I'm changing these for the sensitivity analysis. Does this affect the SA result?
 TSTART <- 0.01
@@ -239,6 +260,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
                 
                 CVK <- CK/PK # Concentration leaving the kidney (ug/L)
                 
+                
                 ## Differential equations ----
                 
                 # Adipose compartment
@@ -275,11 +297,11 @@ PBPKmodPFOA_M <- function(t, state, parameters){
                 
                 
                 # Mass Balance
-                # Atot <- AP + ASk + AG + AL + AA + AK + AFil + AR + AEx_feces + AUr #AKP + AKT
+                Atot <- AP + ASk + AG + AL + AA + AK + AFil + AR + AEx_feces + AUr #AKP + AKT
                 # # dInput <- Oraldose + Dermaldose
                 # # MB = Input - Atot
-                # MB = Oraldose - Atot
-                # 
+                MB = Oraldose - Atot
+                
                 # End
                 
                 list(c(dAP, 
@@ -302,7 +324,8 @@ PBPKmodPFOA_M <- function(t, state, parameters){
                   CK = CK,
                   CFil = CFil, 
                   CVK = CVK,
-                  CR = CR, CVR = CVR
+                  CR = CR, CVR = CVR,
+                  Atot = Atot, MB = MB
                   )
                 )
         })
@@ -337,54 +360,44 @@ output_PFOA <- ode(y = A_init,
                    )
 output.PFOA.df <- as.data.frame(output_PFOA) 
 
+# Results ####
+# ---------------------------------------------------------------------------- #
 
-## RESULTS FOR STUDY OF 1 INDIVIDUAL####
+# AUC using pracma package 
+AUC <- trapz(output_PFOA[ , "time"], output_PFOA[ , "CP"]) #ug*day/L
 
+# Half life using PKNCA package
+time <- output_PFOA[ , "time"] #in days
+conc <- output_PFOA[ , "CP"] #(ug/L) or (ng/ml) 
+Cmax <- max(conc)
+Tmax <- time[which.max(conc)]
+tlast <- max(time[conc > 0])
+half_life <- pk.calc.half.life(conc, time, Tmax, tlast)
+
+HalfLife <- half_life$half.life/365 #halflife in years
+
+
+# Plot plasma concentration
 output.PFOA.df <- output.PFOA.df %>%
-        # mutate(time = time/365) %>%
+        # mutate(time = time/365) %>% # for time in years
         rename(Days = time)
-
-
-# PFOA in plasma of one individual
 Plot_PFOA_Plasma <- ggplot()+
         geom_path(data = output.PFOA.df, aes(x = Days, y = CP))+
         theme_minimal()+
-        # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
         ylab("Plasma (ng/ml)")
-
 Plot_PFOA_Plasma
 ggsave("PlasmaConcentration.png", dpi = 300)
 
 
 
-# ## Half life ####
-# 
-# conc <- output.PFOA.df$CP
-# time <- output.PFOA.df$Days #Years
-# Tmax <- time[which.max(conc)]
-# tlast <- max(time[conc > 0])
-# 
-# # Calculate half-life
-# half_life <- pk.calc.half.life(
-#         conc,
-#         time,
-#         Tmax,
-#         tlast
-# )
-# 
-# t0.5 <- half_life$half.life/365 #half life in years
-# 
-# 
-# 
 # Sensitivity analysis using pksensi ####
 # ---------------------------------------------------------------------------- #
 
-outputs = c("CP") # Variable in test uncertainty/sensitivity
+outputs = c("CP", "AUC", "HalfLife") # Variable in test uncertainty/sensitivity
 
 
 ## Define the distribution of the parameters that you will analyse in the sensitivity test
-q <- c(
-        "qunif", #1
+q <- c( "qunif", #1
         "qunif", #2
         "qunif", #3
         "qunif", #4
@@ -411,7 +424,28 @@ q <- c(
         "qunif", #25
         "qunif", #26
         "qunif", #27
-        "qunif" #28
+        "qunif", #28
+        "qunif"#, #29
+        # "qunif", #30
+        # "qunif", #31
+        # "qunif", #32
+        # "qunif", #33
+        # "qunif", #34
+        # "qunif", #35
+        # "qunif", #36
+        # "qunif", #37
+        # "qunif", #38
+        # "qunif", #39
+        # "qunif", #40
+        # "qunif", #41
+        # "qunif", #42
+        # "qunif", #43
+        # "qunif", #44
+        # "qunif", #45
+        # "qunif", #46 
+        # "qunif", #47
+        # "qunif", #48
+        # "qunif" #49
 )
 
 ## Set parameter distribution ##
@@ -422,21 +456,21 @@ UL <- 1.1 # 10% upper limit
 
 
 q.arg <- list(list(min = parms["BW"]*LL, max= parms["BW"]*UL), #1
-              list(min = parms["QC"]*LL, max= parms["QC"]*UL), #2
-              list(min = parms["VA"]*LL, max = parms["VA"]*UL), #3
-              list(min = parms["VG"]*LL, max = parms["VG"]*UL), #4
-              list(min = parms["VK"]*LL, max = parms["VK"]*UL), #5
-              list(min = parms["VL"]*LL, max = parms["VL"]*UL), #6
-              list(min = parms["VP"]*LL, max = parms["VP"]*UL), #7
-              list(min = parms["VSk"]*LL, max = parms["VSk"]*UL), #8
-              list(min = parms["VR"]*LL, max = parms["VR"]*UL), #9
+              # list(min = parms["QC"]*LL, max= parms["QC"]*UL), #2
+              # list(min = parms["VA"]*LL, max = parms["VA"]*UL), #3
+              # list(min = parms["VG"]*LL, max = parms["VG"]*UL), #4
+              # list(min = parms["VK"]*LL, max = parms["VK"]*UL), #5
+              # list(min = parms["VL"]*LL, max = parms["VL"]*UL), #6
+              # list(min = parms["VP"]*LL, max = parms["VP"]*UL), #7
+              # list(min = parms["VSk"]*LL, max = parms["VSk"]*UL), #8
+              # list(min = parms["VR"]*LL, max = parms["VR"]*UL), #9
               list(min = parms["VFil"]*LL, max = parms["VFil"]*UL), #10
-              list(min = parms["QA"]*LL, max = parms["QA"]*UL), #11
-              list(min = parms["QG"]*LL, max = parms["QG"]*UL), #12
-              list(min = parms["QK"]*LL, max = parms["QK"]*UL), #13
-              list(min = parms["QL"]*LL, max = parms["QL"]*UL), #14
-              list(min = parms["QSk"]*LL, max = parms["QSk"]*UL), #15
-              list(min = parms["QR"]*LL, max = parms["QR"]*UL), #16
+              # list(min = parms["QA"]*LL, max = parms["QA"]*UL), #11
+              # list(min = parms["QG"]*LL, max = parms["QG"]*UL), #12
+              # list(min = parms["QK"]*LL, max = parms["QK"]*UL), #13
+              # list(min = parms["QL"]*LL, max = parms["QL"]*UL), #14
+              # list(min = parms["QSk"]*LL, max = parms["QSk"]*UL), #15
+              # list(min = parms["QR"]*LL, max = parms["QR"]*UL), #16
               list(min = parms["QUr"]*LL, max = parms["QUr"]*UL), #17
               list(min = parms["GFR"]*LL, max = parms["GFR"]*UL), #18
               list(min = parms["PA"]*LL, max = parms["PA"]*UL), #19
@@ -448,10 +482,30 @@ q.arg <- list(list(min = parms["BW"]*LL, max= parms["BW"]*UL), #1
               list(min = parms["CL_FiltPT"]*LL, max = parms["CL_FiltPT"]*UL), #25
               list(min = parms["CLbiliary"]*LL, max = parms["CLbiliary"]*UL), #26
               list(min = parms["CLfecal"]*LL, max = parms["CLfecal"]*UL), #27
-              list(min = parms["fup"]*LL, max = parms["fup"]*UL) #27
+              list(min = parms["fup"]*LL, max = parms["fup"]*UL), #28
+              list(min = parms["VAc"]*LL, max = parms["VAc"]*UL), #29
+              list(min = parms["VGc"]*LL, max = parms["VGc"]*UL), #30
+              list(min = parms["VKc"]*LL, max = parms["VKc"]*UL), #31
+              list(min = parms["VLc"]*LL, max = parms["VLc"]*UL), #32
+              list(min = parms["VPc"]*LL, max = parms["VPc"]*UL), #33
+              # list(min = parms["VSkc"]*LL, max = parms["VSkc"]*UL), #34
+              # list(min = parms["QAc"]*LL, max = parms["QAc"]*UL), #35
+              # list(min = parms["QGc"]*LL, max = parms["QGc"]*UL), #36
+              # list(min = parms["QKc"]*LL, max = parms["QKc"]*UL), #37
+              # list(min = parms["QLc"]*LL, max = parms["QLc"]*UL), #38
+              # list(min = parms["QSkc"]*LL, max = parms["QSkc"]*UL), #39
+              list(min = parms["PAc"]*LL, max = parms["PAc"]*UL), #40
+              list(min = parms["PGc"]*LL, max = parms["PGc"]*UL), #41
+              list(min = parms["PKc"]*LL, max = parms["PKc"]*UL), #42
+              list(min = parms["PLc"]*LL, max = parms["PLc"]*UL), #43
+              list(min = parms["PSkc"]*LL, max = parms["PSkc"]*UL), #44
+              list(min = parms["PRc"]*LL, max = parms["PRc"]*UL), #45
+              list(min = parms["CL_OAT4"]*LL, max = parms["CL_OAT4"]*UL), #46
+              list(min = parms["REF_OAT4"]*LL, max = parms["REF_OAT4"]*UL), #47
+              list(min = parms["CLbiliaryc"]*LL, max = parms["CLbiliaryc"]*UL), #48
+              list(min = parms["CLfecalc"]*LL, max = parms["CLfecalc"]*UL) #49
               
 )
-
 
 
 ## Create parameter matrix ##
@@ -459,21 +513,21 @@ set.seed(1234)
 
 params <- c(
         "BW", #1
-        "QC", #2
-        "VA", #3
-        "VG", #4
-        "VK", #5
-        "VL", #6
-        "VP", #7
-        "VSk", #8
-        "VR", #9
+        # "QC", #2
+        # "VA", #3
+        # "VG", #4
+        # "VK", #5
+        # "VL", #6
+        # "VP", #7
+        # "VSk", #8
+        # "VR", #9
         "VFil", #10
-        "QA", #11
-        "QG", #12 
-        "QK", #13
-        "QL", #14
-        "QSk", #15
-        "QR", #16
+        # "QA", #11
+        # "QG", #12 
+        # "QK", #13
+        # "QL", #14
+        # "QSk", #15
+        # "QR", #16
         "QUr", #17
         "GFR", #18
         "PA", #19
@@ -485,13 +539,34 @@ params <- c(
         "CL_FiltPT", #25
         "CLbiliary", #26
         "CLfecal", #27
-        "fup" #28
+        "fup", #28
+        "VAc", #29
+        "VGc", #30
+        "VKc", #31
+        "VLc", #32
+        "VPc", #33
+        # "VSkc", #34
+        # "QAc", #35
+        # "QGc", #36
+        # "QKc", #37
+        # "QLc", #38
+        # "QSkc", #39
+        "PAc", #40
+        "PGc", #41
+        "PKc", #42
+        "PLc", #43
+        "PSkc", #44
+        "PRc", #45
+        "CL_OAT4", #46 
+        "REF_OAT4", #47
+        "CLbiliaryc", #48
+        "CLfecalc" #49
         )
 
 length(params) == length(q)
 
 # Create the sequences for each parameter by eFAST
-x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, replicate = 3)
+x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, replicate = 5)
 
 dim(x$a) # the array of c(model evaluation, replication, parameters)
 
