@@ -216,7 +216,7 @@ parms
 # ------------------------------------------------------ #
 
 exposure_stop <- 1 #50*365         # days
-sim_stop <- 80*365 + 0.01 #150.01  # days
+sim_stop <- (80*365) + 0.01 #150.01  # days
 
 ## Commment Chrysa 05-12-2024: I'm changing these for the sensitivity analysis. Does this affect the SA result?
 TSTART <- 0.01
@@ -279,10 +279,10 @@ PBPKmodPFOA_M <- function(t, state, parameters){
                 dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup
                 
                 # Kidney compartment
-                dAK <- QK*(CP -CVK) - GFR*CK*fup + CL_FiltPT*CFil
+                dAK <- QK*(CP -CVK) - GFR*CK*fup + CL_FiltPT*CFil*fup
                 
                 # Filtrate compartment
-                dAFil <- GFR*CK*fup - QUr*CFil - CL_FiltPT*CFil 
+                dAFil <- GFR*CK*fup - QUr*CFil - CL_FiltPT*CFil*fup 
                 
                 
                 # Urine compartment
@@ -360,40 +360,11 @@ output_PFOA <- ode(y = A_init,
                    )
 output.PFOA.df <- as.data.frame(output_PFOA) 
 
-# Results ####
-# ---------------------------------------------------------------------------- #
-
-# AUC using pracma package 
-AUC <- trapz(output_PFOA[ , "time"], output_PFOA[ , "CP"]) #ug*day/L
-
-# Half life using PKNCA package
-time <- output_PFOA[ , "time"] #in days
-conc <- output_PFOA[ , "CP"] #(ug/L) or (ng/ml) 
-Cmax <- max(conc)
-Tmax <- time[which.max(conc)]
-tlast <- max(time[conc > 0])
-half_life <- pk.calc.half.life(conc, time, Tmax, tlast)
-
-HalfLife <- half_life$half.life/365 #halflife in years
-
-
-# Plot plasma concentration
-output.PFOA.df <- output.PFOA.df %>%
-        # mutate(time = time/365) %>% # for time in years
-        rename(Days = time)
-Plot_PFOA_Plasma <- ggplot()+
-        geom_path(data = output.PFOA.df, aes(x = Days, y = CP))+
-        theme_minimal()+
-        ylab("Plasma (ng/ml)")
-Plot_PFOA_Plasma
-ggsave("PlasmaConcentration.png", dpi = 300)
-
-
 
 # Sensitivity analysis using pksensi ####
 # ---------------------------------------------------------------------------- #
 
-outputs = c("CP", "AUC", "HalfLife") # Variable in test uncertainty/sensitivity
+outputs = c("CP") # Variable in test uncertainty/sensitivity
 
 
 ## Define the distribution of the parameters that you will analyse in the sensitivity test
@@ -571,7 +542,6 @@ x <- rfast99(params = params, n = 200, q = q, q.arg = q.arg, replicate = 5)
 dim(x$a) # the array of c(model evaluation, replication, parameters)
 
 ## Conduct simulation ##
-## Solve ODE through R deSolve package
 out <- solve_fun(x,
                  time = TIME,
                  func = PBPKmodPFOA_M,
