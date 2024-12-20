@@ -8,7 +8,7 @@ rm(list=ls()) # to clear out the global environment
 
 # Set working directory
 
-HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood"
+HOME <- "C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel"
 # HOME <- "/home/westerj"
 setwd(HOME)
 
@@ -56,8 +56,8 @@ theme_CP <- function() {
 # ------------------------------------------------------ #
 
 # Input variables
-# Final_variables_M_df = read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_M.csv") %>% as.data.frame()
-Final_variables_M_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_MVolunteer.csv")
+# Final_variables_M_df = read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_M.csv") %>% as.data.frame()
+Final_variables_M_df <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/2024-11-18/Final_variables_MVolunteer.csv")
 
 
 
@@ -85,7 +85,7 @@ Oraldose <- 3.96 # ug https://doi.org/10.1016/j.envint.2024.109047 # Oralconc*BD
 
 ### Constants ####
 #### Physiological  ####
-Physio_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PhysioVariables.csv")
+Physio_params <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PhysioVariables.csv")
 
 # 50 years old adult, male
 Physio_params <- Physio_params %>% 
@@ -118,7 +118,7 @@ QSkc <- Physio_params$Q_skinFraction_M/Physio_params$BloodFlowSum
 
 
 #### Chemical Specific ####
-PFOA_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PFOAParams.csv")
+PFOA_params <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PFOAParams.csv")
 
 MW <- PFOA_params$MW 
 
@@ -542,7 +542,7 @@ half_life <- pk.calc.half.life(
 HalfLife <- half_life$half.life/365 #halflife in years
 
 # Experimental
-ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv")
+ExpData <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv")
 
 Exp_HalfLifes <- ExpData %>%
   filter(species == "human",
@@ -581,7 +581,7 @@ ggsave("ExpVsSimHalfLife.png", dpi = 300)
 
 
 ## Plasma concentrations ####
-ExpPlasma <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.csv")
+ExpPlasma <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.csv")
 
 ExpPlasma <- ExpPlasma %>% 
   # mutate(Years = Time_days/365) %>% 
