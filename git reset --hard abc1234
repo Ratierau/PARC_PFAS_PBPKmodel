@@ -1,0 +1,678 @@
+[33mcommit 660aea5722c31abedcd7d9c164de8e39261fcab7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Dec 16 10:28:08 2024 +0100
+
+    Ignoring the file that causes issues
+
+[33mcommit 0d278169f2e334a93da222d9c57f5715bf8051b6[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Dec 16 10:27:12 2024 +0100
+
+    Ignorind the file that causes committing issues
+
+[33mcommit 3eec389d5d6a54441c8a023440840984f43e08f9[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Dec 16 10:25:14 2024 +0100
+
+    commit issues
+
+[33mcommit b06cd30b5252f509ecd9023992f12776cb95f9fd[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Dec 16 10:14:07 2024 +0100
+
+    Commmit issues
+
+[33mcommit 743e15aebaab71e26b056aa2c8d79fb913c8e6c2[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Dec 11 19:30:11 2024 +0100
+
+    Added code to calculate half life and AUC
+
+[33mcommit 3854e9efd5b6282fd2006f4176e35dc5edd0f9d8[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Dec 11 11:29:44 2024 +0100
+
+    Changing the way parameters are inputed to see if this helps with the SA
+
+[33mcommit 2188cd76479a908ce7efb32e6af952fb750cbdf1[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Dec 9 15:27:04 2024 +0100
+
+    GSA updates
+
+[33mcommit a4c20f98522178d6b0e8b88337758f07c545f42a[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Dec 6 16:14:36 2024 +0100
+
+    GSA script works
+
+[33mcommit dbc84287d906ffa00de1654a70264138e62bde01[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Dec 5 15:12:40 2024 +0100
+
+    Updating files
+
+[33mcommit e7ab7f5ff5ea4eae0a255e6568bb750ccc4fd73f[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Dec 5 15:10:40 2024 +0100
+
+    Local Sensitivity Analysis
+
+[33mcommit 8542507580720eeeab3a0e8e5d726a08e171facf[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Dec 5 08:40:46 2024 +0100
+
+    LSA script
+
+[33mcommit 130cbe86376c98213c8f3cfb496ae14943dad90d[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Dec 5 08:28:01 2024 +0100
+
+    deleting backup file
+
+[33mcommit db821c45187a319654ad0fca290ab8954a4dcf4a[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Dec 5 08:26:12 2024 +0100
+
+    GSA script
+    GSA not done yet as there must be an issue with the script
+    R gets stuck here:out <- solve_fun(x,
+    +                  time=TIME,
+    +                  func = PBPKmodPFOA_M,
+    +                  initState = A_init,
+    +                  outnames = outputs)
+
+[33mcommit f5472b288e78061d77b7195a870c63b2bdf9b68c[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Dec 4 15:00:49 2024 +0100
+
+    Calculated partition coefficients
+
+[33mcommit 3a84f9d34df879b1e57a654a6f172e1db61fbe8f[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 27 17:03:47 2024 +0100
+
+    working on the kidney
+
+[33mcommit 48235e9d0638032f353c6b7e0253fdbd4cf09753[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 20 19:51:37 2024 +0100
+
+    no changes, just plotting
+
+[33mcommit eaa1ef9527a7b215722d503b6d2b4e61549ee915[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Tue Nov 19 09:02:34 2024 +0100
+
+    Plotting against one individual
+
+[33mcommit d46835fefacc0ec35a7b9e0783408f7209f5285c[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Nov 18 18:37:34 2024 +0100
+
+    Validating against one individual
+
+[33mcommit d42bea37cac718a73bc5e420145e702390482560[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Mon Nov 18 18:03:04 2024 +0100
+
+    Adding the first version of excel file for PFAS parameters (EFSA-4 PFAS)
+    
+    In collaboration with the CS in WP7.3.2 (lead: RECETOX)
+
+[33mcommit 0f636ace7668675f769abdbad0c2ff1c2640504b[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Nov 18 09:10:29 2024 +0100
+
+    This version contains a more complex kidney compartment
+
+[33mcommit 9573ac0725e9f99a83cb19ec8d2745629cec58a9[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Sun Nov 17 18:38:05 2024 +0100
+
+    commit
+
+[33mcommit 1fb40e75a9840040bab2c110a78873f84fc42535[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Sat Nov 16 21:54:45 2024 +0100
+
+    added code to check experimental vs simulated half life; optimising clearances
+
+[33mcommit 846c45e0a8027fb6eb6999a9a8aebdf92a831bfe[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Sat Nov 16 14:49:47 2024 +0100
+
+    Adding evaluation data
+
+[33mcommit 818eca34731b942aed6368c9925bbec7a49a8a98[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Nov 15 17:23:08 2024 +0100
+
+    Adding / removing complexity
+
+[33mcommit f35e17a9517413566dd29044d6e4e253d28c10a2[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Nov 15 12:56:41 2024 +0100
+
+    today's updates
+
+[33mcommit 1e37a474ffdc9642e6f2855e1ce0ad499f8e8b9f[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 22:56:35 2024 +0100
+
+    Still on Trine's values and code.
+    I don't seem to get the slow accumulation that she observes until 10 years.
+
+[33mcommit c7d2796f02195cce5a9c787761bd8bce05bfe3e2[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 22:01:48 2024 +0100
+
+    Harmonizing folders
+
+[33mcommit 804b93f74b2263831b50ee094619b56df3ca47d2[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 21:54:27 2024 +0100
+
+    This code version reflects the same PBK code and parameters as Trines'
+
+[33mcommit 9095086afdb45289a6741d97ec51bc59daac14fe[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 17:26:20 2024 +0100
+
+    Saving updates
+
+[33mcommit 935cfc4d8337f414881c2fe3651dc6482cb00f44[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 16:26:52 2024 +0100
+
+    5 years exposure and 6 years simulation
+
+[33mcommit 4374ca4d0fe6c29704b00fd98289924e3b7a44d0[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 15:14:29 2024 +0100
+
+    Plotting per simulation time instead of age
+
+[33mcommit 9bc392ba62c0a41418cf8cefce1bc21c50e405ea[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 12:40:57 2024 +0100
+
+    Simuation works without lifestage.
+    Now trying to understand the kinetics
+
+[33mcommit b72255e28a5dd03de286cc104fe1996bacfff4fa[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 14 12:26:38 2024 +0100
+
+    Simple script made for easier evaluation of the updates. It enables ignoring lifestage equations.
+
+[33mcommit 0bbb3b0779731135416cc4c10955c875a5b15430[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 13 10:25:20 2024 +0100
+
+    Re-organising Git
+
+[33mcommit 7ba76d153951444eef296e0549660d40d692272d[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Tue Nov 12 21:42:54 2024 +0100
+
+    New script specific for the input parameters. To enable more efficient runs and clean script.
+    
+    Mass balance of organ volumes and blood flows has been double checked -> OK
+    
+    A few comments regarding the scaling factors specific for skin and kidney have been added.
+    These need to be double checked by someone else.
+    
+    No changes to the PFOA_PBK model have been made.
+
+[33mcommit 2a1b70e4c67a19b4bb9dc81248d4c041ce118e7d[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Tue Nov 12 09:35:02 2024 +0100
+
+    No update in the main code.
+    Optimising the input script
+
+[33mcommit 644bf9e9cd9b586a8741d81b805e1d8f6680501e[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Sun Nov 10 12:58:58 2024 +0100
+
+    Clean file separation
+
+[33mcommit 4cdf00a1b60333eeffc142d55d169e62c99017f8[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Sun Nov 10 12:48:55 2024 +0100
+
+    no changes
+
+[33mcommit 87875ecc2f54e3492e08f1f0733a9ca577f04005[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 7 12:19:03 2024 +0100
+
+    changing kAap and kABl values to see how it changes the kinetics
+
+[33mcommit de0138e5c49eef82a6a0b58054f4fa891adee4d7[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 7 10:28:54 2024 +0100
+
+    Updated kidney compartment
+
+[33mcommit bc30d9b893b67e61fb2789bb1e58d55be1fc589b[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Nov 7 09:17:39 2024 +0100
+
+    Code works again.
+    PFOA kinetics are not good though, the elimination is too quick.
+
+[33mcommit b50929ca6c92cad9a22970482ee000e6bc36328c[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 6 14:17:27 2024 +0100
+
+    Spelling mistake corrected
+
+[33mcommit d5d4998d9d18b23fb20e59b2ec3bfe7f3b8a2639[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 6 11:37:04 2024 +0100
+
+    Code updated, but model doesn't work. Input is not getting in Gut nor Skin
+
+[33mcommit 9ab3c716c1a88e38b1956c9c92a8b04e4108dee6[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 6 10:29:28 2024 +0100
+
+    No code changes
+
+[33mcommit 14976fe2240033fa81f7e1e0132c52295bc0d9c6[m
+Merge: 5aa4833 7892167
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 6 10:10:21 2024 +0100
+
+    Merge branch 'main' of https://github.com/Ratierau/PARC_PFAS_PBPKmodel
+    
+    # Conflicts:
+    #       Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Script/PARC PFOA PBK model.R
+
+[33mcommit 5aa4833e88ecf47dab354287559c2606a8b6adba[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Nov 6 10:05:15 2024 +0100
+
+    Updated kidney physiology and clearance.
+    Physiology: GFR, kidney devided to kidney blood and kidney tissue.
+    Active transport processes were modeled using in vitro data from Louisse et al. 2024. Scaling to kidney cortex was used for the in vitro to in vivo extrapolation.
+    
+    Missing: input parameters to be updated
+
+[33mcommit 78921676037873f08b78c5f9b975f08691a41aa5[m
+Author: Chrysanthi Pachoulide <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Oct 30 10:45:11 2024 +0100
+
+    Update PARC PFOA PBK model.R
+
+[33mcommit 4351573967724fd582360a8b1bab94488d8f0f40[m
+Author: Chrysanthi Pachoulide <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Oct 30 10:44:11 2024 +0100
+
+    Update PARC PFOA PBK model.R
+    
+    adding refs to kidney scaling factors
+
+[33mcommit aa84d08baa4ee8633ff646cadf3e213ef3fb854e[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Oct 25 17:58:27 2024 +0200
+
+    no changes
+
+[33mcommit 0c937cc190581c4b88d256d3743a34c3e4ea76fb[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Oct 24 11:27:24 2024 +0200
+
+    no changes
+
+[33mcommit b12352d2ac57056c575f2283e08f58f0196e548f[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Wed Oct 23 09:55:47 2024 +0200
+
+    no changes in the code
+
+[33mcommit d602389a889a04d73d7a59781119bfeac4872714[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Oct 21 12:04:09 2024 +0200
+
+    No major changes, just comments from our discussion with Joost
+
+[33mcommit 169ca14beaa67b1e7fb0ccdc07f50c8c86dbd1d0[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Oct 18 17:56:59 2024 +0200
+
+    No changes, just comments
+
+[33mcommit bd45331dbd616c184b2bcc2d96599fb295b49960[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Oct 18 12:35:24 2024 +0200
+
+    No changes, just adding some notes
+
+[33mcommit eed10c0d3f8de1de040f1e96462701e0ba9deae3[m
+Author: Joost Westerhout <163832260+jwesterhout@users.noreply.github.com>
+Date:   Wed Oct 16 14:54:37 2024 +0200
+
+    Implemented lifetime equations into updated PFOA model
+    
+    Implemented lifetime equations into the updated PFOA model. Also made some corrections to certain parameters so that the units are correct.
+
+[33mcommit 120b1b0c32ff248366989d5e77782b864f282be1[m
+Author: Joost Westerhout <163832260+jwesterhout@users.noreply.github.com>
+Date:   Thu Oct 10 09:57:49 2024 +0200
+
+    Update PBPK_script.R
+    
+    Made some changes to the Qmassbalance_F and the volume and flow of the rest compartment to fix the mass balance issue.
+    Note that the bodyweight during adulthood should not be constant to fix another mass balance error. This is not yet implemented.
+
+[33mcommit 7f7778f8d877a823f5bae405ddddbacc2e9c5720[m
+Author: DariaSapunova <517314@muni.cz>
+Date:   Tue Sep 24 11:46:00 2024 +0200
+
+    Add files via upload
+
+[33mcommit 560ec56efb28db1fe15466a2a51991058f3b0921[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Fri Sep 20 13:31:02 2024 +0200
+
+    Add files via upload
+    
+    Fixed problem of multiple portion sizes for one food item.
+
+[33mcommit 03e71386efa9e9b0be788ba5577a9518c5a385d3[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 30 19:27:03 2024 +0200
+
+    fu, kidney and skin all updated
+
+[33mcommit ced994738cdc9b863efa4937480a0b81f0e7bb14[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 30 10:09:34 2024 +0200
+
+    Kidney compartment updated
+
+[33mcommit 10c18f02477bfdcd5486c0a52f4b42c7a6ff27d9[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 30 09:38:58 2024 +0200
+
+    Changed GFR to 0.1% of total kidney blood flow
+    Working on changing the kidney code
+
+[33mcommit b423a96d91a5f8acaad70b59764e1927818e8f60[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 30 09:24:42 2024 +0200
+
+    Updating Vmax/Km for kidney reabsorption
+
+[33mcommit 3cba08e4800f4e0ef732811cb0f4d0ba87bb1b09[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Aug 29 05:58:07 2024 +0200
+
+    Trying to change the kidney compartment, but there seems to be an issue and the solver is giving error.
+
+[33mcommit c122adeb391d68edc05d3d2187bdddf8565fe9bd[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Tue Aug 27 17:03:32 2024 +0200
+
+    Changing the skin compartment
+
+[33mcommit c429335b9df45192a17bfbb257746e84e921323a[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Tue Aug 27 13:42:15 2024 +0200
+
+    Last work
+
+[33mcommit bdda48a99e0c5fb63a629d3cd992699311e6c4e2[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Mon Aug 19 08:59:46 2024 +0200
+
+    Updates free fraction
+
+[33mcommit 2ede88443b4754830640487dcc7b4dc9d532fa1e[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 16:06:00 2024 +0200
+
+    Re-opening the file
+
+[33mcommit e081e9fc9c957ea47e4059be6d5e7b52d3b9a495[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 15:59:59 2024 +0200
+
+    Updating Free value, based on recent data
+
+[33mcommit 4691e35a17df742fa01b12b40024b1ae4ea5374e[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 15:18:22 2024 +0200
+
+    Abbreviation changes: from k to CL for
+    -urinary cleraance
+    -biliary clearance
+    -fecal clearance
+    
+    The mass balance is correct
+
+[33mcommit ab7d89397fda37993c304c67e5d82095d1ffd56c[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 15:11:00 2024 +0200
+
+    Cleaning
+
+[33mcommit d6a4f692c242e990629c09b02cf8cb95552d504c[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 15:10:19 2024 +0200
+
+    Mass balance is OK!!
+
+[33mcommit aa0d466b2a545447fe0653c2836d0502dc5c265f[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 10:45:13 2024 +0200
+
+    These changes were already there when I opened the project
+
+[33mcommit 6831d53bcd4018cb2ef5c6fe764ab8151c1e60df[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Fri Aug 16 10:17:53 2024 +0200
+
+    Update PBPK_PFOA_InProgress.R
+    
+    Added the mass balance equations
+    Mass balance is okay now!
+
+[33mcommit 370b280dbc630a7ed4079d004183d0201f8b52db[m
+Author: Annelies-91 <annelies.noorlander@wur.nl>
+Date:   Thu Jul 11 13:36:02 2024 +0200
+
+    Update PBPK_PFOA_InProgress.R
+    
+    Work in progress concerning kidney compartment.
+
+[33mcommit 76895b120519eb793cd61acc4dc8ecfbd0f32e08[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Jul 4 13:25:03 2024 +0200
+
+    Update PBPK_PFOA_InProgress.R
+    
+    comment about the rest volume
+
+[33mcommit 065c4c6c1a17f0c59b2e9bf6edbd7dcd463e276b[m
+Author: PACHRYS <chrysanthi.pachoulide@wur.nl>
+Date:   Thu Jul 4 13:20:47 2024 +0200
+
+    Update PBPK_PFOA_InProgress.R
+    
+    Correction of VPlasC
+
+[33mcommit 5a3b799126d27f462cacec3b943e023674ee8e07[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jul 1 14:55:50 2024 +0200
+
+    Fixed link to FW approcimation function.
+
+[33mcommit f23c56aaf36e9b11db2e38f542e2e570971cf5fc[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Mon Jul 1 14:38:39 2024 +0200
+
+    add the R code from Chrysanthi_Pachoulide on PFOA oral and dermal exposure in blood
+    
+    code in progress
+
+[33mcommit 39683329210c6a65310de423acefe535479156e0[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jul 1 00:56:10 2024 +0200
+
+    Add files via upload
+
+[33mcommit 7b5d4e016e8a8da051fc427ee053c4d39670f054[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Sun Jun 30 19:39:50 2024 +0200
+
+    Food PFASs concentrations - format description
+
+[33mcommit afa0490cbfbe7860bedb7d919b4c5bb8bb67cd19[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Sun Jun 30 19:38:55 2024 +0200
+
+    Example data for testing purposes
+    
+    Data for version 0 (not real data before publishing the paper)
+
+[33mcommit 3022fb45292ef7b04eeab87cd731ab4ff3dee787[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Sun Jun 30 19:37:27 2024 +0200
+
+    Version 0
+    
+    Zero version of the exposure model
+
+[33mcommit 314210512c63b90374976767592aa44ccec762a0[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jun 24 12:57:39 2024 +0200
+
+    Rename food_concentration_example.rds to food_concentrations_example.rds
+
+[33mcommit 5f1982dc91a6f00fd5ba640ce92c765d0af720f3[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jun 24 12:52:30 2024 +0200
+
+    Add files via upload
+
+[33mcommit c3f5adc2d12c4d9931f284df0452b85b8a29b75f[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jun 24 12:52:18 2024 +0200
+
+    Create food_concentration_example.rds
+
+[33mcommit b0d18bd27e04f92e861bb723c401ac9d00016a07[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jun 24 12:29:23 2024 +0200
+
+    Delete Codes_PFAS_models/Kalina_Sapunova_2024_oral_exposure/exposure.R
+
+[33mcommit 6f82979e0b09ded69cc3183650838e85d2f89ae9[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jun 24 12:28:41 2024 +0200
+
+    Add files via upload
+
+[33mcommit eee92642ed1018465eaa94ce9c26bcefc1c994e0[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Mon Jun 24 12:28:15 2024 +0200
+
+    Create exposure.freq.R
+
+[33mcommit 9186ecebd630d72ae7fdbe2b413eddafdde34851[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Tue Jun 18 17:54:34 2024 +0200
+
+    Create exposure.R
+    
+    Functions defitintion.
+
+[33mcommit 5ca8a9a2fef93efcb158c7c21410a29edf400aca[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Tue Jun 18 17:52:13 2024 +0200
+
+    Delete Codes_PFAS_models/Kalina_Sapunova_2024_oral_exposure
+
+[33mcommit d16dfc9ed54490cdccafe586a275338488c70bf5[m
+Author: jirikalina <kalina@mail.muni.cz>
+Date:   Tue Jun 18 17:50:46 2024 +0200
+
+    Create Kalina_Sapunova_2024_oral_exposure
+
+[33mcommit 3063e6941297c3fe019e3fe2a79150a5ef2b8e89[m
+Author: Joost Westerhout <163832260+jwesterhout@users.noreply.github.com>
+Date:   Tue Jun 18 10:58:30 2024 +0200
+
+    Create Westerhout_2024_PFOA_PFOS_PBK_model.R
+    
+    This model code is not the same as previously published, because that code contained a mistake in the calculated exposure during the first year of life. This has been corrected. In addition, the (free) concentration in plasma is calculated differently compared to the published model in order to have a correct mass balance.
+
+[33mcommit c100d0ca18cbc9032851eb26cee2f206e4de5cb9[m
+Author: Ratierau <91950246+Ratierau@users.noreply.github.com>
+Date:   Thu Jun 13 18:44:23 2024 +0200
+
+    add the readme file for other model codes
+
+[33mcommit d43c0e381d84b0a2158915e26362c88522f44a13[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Thu Jun 13 18:42:43 2024 +0200
+
+    add additional model codes
+
+[33mcommit 8c3c2e428a16639c19e43865ac4cb9a94efb5cdd[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Thu Jun 13 18:40:43 2024 +0200
+
+    add Loccisano 2011 model code
+
+[33mcommit 7d802dd9c9281d20cec2fec3216b23706f75a586[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Thu Jun 13 15:05:13 2024 +0200
+
+    add Fabrega 2015 model from antoher github
+
+[33mcommit a0f4e2d14e97c6be39b13c7e0fa126e5d3254375[m
+Author: Ratierau <91950246+Ratierau@users.noreply.github.com>
+Date:   Fri Jun 7 11:51:56 2024 +0200
+
+    add the link to the repo PFAS model code
+
+[33mcommit 414ca61e1b0bc2473a0838b38f21dc920b67b671[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Fri Jun 7 11:11:56 2024 +0200
+
+    remove git ignore from Trine model folder
+
+[33mcommit 7ca637196e322e81831ca76432caa59c82713c19[m
+Author: Ratierau <aude.ratier@ineris.fr>
+Date:   Fri Jun 7 11:10:59 2024 +0200
+
+    Add articles associated to models and Trine model on PFOA dermal and oral exposure for adults
+
+[33mcommit b2b133bf4d0b5885782dc2cc81bc7515dc9a9bf4[m
+Author: “Ratierau“ <aude.ratier@ineris.fr>
+Date:   Tue May 28 19:09:39 2024 +0200
+
+    Update readme file in adding the link to the MCSim toolbox under R
+    
+    Careful, MCSim is in v5, it is not the latest version (now v6.2.0)
+
+[33mcommit 529de93a5cda99c3535e1fd53c9ad76aa51229d3[m
+Author: “Ratierau“ <aude.ratier@ineris.fr>
+Date:   Tue May 28 18:58:03 2024 +0200
+
+    Add PFAS model codes from Ratier et al., 2024 using MCSim and update in the readme file
+    
+    Add PFAS model codes from Ratier et al., 2024 using MCSim:
+    two .model files, one for man, one for woman (including pregnancy and foetus)
+    one .in file which contains chemical specific parameters and individual exposure scenario
+
+[33mcommit 6ab575b29ad73513d31e66784edf47f7da89c5a8[m
+Author: Ratierau <91950246+Ratierau@users.noreply.github.com>
+Date:   Tue May 28 18:39:53 2024 +0200
+
+    Initial commit
