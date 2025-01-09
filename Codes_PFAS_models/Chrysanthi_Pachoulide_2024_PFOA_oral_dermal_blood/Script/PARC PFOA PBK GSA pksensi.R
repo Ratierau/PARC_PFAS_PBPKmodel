@@ -9,7 +9,7 @@ rm(list=ls()) # to clear out the global environment
 
 # Set working directory
 
-HOME <- "C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood"
+HOME <- "C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood"
 # HOME <- "/home/westerj"
 setwd(HOME)
 
@@ -39,7 +39,7 @@ library(PKNCA)
 
 ### Constants ####
 #### Physiological  ####
-Physio_params <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PhysioVariables.csv")
+Physio_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PhysioVariables.csv")
 
 # 50 years old adult, male
 Physio_params <- Physio_params %>% 
@@ -72,7 +72,7 @@ QSkc <- Physio_params$Q_skinFraction_M/Physio_params$BloodFlowSum
 
 
 #### Chemical Specific ####
-PFOA_params <- read_csv("C:/Users/Nicolas/Documents/R_PARC/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PFOAParams.csv")
+PFOA_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/C Channel/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PFOAParams.csv")
 
 MW <- PFOA_params$MW 
 
@@ -363,7 +363,7 @@ output_PFOA <- ode(y = A_init,
                    method="lsoda"
                    )
 output.PFOA.df <- as.data.frame(output_PFOA) 
-
+plot(output.PFOA.df)
 
 # Sensitivity analysis using pksensi ####
 # ---------------------------------------------------------------------------- #
