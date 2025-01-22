@@ -117,9 +117,10 @@ PFOA.params_df <- PFOA.params_df %>% mutate(
   kAap = 0.01, # affinity constant apical this is about OAT4 which has affinity to re-abs (movement from filtrate to cells; this is fitted value for now; kAap = 0.01 is driving the equilibrium towards re-absorption into the proximal tubule cells
   
   # Comment Chrysa 12-11-2024: I'm not sure about these scaling factors as the in vitro clearance is expressed in ul/min/mg protein and not ul/min/HEK cells
-  CL_OAT1 = 19/ 10^-6 *60*24 * 10^-6, # L/d/kg protein; initial ul/min/mg protein
-  CL_OAT3 = 17/ 10^-6 *60*24 * 10^-6, # L/d/kg protein; initial ul/min/mg protein
-  CL_OAT4 = 96/ 10^-6 *60*24 * 10^-6, # L/d/kg protein; initial ul/min/mg protein
+  # Comment Chrysa 16-01-2025: conversion mistake in the below equations, I'm correcting from / 10^-6 *60*24 * 10^-6 to / 10^-6 *60*24 * 10^6
+  CL_OAT1 = 19/ 10^-6 *60*24 * 10^6, # L/d/kg protein; initial ul/min/mg protein
+  CL_OAT3 = 17/ 10^-6 *60*24 * 10^6, # L/d/kg protein; initial ul/min/mg protein
+  CL_OAT4 = 96/ 10^-6 *60*24 * 10^6, # L/d/kg protein; initial ul/min/mg protein
   
   PTCPGK = 9.94* 10^7 * 10^3, # proximal tubule cells/kg kidney cortex; initial 99.4 million PTC/g kidney https://doi.org/10.1021/acs.molpharmaceut.4c00504
   
