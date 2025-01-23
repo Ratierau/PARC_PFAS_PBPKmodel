@@ -67,7 +67,7 @@ Final_variables_M_df <- read_csv("C:/Users/pacho003/OneDrive - Wageningen Univer
 # ------------------------------------------------------ #
 
 # exposure_stop <-  50*365      # days
-sim_stop <- 1*365 # 80*365   # days
+sim_stop <- 450 # 80*365   # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
