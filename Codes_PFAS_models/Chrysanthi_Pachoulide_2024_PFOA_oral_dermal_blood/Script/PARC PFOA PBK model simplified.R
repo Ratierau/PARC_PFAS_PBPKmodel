@@ -26,6 +26,7 @@ library(deSolve)
 library(tidyverse)
 library(PKNCA)
 library(pracma)
+library(readxl)
 
 # For plotting
 library(showtext)
@@ -71,7 +72,7 @@ sim_stop <- 450 # 80*365   # days
 
 TSTART <- 0
 TSTOP <- sim_stop               # years in days
-DT <- 1/100                         # days
+DT <- 1/10                         # days
 TIME <- seq(TSTART,TSTOP,by=DT)
 
 
@@ -89,9 +90,9 @@ Oraldose <- 3.96 # ug https://doi.org/10.1016/j.envint.2024.109047 # Oralconc*BD
 #### Physiological  ####
 Physio_params <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/PhysioVariables.csv")
 
-# 50 years old adult, male
+# 60 years old adult, male
 Physio_params <- Physio_params %>% 
-  filter(age == 50) %>% 
+  filter(age == 60) %>% 
   select(ends_with('_M')) %>% 
   mutate(BloodFlowSum = rowSums(select(., starts_with("Q_")))) %>% # 0.9935; total blood flow as the sum of the fractional blood flows of all organs on which we have data
   mutate(VolumesSum = rowSums(select(., starts_with("V_")))) # 0.96; total volume as the sum of the fractional organ volumes of all organs on which we have data
@@ -224,11 +225,11 @@ MB_kidney <- round(MB_kidney, 4)
 ###### In the model currently ####
 VGlomP <- VGlomB # Volume of glomerular blood
 VGlomL <- VGlomL # Volume of glomerular space(lumen)
-VPTP <- VPTB + VGlomB # + VGlomB + VRKB + VPTC + VRKC
-VPTC <- VPTC #+ VRKC
-VPTL <- VPTL + VGlomL# + VGlomL + VRKL
-VRKP <- VRKB + VRKC
-# VRKC <- VRKC
+VPTP <- VPTB + VGlomB #+ VRKB # Glom + prox + rest
+VPTC <- VPTC #+ VRKC #prox + rest
+VPTL <- VPTL + VGlomL #+ VRKL #glom + prox + rest
+VRKP <- VRKB + VRKC 
+VRKC <- VRKC
 VRKL <- VRKL
 
 # Body flows (L/d)
@@ -259,7 +260,6 @@ CLfecal <- CLfecalc * BW # L/d
 
 # Renal clearance
 ##### Active transport ####
-# Comment Chrysa 22-1-2025: previously I was not correcting from mg protein (the in vitro clearance to kg protein which is the unit in the model)
 # CL_FiltPT <- CL_OAT4 * REF_OAT4 * 0.17 * 0.7 * VK # L/d scaling for protein content instead of cell content; 17% of kidney is protein and 70% of kidney is cortex [ICRP 89], assuming that all the kidney protein is found in the cortex; this is an overestimation though; double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
 
 # SF <- 0.17 * 10e6 # 17% of kidney is protein [ICRP 89], 10e6 is scaling from mg protein to kg protein, double ref for 17% protein Ruark 2020: DOI: https://doi.org/10.1016/B978-0-12-818596-4.00006-0
@@ -269,8 +269,8 @@ SF <- 10.9e-6 * 99.4e6 * 1e3 #6.54 mgprotein/HEK293cell (ref: Han and Ni, 2004; 
 
 # CL_FiltPT <- CL_OAT4 * REF_OAT4 * SF * 0.05699938 #VPTC # L/d 
 # CL_PltPT <- ((CL_OAT1 * REF_OAT1) + (CL_OAT3 * REF_OAT3)) * SF * 0.05699938 #VPTC #L/d
-CL_FiltPT <- CL_OAT4 * REF_OAT4 * SF * VPTC # L/d
-CL_PltPT <- ((CL_OAT1 * REF_OAT1) + (CL_OAT3 * REF_OAT3)) * SF * VPTC #L/d
+CL_FiltPT <- CL_OAT4 * REF_OAT4 * SF * (fVPTC*VPT) # L/d
+CL_PltPT <- ((CL_OAT1 * REF_OAT1) + (CL_OAT3 * REF_OAT3)) * SF * (fVPTC*VPT) #L/d
 
 ##### Passive diffusion ####
 
@@ -294,7 +294,7 @@ SA_PT <- 611          # dm3 = L
 SA_RK <- 280.5       # dm3 = L, sum of the surface area of all other compartments, SA_RK <- 61+61+125+6.7+6.7+6.7+6.7+6.7, from Huang and Isoherranen 2018 doi:10.1002/psp4.12321, Table 1
 
 # input data
-Papp <- 1.46 *10e-6 #cm/s in vitro permeability at apical compartment pH 7.4, PFAS were added to the donor wells and transport buffer containing 0.4% BSA was added to the receiver wells
+Papp <- 1.46 *1e-6 #cm/s in vitro permeability at apical compartment pH 7.4, PFAS were added to the donor wells and transport buffer containing 0.4% BSA was added to the receiver wells
 f.union_exp <- f.union_P #as exp.pH=7.4 = plasma pH
 Pint <- Papp/f.union_exp #cm/s intrinsic permeability, corrected for fraction unionised in the experiment
 
@@ -456,19 +456,19 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     ## Differential equations ----
     
     # Adipose compartment
-    dAA <- QA*(CP-CVA) # (ug/h)
+    dAA <- QA*(CP-CVA) # (ug/d)
     
     # Rest compartment
-    dAR <- QR*(CP-CVR) # (ug/h)
+    dAR <- QR*(CP-CVR) # (ug/d)
     
     # Gut compartment: 
-    dAG <- + QG*CP - QG*CVG + CLbiliary*CL*fup - CLfecal*CG #+ Oraldose
+    dAG <- + QG*CP - QG*CVG + CLbiliary*CL*fuT - CLfecal*CG #+ Oraldose
     
     # Excretion fecal: cumulative
     dAEx_feces <- CLfecal*CG 
     
     # Liver compartment
-    dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fup 
+    dAL <- QL*CP + QG*CVG - (QL+QG)*CVL - CLbiliary*CL*fuT 
     
     # # Kidney compartment
     # dAK <- QK*(CP -CVK) - GFR*fup*CK + CL_FiltPT*fup*CFil
@@ -486,22 +486,22 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     dAGlomL <- 0 #fup*GFR*CGlomP - QT*CGlomL
     
     # Proximal tubule plasma
-    dAPTP <- QK*(CP - CPTP) - CL_PltPT*CPTP*fup + CLdif_PTCtPTP*CPTC*fuT - CLdif_PTPtPTC*CPTP*fup - fup*GFR*CPTP #+ CPTC/PK #
+    dAPTP <- QK*(CP - CPTP) - CL_PltPT*CPTP*fup - fup*GFR*CPTP + CLdif_PTCtPTP*CPTC*fuT - CLdif_PTPtPTC*CPTP*fup 
     
     # Proximal tubule cell
-    dAPTC <- CL_PltPT*CPTP*fup + CL_FiltPT*CPTL*fuPTL + CLdif_PTLtPTC*CPTL*fuPTL - CLdif_PTCtPTP*CPTC*fuT - CLdif_PTCtPTL*CPTC*fuT + CLdif_PTPtPTC*CPTP*fup #- CPTC/PK #
+    dAPTC <- CL_PltPT*CPTP*fup + CL_FiltPT*CPTL*fuPTL + CLdif_PTLtPTC*CPTL*fuPTL - CLdif_PTCtPTP*CPTC*fuT - CLdif_PTCtPTL*CPTC*fuT + CLdif_PTPtPTC*CPTP*fup
     
     # Proximal tubule lumen
-    dAPTL <- + fup*GFR*CPTP - QT*CPTL - CL_FiltPT*CPTL*fuPTL - CLdif_PTLtPTC*CPTL*fuPTL + CLdif_PTCtPTL*CPTC*fuT #QT*(CGlomL - CPTL)
+    dAPTL <- + fup*GFR*CPTP - QT*CPTL - CL_FiltPT*CPTL*fuPTL - CLdif_PTLtPTC*CPTL*fuPTL + CLdif_PTCtPTL*CPTC*fuT 
     
     # Rest of kidney plasma (rest of kidney cell is ignored)
-    dARKP <- QK*(CPTP - CRKP/PK) #+ CLdif_RKCtRKP*CRKC*fuT - CLdif_RKPtRKC*CRKP*fup
+    dARKP <- QK*(CPTP - CRKP) 
     
     # Rest of kidney cell
-    dARKC <- 0 #CLdif_RKLtRKC*CRKL*fuRKL - CLdif_RKCtRKP*CRKC*fuT - CLdif_RKCtRKL*CRKC*fuT + CLdif_RKPtRKC*CRKP*fup
+    dARKC <- 0 
     
     # Rest of kidney lumen
-    dARKL <- QT*CPTL - QUr*CRKL #- CLdif_RKLtRKC*CRKL*fuRKL + CLdif_RKCtRKL*CRKC*fuT
+    dARKL <- QT*CPTL - QUr*CRKL
     
     # Urine
     dAUr <- QUr*CRKL
@@ -512,7 +512,7 @@ PBPKmodPFOA_M <- function(t, state, parameters){
     # Plasma compartment
     dAP <- - (QSk + QG + QL + QA + QR)*CP +
       QSk*CVSk + (QL+QG)*CVL + QA*CVA + QR*CVR +
-      - QK*CP + QK*CRKP/PK
+      - QK*CP + (QK*CRKP)
     
     
     # Mass Balance
@@ -738,7 +738,7 @@ Exp_HalfLifes <- ExpData %>%
          parameter== "HalfLife") %>%
   select(value_average) %>%
   rename(HalfLife = value_average)
-Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife)
+Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife) #years
 
 Predicted.df <- data.frame(
   HalfLife = HalfLife,
@@ -760,8 +760,8 @@ Plot_HalfLifes <- HalfLifes %>%
              color = "slateblue3", size = 5, shape = 18) +
   ylab("Half life (years)") +
   theme_CP() +
-  theme(axis.text.x=element_blank(), #remove x axis labels
-      axis.ticks.x=element_blank(), #remove x axis ticks
+  theme(axis.text.x=element_blank(),
+      axis.ticks.x=element_blank(),
       axis.title.x = element_blank()
       )
 Plot_HalfLifes
@@ -769,15 +769,103 @@ ggsave("ExpVsSimHalfLife.png", dpi = 300)
 
 
 # Experimental Vs Simulated Plasma concentrations ####
-ExpPlasma <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.csv")
+ExpPlasma <- read_excel("C:/Users/pacho003/OneDrive - Wageningen University & Research/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.xlsx", 
+                        col_types = c("numeric", "numeric"))
 
-ExpPlasma <- ExpPlasma %>%
-  # mutate(Years = Time_days/365) %>%
-  # select(!Time_days) %>%
-  rename(Days = Time_days) %>%
-  rename(CP = Plasma_concentration_ngPerml) %>%
+
+ExpPlasma <- ExpPlasma %>% 
+  # mutate(Years = Time_days/365) %>% 
+  # select(!Time_days) %>% 
+  rename(Days = Time_days) %>% 
+  rename(CP = MPFOA_µg_per_L) %>% # ug/L or ng/ml
+  mutate(CP = CP - 0.130) %>%  #substracting the pre-existing level of 0.130ug/L from their previous study, as also done in the ref. article: https://doi.org/10.1016/j.envint.2024.109047 (table 3)
   filter(Days <=TSTOP)
 
+
+Plot_Plasma <- ggplot()+
+  geom_path(data = output.PFOA.df, aes(x = Days, y = CP), color = "aquamarine")+
+  geom_point(data = ExpPlasma, aes(x = Days, y = CP), color = "black")+
+  theme_CP()+
+  # scale_color_manual(values = c("Simulated" = "aquamarine",
+  #                               "Experimental" = "black")) +
+  # # theme(axis.text.x = element_text(size = 7),axis.text.y = element_text(size = 7), axis.title = element_text(size = 8))+
+  ylab("Plasma (ng/ml)")
+Plot_Plasma
+ggsave("PlasmaExpVsPredicted.png", dpi = 300)
+
+
+
+# Calculate AUC and Half life ####
+# ---------------------------------------------------------------------------- #
+
+AUC <- trapz(output_PFOA[ , "time"], output_PFOA[ , "CP"]) #ug*day/L
+  
+# Calculate predicted half-life
+time <- output_PFOA[ , "time"] #in days
+conc <- output_PFOA[ , "CP"] #(ug/L) or (ng/ml) 
+Cmax <- max(conc)
+Tmax <- time[which.max(conc)]
+tlast <- max(time[conc > 0])
+ 
+half_life <- pk.calc.half.life(
+    conc,
+    time,
+    Tmax,
+    tlast
+  )
+
+HalfLife <- half_life$half.life/365 #halflife in years
+
+# Experimental
+ExpData <- read_csv("C:/Users/pacho003/OneDrive - Wageningen University & Research/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/HalfLifes.csv")
+
+Exp_HalfLifes <- ExpData %>%
+  filter(species == "human",
+         chemical == "pfoa",
+         parameter== "HalfLife") %>%
+  select(value_average) %>%
+  rename(HalfLife = value_average)
+Exp_HalfLifes$HalfLife <- as.numeric(Exp_HalfLifes$HalfLife) #years
+
+Predicted.df <- data.frame(
+  HalfLife = HalfLife,
+  Origin = "Predicted",
+  value = 1)
+Experimental.df <- data.frame(
+  HalfLife = Exp_HalfLifes$HalfLife,
+  Origin = "Experimental",
+  value = 1)
+
+HalfLifes <- rbind(Predicted.df, Experimental.df)
+
+Plot_HalfLifes <- HalfLifes %>%
+  ggplot()+
+  geom_violin(data = Experimental.df, aes(value, HalfLife),
+              color = "transparent",
+              fill = "grey")+
+  geom_point(data = Predicted.df, aes(value, HalfLife),
+             color = "slateblue3", size = 5, shape = 18) +
+  ylab("Half life (years)") +
+  theme_CP() +
+  theme(axis.text.x=element_blank(), 
+      axis.ticks.x=element_blank(),
+      axis.title.x = element_blank()
+      )
+Plot_HalfLifes
+ggsave("ExpVsSimHalfLife.png", dpi = 300)
+
+
+## Plasma concentrations ####
+ExpPlasma <- read_excel("C:/Users/pacho003/OneDrive - Wageningen University & Research/CP_L_R/PARC_PFAS_PBPKmodel/Codes_PFAS_models/Chrysanthi_Pachoulide_2024_PFOA_oral_dermal_blood/Input/Experimental.Plasma.PFOA.xlsx", 
+                        col_types = c("numeric", "numeric"))
+  
+ExpPlasma <- ExpPlasma %>% 
+  # mutate(Years = Time_days/365) %>% 
+  # select(!Time_days) %>% 
+  rename(Days = Time_days) %>% 
+  rename(CP = MPFOA_µg_per_L) %>% # ug/L or ng/ml
+  mutate(CP = CP - 0.130) %>%  #substracting the pre-existing level of 0.130ug/L from their previous study, as also done in the ref. article: https://doi.org/10.1016/j.envint.2024.109047 (table 3)
+  filter(Days <=TSTOP)
 
 Plot_Plasma <- ggplot()+
   geom_path(data = output.PFOA.df, aes(x = Days, y = CP), color = "aquamarine")+
