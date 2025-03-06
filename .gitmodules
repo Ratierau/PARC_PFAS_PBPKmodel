@@ -1,3 +1,6 @@
 [submodule "Ratierau/PARC_PFAS_PBPKmodel"]
 	path = Ratierau/PARC_PFAS_PBPKmodel
 	url = https://github.com/pachrys/PARC_PFOA_mechanistic.git
+[submodule "Pachoulide_2024_PFOA"]
+	path = Pachoulide_2024_PFOA
+	url = https://github.com/pachrys/PARC_PFOA_mechanistic.git
