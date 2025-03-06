@@ -1,1 +1,4 @@
 
+[submodule "Pachoulide_PFOA_mechanistic"]
+	path = Pachoulide_2024_PFOA
+	url = https://github.com/pachrys/PARC_PFOA_mechanistic.git
