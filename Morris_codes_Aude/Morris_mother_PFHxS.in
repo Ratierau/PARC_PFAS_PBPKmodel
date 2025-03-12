@@ -1,0 +1,101 @@
+#### Sensitivity analysis PFAS lifetime model
+### Substance : PFHxS
+
+# Authors : AR
+# Version : 19/02/2025
+# Model : LifeTimePBPK_PFAS_women_fetus_PFHxS_PFNA
+# test : all time
+# outputs: C_ven, C_foetus_ven
+
+#===============================================
+
+Integrate(Lsodes, 1E-4, 1E-6, 1);
+# 	add parameter names with a space before comma
+SetPoints("SA_Morris_mother_PFHxS3.out" ,"Plan_Exp_SA.txt" ,0, 
+Free_no_pgcy ,
+Free_fet ,
+Hct ,
+Hct_foetus ,
+BirthYear ,
+#RateInj ,
+HalfLife ,
+BDW_Var ,
+WeightGainPregnancy_Var ,
+BDW_foetus_Var ,
+Q_inj_rate , # to up i nQ_inj_rate not Q_ing_rate
+Kd_uter2pla_frac_pop ,
+SD_Kd_uter2pla_frac_pop ,
+DecreaseIntake_1 ,
+DecreaseIntake_2 ,
+Abs ,
+PC_0 ,
+PC_1 ,
+PC_2 ,
+PC_3 ,
+PC_4 ,
+PC_5 ,
+PC_6 ,
+PC_7 ,
+PC_8 ,
+PC_9 ,
+PC_10 ,
+PC_11 ,
+PC_12 ,
+PC_13 ,
+PC_14 ,
+PC_15 ,
+PC_16 ,
+PC_17 ,
+PC_18 ,
+PC_27 ,
+PC_29 ,
+PC_foetus_0 ,
+PC_foetus_1 ,
+PC_foetus_2 ,
+PC_foetus_3 ,
+PC_foetus_4 ,
+PC_foetus_5 ,
+PC_foetus_6 ,
+PC_foetus_7 ,
+PC_foetus_8 ,
+PC_foetus_9 ,
+PC_foetus_10 ,
+PC_foetus_11 ,
+PC_foetus_12 ,
+PC_foetus_13 ,
+PC_foetus_14 ,
+PC_foetus_15 ,
+PC_foetus_16 ,
+PC_foetus_17 ,
+PC_foetus_18 );
+
+# Parameters
+  
+
+	########## Experiments ################################################
+
+ Kd_uter2pla_frac_pop = 1E-6;
+  SD_Kd_uter2pla_frac_pop = 2;
+  Kd_uter2pla_frac = 1E-6;
+
+
+  Simulation { # Subject idnum 18
+
+   # Birth year
+    BirthYear = 1970 ;
+
+    # BodyWeigth Parameters
+    BDW_Var = 1.305 ;
+    BDW_foetus_Var = 0.904 ;
+    WeightGainPregnancy_Var = 1 ;
+	Q_inj_rate = 0.02 ; 
+	
+    RateInj = NDoses(2, Q_inj_rate,  0, 0, 24000000);
+
+
+	Print(C_ven, C_foetus_ven, 16482680, 17482680.6968323, 17728925.830276, 17901727.830276, 18401727);
+	
+		
+  } # end Subject 18
+  
+End.
