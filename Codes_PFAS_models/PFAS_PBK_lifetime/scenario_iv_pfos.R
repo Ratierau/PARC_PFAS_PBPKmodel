@@ -65,7 +65,7 @@ results<-foreach(person=1:4,.verbose=TRUE,.packages=c("deSolve","tidyverse","dpl
         parames<-c(parames,rnorm(1,sel$Param1[i],sel$Param2[i]))
       }
       if(sel$DistributionType[i]=="lnorm") {
-        parames<-c(parames,rlnorm(1,log(sel$Param1[i]),sel$Param2[i])) # Non-systematic (according to Klára): first argument is exp(meanlog), second is sdlog! 
+        parames<-c(parames,rlnorm(1,log(sel$Param1[i]),sel$Param2[i])) # First argument is exp(meanlog), second is sdlog! 
       }
       if(sel$DistributionType[i]=="truncnorm") {
         parames<-c(parames,rtruncnorm(1,sel$Param3[i],sel$Param4[i],sel$Param1[i],sel$Param2[i]))

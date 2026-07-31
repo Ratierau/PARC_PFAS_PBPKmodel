@@ -76,7 +76,7 @@ pbk.model<-function(age                   =NA, # age (in years) at day of plasma
                     MW                    =NA, # molecular weight (g/mol)
                     logP                  =NA, # logP
                     VP                    =NA, # vapour pressure
-                    Kpve                  =NA, # partition koefficient for viable epidermis
+                    Kpve                  =NA, # partition coefficient for viable epidermis
                     Kpsc                  =NA, # partition coefficient for stratum corneum
                     # exposures
                     Oralexpo              =NA, # oral exposure (ng/kg/d)
@@ -114,7 +114,7 @@ pbk.model<-function(age                   =NA, # age (in years) at day of plasma
                     ASkbirth              =NA, # amount of PFAS in skin at birth
                     ARbirth               =NA, # amount of PFAS in rest of the body at birth
                     Afilbirth             =NA, # amount of PFAS in filtrate at birth
-                    Adelaybirth           =NA, # amount of PFAS in  at birth
+                    Adelaybirth           =NA, # amount of PFAS in urine between glomerular filtration and excretion at birth
                     Aurinebirth           =NA  # amount of PFAS in urine at birth
 ) {
 ################################################################################################## 
@@ -323,7 +323,7 @@ pbk.model<-function(age                   =NA, # age (in years) at day of plasma
     base$QL  =(25.53+1.30*sexF)/100*base$QCP
     base$QF  =exp(2.5-0.043*BMI+0.033*mAdi)/100*base$QCP          # according to Berton et al. (2022)
     base$QK  =(20.57-1.76*sexF)/100*base$QCP                      # according to Berton et al. (2022) 
-    base$Qfil=QfilC*base$QK                                       # 0.2 according to EFSA 2020 and Lccisano, 2011
+    base$Qfil=QfilC*base$QK                                       # 0.2 according to EFSA 2020 and Loccisano, 2011
     base$QG  =(18.52+3.04*sexF-(0.20+0.06*sexF)*BMI+(0.0009+0.0004*sexF)*BMI^2)/100*base$QCP  # according to Berton et al. (2022)
     base$QSk =(5.68-0.034*BMI)/100*base$QCP                       # according to Berton et al. (2022)
     base$QR  =base$QCP-base$QL-base$QF-base$QK-base$QG-base$QSk   
