@@ -1,3 +1,10 @@
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#
+# This function enables to run the reverse dosimetry using the method of sections. It calls the function stored in FUN (now pbk.model()) and iteratively
+# estimates the value of Oralexpo (EDI) to reach the value of c with the given accuracy.
+#
+
+
 ##########################
 ##                      ##
 ##  Method of sections  ##
@@ -21,21 +28,12 @@ faster.convergence.full.param<-function(c,
                                         MFV                   =NA,
                                         HR                    =NA,
                                         SDLun                 =NA,
-                                        SDH                   =NA,
                                         SDK                   =NA,
-                                        SDSto                 =NA,
                                         SDInt                 =NA,
-                                        SDSpl                 =NA,
-                                        SDPan                 =NA,
                                         SDL                   =NA,
-                                        SDBon                 =NA,
                                         SDSk                  =NA,
                                         SDAdi                 =NA,
-                                        SDBra                 =NA,
-                                        SDThy                 =NA,
-                                        SDGon                 =NA,
                                         SDB                   =NA,
-                                        SDRem                 =NA,
                                         QfilC                 =NA,
                                         Htc                   =NA,
                                         VplasC                =NA,
@@ -49,8 +47,8 @@ faster.convergence.full.param<-function(c,
                                         ffatve                =NA,
                                         ffatepi               =NA,
                                         ffatbl                =NA,
-                                        Kpcell                =NA, # cm/h
-                                        Drinkrate             =NA, # mL/kg/d
+                                        Kpcell                =NA, 
+                                        Drinkrate             =NA,
                                         MW                    =NA,
                                         logP                  =NA,
                                         VP                    =NA,
@@ -89,10 +87,8 @@ faster.convergence.full.param<-function(c,
                                         Afilbirth             =NA,
                                         Adelaybirth           =NA,
                                         Aurinebirth           =NA,
-                                        FUN="joost.model",max.loops=10,max.diff=0.01) {
+                                        FUN="pbk.model",max.loops=10,max.diff=0.01) {
                              
-  
-  # fixed
 
   ## Initial value (μg/kg/day)
   x<-y<-numeric(0)
@@ -116,21 +112,12 @@ faster.convergence.full.param<-function(c,
                                           ",MFV="                   ,MFV,
                                           ",HR="                    ,HR,  
                                           ",SDLun="                 ,SDLun,     
-                                          ",SDH="                   ,SDH,   
                                           ",SDK="                   ,SDK,   
-                                          ",SDSto="                 ,SDSto,     
                                           ",SDInt="                 ,SDInt,     
-                                          ",SDSpl="                 ,SDSpl,     
-                                          ",SDPan="                 ,SDPan,     
                                           ",SDL="                   ,SDL,   
-                                          ",SDBon="                 ,SDBon,     
                                           ",SDSk="                  ,SDSk,    
                                           ",SDAdi="                 ,SDAdi,     
-                                          ",SDBra="                 ,SDBra,     
-                                          ",SDThy="                 ,SDThy,   
-                                          ",SDGon="                 ,SDGon, 
                                           ",SDB="                   ,SDB, 
-                                          ",SDRem="                 ,SDRem,   
                                           ",QfilC="                 ,QfilC,
                                           ",Htc="                   ,Htc,
                                           ",VplasC="                ,VplasC,
@@ -206,21 +193,12 @@ faster.convergence.full.param<-function(c,
                                     ",MFV="                   ,MFV,
                                     ",HR="                    ,HR,  
                                     ",SDLun="                 ,SDLun,     
-                                    ",SDH="                   ,SDH,   
                                     ",SDK="                   ,SDK,   
-                                    ",SDSto="                 ,SDSto,     
                                     ",SDInt="                 ,SDInt,     
-                                    ",SDSpl="                 ,SDSpl,     
-                                    ",SDPan="                 ,SDPan,     
                                     ",SDL="                   ,SDL,   
-                                    ",SDBon="                 ,SDBon,     
                                     ",SDSk="                  ,SDSk,    
                                     ",SDAdi="                 ,SDAdi,     
-                                    ",SDBra="                 ,SDBra,     
-                                    ",SDThy="                 ,SDThy,   
-                                    ",SDGon="                 ,SDGon, 
                                     ",SDB="                   ,SDB, 
-                                    ",SDRem="                 ,SDRem,   
                                     ",QfilC="                 ,QfilC,
                                     ",Htc="                   ,Htc,
                                     ",VplasC="                ,VplasC,

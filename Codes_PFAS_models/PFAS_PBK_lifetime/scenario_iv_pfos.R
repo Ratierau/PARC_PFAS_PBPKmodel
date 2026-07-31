@@ -19,19 +19,19 @@ rtrunclnorm<-function(x,a=0,b=Inf,meanlog=0,sdlog=1) {
 
 ###########################################
 #                                         #
-#  Reverse modelling - scenario for PFOA  #
+#  Reverse modelling - scenario for PFOS  #
 #                                         #
 ###########################################
 
 popul<-read.xlsx("population.xlsx",1)          # reads the file with individuals' characteristics (BW, height, sex, age) and blood concentration
-param<-read.xlsx("scenario_iv_pfoa.xlsx",2)    # parametrization file derived from the MCRA format
+param<-read.xlsx("scenario_iv_pfos.xlsx",2)    # parametrization file derived from the MCRA format
 results<-data.frame("individual"=character(0),
                     "conc_blood"=numeric(0),
                     "edi"=numeric(0))
 loops<-100
 
-# PFOA 
-compound<-"PFOA"
+# PFOS 
+compound<-"PFOS"
 sel<-param[which((param$Compound==compound|is.na(param$Compound))&!is.na(param$Param1)),]
 
 #####################
@@ -94,7 +94,7 @@ results<-foreach(person=1:4,.verbose=TRUE,.packages=c("deSolve","tidyverse","dpl
     names(parames)<-factors
     
     # modelling
-    to.evaluate<-paste0("faster.convergence.full.param(",paste0("'",names(parames),"'=",parames,collapse=","),",FUN='pbk.model',max.loops=100,max.diff=0.01)")
+    to.evaluate<-paste0("faster.convergence.full.param(",paste0("'",names(parames),"'=",parames,collapse=","),",FUN='joost.model',max.loops=100,max.diff=0.01)")
     edi.person<-c(edi.person,eval(parse(text=to.evaluate)))
     
   }
@@ -116,5 +116,5 @@ edi.persons<-aggregate(list("edi"=results.a$edi),by=list("individual"=results.a$
 
 popul$edi<-NA
 popul$edi<-edi.persons
-write.xlsx(popul,file="results_pfoa.xlsx")
-write.xlsx(results.a,file="results_pfoa_individuals.xlsx",row.names=FALSE)
+write.xlsx(popul,file="results_pfos.xlsx")
+write.xlsx(results.a,file="results_pfos_individuals.xlsx",row.names=FALSE)

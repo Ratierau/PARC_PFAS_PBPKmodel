@@ -33,93 +33,95 @@
 #
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-joost.model<-function(age                   =NA,
-                      BW                    =NA,
-                      height                =NA,     
-                      Gender                =NA, # "F" or "M"
-                      TSTART                =NA,
-                      TSTOP                 =NA, # days
-                      DT                    =NA,
-                      exposure_duration     =NA, # Duration of exposure (d)
-                      age_start_occ_exp     =NA, # occupational exposure starting age (dermal and inhalation)
-                      age_stop_occ_exp      =NA, # occupational exposure stopping age (dermal and inhalation)
-                      age_start_menstruation=NA,
-                      age_stop_menstruation =NA,
-                      BWbirth               =NA, # kg
-                      MFV                   =NA, # L/d recalculated from 28-day value
-                      HR                    =NA, # heart beat rate (1/min)
-                      SDLun                 =NA, # added standard deviation of the volume of lungs from Bosgra et al. (2012)
-                      SDK                   =NA, # added standard deviation of the volume of kidney from Bosgra et al. (2012)
-                      SDInt                 =NA, # added standard deviation of the volume of intestine from Bosgra et al. (2012)
-                      SDL                   =NA, # added standard deviation of the volume of liver from Bosgra et al. (2012)
-                      SDSk                  =NA, # added standard deviation of the volume of skin from Bosgra et al. (2012)
-                      SDAdi                 =NA, # added standard deviation of the volume of lungs from Bosgra et al. (2012)
-                      SDB                   =NA, # added standard deviation of the volume of blood from Bosgra et al. (2012)
-                      QfilC                 =NA, # fraction of kidney plasma flow to filtrate
-                      #fractional tissue volumes
-                      Htc                   =NA,
-                      VplasC                =NA,
-                      VartC                 =NA,
-                      VvenC                 =NA,
-                      #skin parameters
-                      SkinThickness         =NA,
-                      fss                   =NA,
-                      hsc                   =NA,
-                      hve                   =NA,
-                      # fat‐fractions for Kscve/Kver:
-                      ffatsc                =NA,
-                      ffatve                =NA,
-                      ffatepi               =NA,
-                      ffatbl                =NA,
-                      Kpcell                =NA, # cm/h
-                      Drinkrate             =NA, # mL/kg/d
-                      MW                    =NA,
-                      logP                  =NA,
-                      VP                    =NA,
-                      Kpve                  =NA,
-                      Kpsc                  =NA,
-                      # exposures
-                      Oralexpo              =NA,
-                      Drinkconc             =NA,
-                      Cinh                  =NA,
-                      Cdermal               =NA, #for this model, dermal & inhalation exposures are excluded
-                      # kinetics
-                      Tmc                   =NA,
-                      Kt                    =NA,
-                      kurinec               =NA,
-                      CLfaeces              =NA,
-                      # free & partitions
-                      Free                  =NA,
-                      PL                    =NA,
-                      PF                    =NA,
-                      PK                    =NA,
-                      PSk                   =NA,
-                      PR                    =NA,
-                      PG                    =NA,
-                      PLun                  =NA,
-                      # maternal/breast milk
-                      maternal              =NA,
-                      PT                    =NA,
-                      Ratio                 =NA,
-                      DECLINE               =NA,
-                      Milkconsumption       =NA,
-                      # birth fractions
-                      Aartbirth             =NA,
-                      Avenbirth             =NA,
-                      AGbirth               =NA,
-                      ALbirth               =NA,
-                      AFbirth               =NA,
-                      AKbirth               =NA,
-                      ALunbirth             =NA,
-                      ASkbirth              =NA,
-                      ARbirth               =NA,
-                      Afilbirth             =NA,
-                      Adelaybirth           =NA,
-                      Aurinebirth           =NA
+pbk.model<-function(age                   =NA, # age (in years) at day of plasma sampling
+                    BW                    =NA, # body weight (kg)
+                    height                =NA, # height (cm)     
+                    Gender                =NA, # "F" or "M"
+                    TSTART                =NA, # start of modelled period (days)
+                    TSTOP                 =NA, # end of modelled period (days)
+                    DT                    =NA, # modelling time step (days)
+                    exposure_duration     =NA, # Duration of exposure (d)
+                    age_start_occ_exp     =NA, # occupational exposure starting age (dermal and inhalation)
+                    age_stop_occ_exp      =NA, # occupational exposure stopping age (dermal and inhalation)
+                    age_start_menstruation=NA, # years
+                    age_stop_menstruation =NA, # years
+                    BWbirth               =NA, # body weight at birth (kg)
+                    MFV                   =NA, # menstrual fluid volume (L/d) recalculated from 28-day value
+                    HR                    =NA, # heart beat rate (1/min)
+                    SDLun                 =NA, # added standard deviation of the volume of lungs from Bosgra et al. (2012)
+                    SDK                   =NA, # added standard deviation of the volume of kidney from Bosgra et al. (2012)
+                    SDInt                 =NA, # added standard deviation of the volume of intestine from Bosgra et al. (2012)
+                    SDL                   =NA, # added standard deviation of the volume of liver from Bosgra et al. (2012)
+                    SDSk                  =NA, # added standard deviation of the volume of skin from Bosgra et al. (2012)
+                    SDAdi                 =NA, # added standard deviation of the volume of lungs from Bosgra et al. (2012)
+                    SDB                   =NA, # added standard deviation of the volume of blood from Bosgra et al. (2012)
+                    QfilC                 =NA, # fraction of kidney plasma flow to filtrate
+                    #fractional tissue volumes
+                    Htc                   =NA, # hematocrit
+                    VplasC                =NA, # plasma volume
+                    VartC                 =NA, # arterial blood volume
+                    VvenC                 =NA, # venous blood volume
+                    #skin parameters
+                    SkinThickness         =NA, # skin thickness (cm)
+                    fss                   =NA, # fractional skin storage
+                    hsc                   =NA, # thickness of stratum corneum (cm)
+                    hve                   =NA, # thickness of viable epidermis (cm)
+                    # fat‐fractions for Kscve/Kver:
+                    ffatsc                =NA, # fraction of fat in stratum corneum
+                    ffatve                =NA, # fraction of fat in viable epidermis
+                    ffatepi               =NA, # fraction of fat in epidermis
+                    ffatbl                =NA, # fraction of fat in blood
+                    Kpcell                =NA, # cell membrane partition kinetic konstant (cm/h)
+                    Drinkrate             =NA, # drink rate (mL/kg/d)
+                    MW                    =NA, # molecular weight (g/mol)
+                    logP                  =NA, # logP
+                    VP                    =NA, # vapour pressure
+                    Kpve                  =NA, # partition koefficient for viable epidermis
+                    Kpsc                  =NA, # partition coefficient for stratum corneum
+                    # exposures
+                    Oralexpo              =NA, # oral exposure (ng/kg/d)
+                    Drinkconc             =NA, # drink concentration
+                    Cinh                  =NA, # air concentration
+                    Cdermal               =NA, # for this model, dermal & inhalation exposures are excluded
+                    # kinetics
+                    Tmc                   =NA, # maximum resorption rate
+                    Kt                    =NA, # tubular transport coefficient
+                    kurinec               =NA, # urine clearance coefficient
+                    CLfaeces              =NA, # fecal clearance
+                    # free & partitions
+                    Free                  =NA, # free fraction of plasma
+                    PL                    =NA, # partition coefficient of liver
+                    PF                    =NA, # partition coefficient of adipose tissue
+                    PK                    =NA, # partition coefficient of kidney
+                    PSk                   =NA, # partition coefficient of skin
+                    PR                    =NA, # partition coefficient of rest
+                    PG                    =NA, # partition coefficient of intestine
+                    PLun                  =NA, # partition coefficient of lungs
+                    # maternal/breast milk
+                    maternal              =NA, # maternal milk concentration
+                    PT                    =NA, # placental transfer factor
+                    Ratio                 =NA, # milk concentration/maternal serum concentration during breastfeeding
+                    DECLINE               =NA, # milk decline
+                    Milkconsumption       =NA, # maternal milk consumption (L/d)
+                    # birth fractions
+                    Aartbirth             =NA, # amount of PFAS in arterial blood at birth
+                    Avenbirth             =NA, # amount of PFAS in venous blood at birth
+                    AGbirth               =NA, # amount of PFAS in intestine at birth
+                    ALbirth               =NA, # amount of PFAS in liver at birth
+                    AFbirth               =NA, # amount of PFAS in adipose tissue at birth
+                    AKbirth               =NA, # amount of PFAS in kidney at birth
+                    ALunbirth             =NA, # amount of PFAS in lungs at birth
+                    ASkbirth              =NA, # amount of PFAS in skin at birth
+                    ARbirth               =NA, # amount of PFAS in rest of the body at birth
+                    Afilbirth             =NA, # amount of PFAS in filtrate at birth
+                    Adelaybirth           =NA, # amount of PFAS in  at birth
+                    Aurinebirth           =NA  # amount of PFAS in urine at birth
 ) {
-#-----------------------------------------------------------------------------------------------# 
-# Group model inputs into settings, physiological parameters, and chemical-specific parameters. #
-#-----------------------------------------------------------------------------------------------#
+################################################################################################## 
+#                                                                                                #
+#  Group model inputs into settings, physiological parameters, and chemical-specific parameters  #
+#                                                                                                #
+################################################################################################## 
   
   settings<-list(
     "TSTART"=TSTART,
@@ -215,9 +217,11 @@ joost.model<-function(age                   =NA,
       "Adelaybirth"=Adelaybirth,
       "Aurinebirth"=Aurinebirth))
   
-#------------------------------------------------------------------------------#  
-# Helper functions used to build time-varying inputs and solve the PBPK model. #
-#------------------------------------------------------------------------------#
+#################################################################################  
+#                                                                               #
+#  Helper functions used to build time-varying inputs and solve the PBPK model  #
+#                                                                               #
+#################################################################################  
   
   # 1) build the time‐varying covariates for one individual of any selected PFAS
   #generates a data frame of every time point from TSTART to TSTOP, then computes the content.
@@ -236,16 +240,17 @@ joost.model<-function(age                   =NA,
                        "year"          = ceiling(day/365),
                        "age"           = TIME/365,
                        "Gender"        = Gender,
-                       #"BW"            = BWtime,
                        "SkinTarea"     = 9.1 * ((BWtime * 1000)^0.666))                    # skinTarea later replaced by BSA (body-surface area) 
     
     
     base$Vsc<-physio$fss*base$SkinTarea*physio$hsc/1000
     base$Vve<-physio$fss*base$SkinTarea*physio$hve/1000
     
-#-------------------------------------------------------------------------------------------------------#    
-# Calculate age-dependent body size, organ volumes, and blood flows according to Bosgra et al. (2012)   #
-#-------------------------------------------------------------------------------------------------------#
+#########################################################################################################
+#                                                                                                       #
+#  Calculate age-dependent body size, organ volumes, and blood flows according to Bosgra et al. (2012)  #
+#                                                                                                       #
+#########################################################################################################
     
 # Body-weight growth curves; adult points are added to smooth interpolation.
     originalweight<-BW
@@ -516,12 +521,7 @@ joost.model<-function(age                   =NA,
       dAlun <- QCP*Cven*Free + Qp*Inhalation - QCP*Clun_bl*Free #- Qp*Calv_PFOA
       
       # Skin compartment
-      dASk <- CLcell*Cve/Kver + QSk*(Cart*Free-CSk*FreeSk)    # Rate of change in skin(µg/h) 
-      
-      # Plasma compartment      
-      # dAPlas <- QF*CF*FreeF + (QL+QG)*CL*FreeL + QR*CR*FreeR + QSk*CSk*FreeSk + 
-      #   QK*CK*FreeK - QCP*CA*Free - Qfil*CA*Free 
-      # 
+      dASk <- QSk*(Cart*Free-CSk*FreeSk)    # Rate of change in skin(µg/h) 
       
       # Venous blood (plasma) compartment      
       dAven <- QF*CF*FreeF + (QL+QG)*CL*FreeL + QR*CR*FreeR + QSk*CSk*FreeSk + 
